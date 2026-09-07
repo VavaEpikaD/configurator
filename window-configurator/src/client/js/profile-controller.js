@@ -523,6 +523,9 @@ export function createProfileController({
         groupFiltersContainer.innerHTML = '';
         renderedColorFilters = [];
 
+        const getAccessoryType = profile =>
+            profile.accessoryType || getProfileCatalogEntry(profile)?.accessoryType || null;
+
         const filterDefinitions = [
             {
                 name: windowT(getWindowLocale(), 'profile.filter.frame'),
@@ -551,8 +554,12 @@ export function createProfileController({
                 match: profile => profile.materialKey === 'iso',
             },
             {
-                name: windowT(getWindowLocale(), 'profile.filter.locking'),
-                match: profile => profile.materialKey === 'centralSeal',
+                name: windowT(getWindowLocale(), 'accessory.group.glazing-bridge.label'),
+                match: profile => getAccessoryType(profile) === 'glazing-bridge',
+            },
+            {
+                name: windowT(getWindowLocale(), 'accessory.group.locking-bar.label'),
+                match: profile => getAccessoryType(profile) === 'locking-bar',
             },
         ];
 
