@@ -19,7 +19,7 @@ import {
     getWindowLayoutRequest,
 } from './window-layout-controller.js?v=2';
 import { createLayoutSizingManager } from './layout-sizing-manager.js?v=3';
-import { createSegmentedResizeOptimizer } from './segmented-resize-optimizer.js?v=1';
+import { createSegmentedResizeOptimizer } from './segmented-resize-optimizer.js?v=2';
 import { requireTenantConfiguratorAccess } from '../shared-ui/src/tenantBootstrap.js?v=1';
 import { readShareState } from '../shared-ui/src/shareState.js?v=4';
 

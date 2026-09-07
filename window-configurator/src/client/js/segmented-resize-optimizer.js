@@ -4,15 +4,26 @@ const DEFAULT_EDGE_EXTENSION_M = 0.013;
 const DEFAULT_PROTECTED_END_M = 0.12;
 const EPSILON = 1e-7;
 
-const PROFILE_SOURCES = new Set([
+const LINEAR_PROFILE_SOURCES = new Set([
     'frame',
     'sash',
     'bead',
     'divider',
+    'mullion',
     'trans',
     'trans-gasket',
     'gasket',
+    'seal',
+    'epdm',
+    'insulation',
+    'insulation-bar',
+    'insulation-profile',
+    'locking-bar',
+    'glazing-bridge',
 ]);
+
+const HORIZONTAL_SIDES = new Set(['top', 'bottom', 'horizontal']);
+const VERTICAL_SIDES = new Set(['left', 'right', 'vertical']);
 
 function finite(value, fallback = 0) {
     const number = Number(value);
@@ -138,25 +149,73 @@ function boxFromGeometryWorld(mesh) {
     return geometry.boundingBox.clone().applyMatrix4(mesh.matrixWorld);
 }
 
-function shouldStretchMesh(mesh, worldBox) {
-    if (!mesh?.isMesh || !worldBox) return false;
-    if (mesh.userData?.windowGlassCellId) return true;
-    const source = String(mesh.userData?.componentSelection?.source || '').toLowerCase();
-    if (PROFILE_SOURCES.has(source)) return true;
-
-    const size = worldBox.getSize(new THREE.Vector3());
-    const major = Math.max(size.x, size.y);
-    const minor = Math.max(0.001, Math.min(size.x, size.y));
-    return major >= 0.18 && major / minor >= 2.25;
+function normalizePartToken(value) {
+    return String(value || '').trim().toLowerCase();
 }
 
-function matrixHasPlanarRotation(matrix) {
-    const e = matrix.elements;
-    const sx = Math.hypot(e[0], e[1], e[2]) || 1;
-    const sy = Math.hypot(e[4], e[5], e[6]) || 1;
-    const xOffAxis = Math.hypot(e[1] / sx, e[2] / sx);
-    const yOffAxis = Math.hypot(e[4] / sy, e[6] / sy);
-    return xOffAxis > 1e-4 || yOffAxis > 1e-4;
+
+function matrixHasOutOfPlaneRotation(matrix) {
+    const e = matrix?.elements || [];
+    const sx = Math.hypot(e[0] || 0, e[1] || 0, e[2] || 0) || 1;
+    const sy = Math.hypot(e[4] || 0, e[5] || 0, e[6] || 0) || 1;
+    const sz = Math.hypot(e[8] || 0, e[9] || 0, e[10] || 0) || 1;
+    // XY rotations are safe because the preview operates in world coordinates.
+    // Only a sash/profile tilted toward/away from the camera is unsafe: its
+    // longitudinal direction then contains a real Z component.
+    return Math.abs((e[2] || 0) / sx) > 1e-4
+        || Math.abs((e[6] || 0) / sy) > 1e-4
+        || Math.hypot((e[8] || 0) / sz, (e[9] || 0) / sz) > 1e-4;
+}
+
+function inferStretchAxes(mesh, worldBox) {
+    if (!mesh?.isMesh || !worldBox) return Object.freeze({ x: false, y: false });
+
+    // Glass changes in both dimensions, while all extruded profiles have one
+    // longitudinal axis and should keep their cross-section rigid.
+    if (mesh.userData?.windowGlassCellId) {
+        return Object.freeze({ x: true, y: true });
+    }
+
+    const selection = mesh.userData?.componentSelection || {};
+    const source = normalizePartToken(selection.source);
+    const side = normalizePartToken(selection.side);
+    const orientation = normalizePartToken(
+        mesh.userData?.dividerOrientation
+        || mesh.userData?.transOrientation
+        || mesh.userData?.orientation
+        || side
+    );
+
+    // Mullions/transoms and every component mounted on them inherit the host's
+    // longitudinal direction. This is the important extension beyond the first
+    // frame/sash/glass pass: the profile ends stay rigid at the junctions while
+    // only the straight centre of the mullion/accessory stretches.
+    if (source === 'divider' || source === 'mullion' || source === 'trans' || source === 'trans-gasket') {
+        if (VERTICAL_SIDES.has(orientation)) return Object.freeze({ x: false, y: true });
+        if (HORIZONTAL_SIDES.has(orientation)) return Object.freeze({ x: true, y: false });
+    }
+
+    // Perimeter and sash profiles already carry the physical side in their
+    // component-selection metadata. The same metadata is inherited by mounted
+    // gaskets, beads, insulation profiles and similar long accessories.
+    if (HORIZONTAL_SIDES.has(side)) return Object.freeze({ x: true, y: false });
+    if (VERTICAL_SIDES.has(side)) return Object.freeze({ x: false, y: true });
+
+    const size = worldBox.getSize(new THREE.Vector3());
+    const horizontal = Math.max(0, size.x);
+    const vertical = Math.max(0, size.y);
+    const major = Math.max(horizontal, vertical);
+    const minor = Math.max(0.001, Math.min(horizontal, vertical));
+    const looksLinear = major >= 0.12 && major / minor >= 1.8;
+
+    if (LINEAR_PROFILE_SOURCES.has(source) || looksLinear) {
+        if (horizontal > vertical * 1.12) return Object.freeze({ x: true, y: false });
+        if (vertical > horizontal * 1.12) return Object.freeze({ x: false, y: true });
+    }
+
+    // Handles, caps, screws and compact accessories remain rigid. They are
+    // translated to their new grid position below instead of being distorted.
+    return Object.freeze({ x: false, y: false });
 }
 
 export function createSegmentedResizeOptimizer({
@@ -183,18 +242,19 @@ export function createSegmentedResizeOptimizer({
         mainGroup.updateWorldMatrix(true, true);
 
         const meshes = [];
-        let unsupportedRotatedStretchMesh = false;
+        let unsupportedOutOfPlaneProfile = false;
         mainGroup.traverse(object => {
             if (!object?.isMesh || !object.geometry?.isBufferGeometry) return;
             const position = object.geometry.getAttribute('position');
             if (!position?.array?.length) return;
             const worldBox = boxFromGeometryWorld(object);
-            const stretch = shouldStretchMesh(object, worldBox);
-            if (stretch && matrixHasPlanarRotation(object.matrixWorld)) {
-                unsupportedRotatedStretchMesh = true;
+            if (!worldBox) return;
+            const stretchAxes = inferStretchAxes(object, worldBox);
+            if ((stretchAxes.x || stretchAxes.y) && matrixHasOutOfPlaneRotation(object.matrixWorld)) {
+                unsupportedOutOfPlaneProfile = true;
                 return;
             }
-            const center = worldBox?.getCenter(new THREE.Vector3()) || new THREE.Vector3();
+            const center = worldBox.getCenter(new THREE.Vector3());
             meshes.push({
                 mesh: object,
                 geometry: object.geometry,
@@ -203,11 +263,11 @@ export function createSegmentedResizeOptimizer({
                 matrixWorld: object.matrixWorld.clone(),
                 inverseMatrixWorld: object.matrixWorld.clone().invert(),
                 worldCenter: center,
-                stretch,
+                stretchAxes,
             });
         });
 
-        if (unsupportedRotatedStretchMesh || !meshes.length) {
+        if (unsupportedOutOfPlaneProfile || !meshes.length) {
             clearBaseline();
             return false;
         }
@@ -269,12 +329,10 @@ export function createSegmentedResizeOptimizer({
             const position = record.geometry.getAttribute('position');
             if (!position || position.array.length !== record.basePositions.length) continue;
 
-            let rigidDeltaX = 0;
-            let rigidDeltaY = 0;
-            if (!record.stretch) {
-                rigidDeltaX = warpX(record.worldCenter.x) - record.worldCenter.x;
-                rigidDeltaY = warpY(record.worldCenter.y) - record.worldCenter.y;
-            }
+            const stretchX = record.stretchAxes?.x === true;
+            const stretchY = record.stretchAxes?.y === true;
+            const rigidDeltaX = warpX(record.worldCenter.x) - record.worldCenter.x;
+            const rigidDeltaY = warpY(record.worldCenter.y) - record.worldCenter.y;
 
             for (let index = 0; index < position.count; index += 1) {
                 const offset = index * position.itemSize;
@@ -284,11 +342,17 @@ export function createSegmentedResizeOptimizer({
                     record.basePositions[offset + 2] || 0
                 );
                 world.copy(local).applyMatrix4(record.matrixWorld);
-                if (record.stretch) {
-                    warped.set(warpX(world.x), warpY(world.y), world.z);
-                } else {
-                    warped.set(world.x + rigidDeltaX, world.y + rigidDeltaY, world.z);
-                }
+
+                // Warp only the longitudinal axis of a profile. The transverse
+                // axis is translated rigidly with the part centre, preserving the
+                // exact CAD cross-section for mullions, transoms, gaskets, beads,
+                // insulation bars, locking bars and glazing bridges. Glass is the
+                // one normal case that stretches on both axes.
+                warped.set(
+                    stretchX ? warpX(world.x) : world.x + rigidDeltaX,
+                    stretchY ? warpY(world.y) : world.y + rigidDeltaY,
+                    world.z
+                );
                 warped.applyMatrix4(record.inverseMatrixWorld);
                 position.setXYZ(index, warped.x, warped.y, warped.z);
             }
