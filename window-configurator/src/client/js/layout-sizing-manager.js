@@ -462,6 +462,7 @@ function bindOverallControls({
     widthMaxM,
     heightMaxM,
     onResize,
+    onPreview = null,
 }) {
     if (typeof document === 'undefined') return null;
     const wrapper = document.getElementById('overallWindowSizeControls');
@@ -514,6 +515,16 @@ function bindOverallControls({
         writePair(heightRange, heightValue, dimensions.heightM, minimum.heightM, heightMaxM);
     }
 
+    function preview(axis = null) {
+        if (axis) pendingAxes.add(axis);
+        if (!pendingAxes.size || typeof onPreview !== 'function') return;
+        const payload = {};
+        if (pendingAxes.has('width')) payload.widthM = finite(widthRange.value);
+        if (pendingAxes.has('height')) payload.heightM = finite(heightRange.value);
+        lastRebuildAt = performance.now();
+        onPreview(payload);
+    }
+
     async function flush(axis = null) {
         if (axis) pendingAxes.add(axis);
         if (timer !== null) {
@@ -540,13 +551,13 @@ function bindOverallControls({
 
         const elapsed = performance.now() - lastRebuildAt;
         if (elapsed >= SIZE_REBUILD_INTERVAL_MS && timer === null) {
-            void flush();
+            preview();
             return;
         }
         if (timer === null) {
             timer = setTimeout(() => {
                 timer = null;
-                void flush();
+                preview();
             }, Math.max(0, SIZE_REBUILD_INTERVAL_MS - elapsed));
         }
     }
@@ -605,6 +616,7 @@ export function createLayoutSizingManager({
     heightMaxM = 2.2,
     onResizeStateChange = () => {},
     onAfterChange = () => {},
+    onPreviewStateChange = () => {},
 } = {}) {
     if (!controller) throw new Error('A window layout controller is required.');
 
@@ -702,6 +714,109 @@ export function createLayoutSizingManager({
         } finally {
             onResizeStateChange(false);
         }
+    }
+
+    function computeWindowPreviewState(cellId, size = {}) {
+        let nextState = getState();
+        const previewTrackFlags = {
+            x: new Set(modifiedTrackKeys.x),
+            y: new Set(modifiedTrackKeys.y),
+        };
+
+        const resizeAxis = (axis, requestedValue) => {
+            if (!hasFiniteValue(requestedValue)) return;
+            const before = nextState;
+            const cell = before.windows.find(candidate => String(candidate.id) === String(cellId));
+            if (!cell) return;
+
+            const currentActual = getCellActualAxisSize(before, cell, axis, extension);
+            const requested = Math.max(MIN_WINDOW_M, Number(requestedValue));
+            if (nearlyEqual(currentActual, requested, 1e-7)) return;
+
+            const allTracks = before.gridTracks?.[axis] || [];
+            const allTrackKeys = new Set(allTracks.map(trackKey));
+            const selectedTracks = tracksForCell(before, cell, axis);
+            const selectedKeys = new Set(selectedTracks.map(trackKey));
+            const outsideKeys = new Set(
+                [...allTrackKeys].filter(key => !selectedKeys.has(key))
+            );
+            const modifiedTracks = previewTrackFlags[axis];
+            for (const key of [...modifiedTracks]) {
+                if (!allTrackKeys.has(key)) modifiedTracks.delete(key);
+            }
+
+            const selectedHasUnmodifiedTrack = [...selectedKeys].some(
+                key => !modifiedTracks.has(key)
+            );
+            const allOutsideTracksModified = outsideKeys.size > 0
+                && [...outsideKeys].every(key => modifiedTracks.has(key));
+            const startsNewCycle = selectedHasUnmodifiedTrack && allOutsideTracksModified;
+
+            const lockedKeys = new Set();
+            if (!startsNewCycle) {
+                for (const key of modifiedTracks) {
+                    if (!selectedKeys.has(key)) lockedKeys.add(key);
+                }
+            }
+
+            const proposal = findBestIndividualAxisProposal(
+                before,
+                String(cellId),
+                axis,
+                requested,
+                extension,
+                lockedKeys
+            );
+            nextState = proposal.state;
+            if (startsNewCycle) modifiedTracks.clear();
+            for (const key of selectedKeys) modifiedTracks.add(key);
+        };
+
+        resizeAxis('x', size.widthM);
+        resizeAxis('y', size.heightM);
+        return nextState;
+    }
+
+    function computeOverallPreviewState(size = {}) {
+        let nextState = getState();
+        const minimum = getMinimumDimensions();
+
+        const resizeAxis = (axis, requestedValue, minimumValue) => {
+            if (!hasFiniteValue(requestedValue)) return;
+            const tracks = nextState.gridTracks?.[axis] || [];
+            if (!tracks.length) return;
+            const requested = Math.max(minimumValue, Number(requestedValue));
+            const targetStructural = Math.max(
+                MIN_TRACK_M * tracks.length,
+                requested - extension * 2
+            );
+            const sizes = distributeTracksEquallyInMillimetres(
+                tracks,
+                targetStructural,
+                { allTracks: tracks, edgeExtensionM: extension }
+            );
+            const candidate = cloneState(nextState);
+            candidate.gridTracks[axis] = applySizeMap(tracks, sizes);
+            if (stateMeetsMinimumWindowSize(candidate, axis, MIN_WINDOW_M, extension)) {
+                nextState = candidate;
+            }
+        };
+
+        resizeAxis('x', size.widthM, minimum.widthM);
+        resizeAxis('y', size.heightM, minimum.heightM);
+        return nextState;
+    }
+
+    function previewWindow(cellId, size = {}) {
+        const state = computeWindowPreviewState(cellId, size);
+        onPreviewStateChange(state, { kind: 'window', cellId: String(cellId) });
+        return state;
+    }
+
+    function previewOverall(size = {}) {
+        const state = computeOverallPreviewState(size);
+        onPreviewStateChange(state, { kind: 'overall' });
+        return state;
     }
 
     async function resizeWindowNow(cellId, size = {}) {
@@ -891,6 +1006,7 @@ export function createLayoutSizingManager({
         widthMaxM,
         heightMaxM,
         onResize: resizeOverall,
+        onPreview: previewOverall,
     });
 
     return {
@@ -907,6 +1023,8 @@ export function createLayoutSizingManager({
         isWindowWidthModified: cellId => isWindowAxisModified(cellId, 'x'),
         isWindowHeightModified: cellId => isWindowAxisModified(cellId, 'y'),
         getWindowModifiedFlags,
+        previewWindow,
+        previewOverall,
         resizeWindow,
         resizeOverall,
         addWindow(cellId, direction, type, options = {}) {

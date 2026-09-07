@@ -6,7 +6,7 @@ import {
 } from './config.js';
 import { createComponentSelection } from './component-selection.js';
 import { createSceneContext } from './scene.js';
-import { initializeUIControls } from './ui-controls.js?v=3';
+import { initializeUIControls } from './ui-controls.js?v=4';
 import { createWindowBuilder } from './window-builder.js';
 import { createMaterialManager } from './materials.js';
 import { createARController } from './ar-controller.js';
@@ -18,7 +18,8 @@ import {
     createWindowLayoutController,
     getWindowLayoutRequest,
 } from './window-layout-controller.js?v=2';
-import { createLayoutSizingManager } from './layout-sizing-manager.js?v=2';
+import { createLayoutSizingManager } from './layout-sizing-manager.js?v=3';
+import { createSegmentedResizeOptimizer } from './segmented-resize-optimizer.js?v=1';
 import { requireTenantConfiguratorAccess } from '../shared-ui/src/tenantBootstrap.js?v=1';
 import { readShareState } from '../shared-ui/src/shareState.js?v=4';
 
@@ -162,6 +163,7 @@ const selectedWindowOpenRight = document.getElementById('selectedWindowOpenRight
 const selectedWindowUnmerge = document.getElementById('selectedWindowUnmerge');
 const selectedWindowDelete = document.getElementById('selectedWindowDelete');
 const selectedWindowClose = document.getElementById('selectedWindowClose');
+const selectedWindowModifiedBadge = document.getElementById('selectedWindowModifiedBadge');
 const baseWidthMax = Number(widthInput?.max) || WINDOW_WIDTH_MAX_M;
 const baseHeightMax = Number(heightInput?.max) || WINDOW_HEIGHT_MAX_M;
 
@@ -215,6 +217,15 @@ function syncSelectedWindowSizeControls() {
     return true;
 }
 
+function syncSelectedWindowModifiedBadge(cellId = selectedWindowCellId) {
+    if (!selectedWindowModifiedBadge) return false;
+    const modified = Boolean(
+        cellId && layoutSizingManager?.isWindowModified?.(cellId)
+    );
+    selectedWindowModifiedBadge.hidden = !modified;
+    return modified;
+}
+
 function syncSelectedWindowPanel() {
     if (!selectedWindowPanel) return false;
     const snapshot = windowLayoutController?.getConfigurationSnapshot?.();
@@ -226,9 +237,11 @@ function syncSelectedWindowPanel() {
 
     if (!cell) {
         selectedWindowPanel.hidden = true;
+        if (selectedWindowModifiedBadge) selectedWindowModifiedBadge.hidden = true;
         return false;
     }
 
+    syncSelectedWindowModifiedBadge(cell.id);
     const locale = getWindowLocale();
     const isSash = cell.type === SASH_WINDOW_TYPE;
     const targetType = isSash ? FIXED_WINDOW_TYPE : SASH_WINDOW_TYPE;
@@ -391,6 +404,7 @@ let windowLayoutController = null;
 let windowLayoutOverlay = null;
 let arController = null;
 let windowSummaryController = null;
+let segmentedResizeOptimizer = null;
 let isWindowSizeBuildInProgress = false;
 let deferredFabricationSnapshot = null;
 let deferredSummaryTimer = null;
@@ -645,6 +659,10 @@ layoutSizingManager = createLayoutSizingManager({
     },
     onAfterChange: () => {
         syncSelectedWindowSizeControls();
+        syncSelectedWindowModifiedBadge();
+    },
+    onPreviewStateChange: state => {
+        segmentedResizeOptimizer?.previewState(state);
     },
 });
 
@@ -764,6 +782,13 @@ const {
     buildWindow,
     applyCurrentPoseInstantly,
 } = windowBuilder;
+
+segmentedResizeOptimizer = createSegmentedResizeOptimizer({
+    mainGroup,
+    getWindowState: () => windowLayoutController?.getWindowState?.(),
+    getIsExploded: () => windowBuilder?.getIsExploded?.() || false,
+    edgeExtensionM: DEFAULT_WINDOW_EDGE_EXTENSION_M,
+});
 
 windowSummaryController = createWindowSummaryController({
     getProfileSelection: () => profileSelectionController?.getConfigurationSnapshot() || {},
@@ -1033,6 +1058,10 @@ initializeUIControls({
     renderer,
     componentSelection,
     buildWindow,
+    onWindowSizePreview: ({ widthM, heightM }) => {
+        if (!selectedWindowCellId) return;
+        layoutSizingManager?.previewWindow(selectedWindowCellId, { widthM, heightM });
+    },
     onWindowSizeChange: async ({ widthM, heightM }) => {
         if (!selectedWindowCellId) return;
 

@@ -46,6 +46,7 @@ export function initializeUIControls({
     componentSelection,
     buildWindow,
     onWindowSizeChange = null,
+    onWindowSizePreview = null,
     syncModeButtons,
     setExploded,
     setSelectedHandleSide,
@@ -73,6 +74,7 @@ export function initializeUIControls({
     let lastSizeRebuildAt = 0;
     let sizeChangeInFlight = false;
     let flushSizeChangeAfterFlight = false;
+    let pendingSizePreviewFrame = null;
     const pendingSizeAxes = new Set();
 
     const widthValueInput = document.getElementById('valWidth');
@@ -141,6 +143,26 @@ export function initializeUIControls({
             : Number.parseFloat(heightInput.value);
     }
 
+    function emitWindowSizePreview(axis) {
+        queueSizeAxis(axis);
+        updateSizeLabelsOnly();
+        if (typeof onWindowSizePreview !== 'function') return;
+        if (pendingSizePreviewFrame !== null) return;
+
+        pendingSizePreviewFrame = requestAnimationFrame(() => {
+            pendingSizePreviewFrame = null;
+            const payload = {};
+            pendingSizeAxes.forEach(pendingAxis => {
+                const value = getSizeAxisValue(pendingAxis);
+                if (!Number.isFinite(value)) return;
+                payload[pendingAxis === 'width' ? 'widthM' : 'heightM'] = value;
+            });
+            // Preview does not consume the axes; the final change event still
+            // commits the latest values through the exact sizing path.
+            if (Object.keys(payload).length) onWindowSizePreview(payload);
+        });
+    }
+
     async function emitPendingWindowSizeChange() {
         if (sizeChangeInFlight) {
             flushSizeChangeAfterFlight = true;
@@ -185,31 +207,20 @@ export function initializeUIControls({
             pendingWindowRebuildTimer = null;
         }
 
+        if (pendingSizePreviewFrame !== null) {
+            cancelAnimationFrame(pendingSizePreviewFrame);
+            pendingSizePreviewFrame = null;
+        }
         lastSizeRebuildAt = performance.now();
         void emitPendingWindowSizeChange();
     }
 
-    function triggerWindowRebuild(axis) {
-        queueSizeAxis(axis);
-        updateSizeLabelsOnly();
-
-        const elapsed = performance.now() - lastSizeRebuildAt;
-        if (elapsed >= SIZE_REBUILD_INTERVAL_MS && pendingWindowRebuildTimer === null) {
-            flushWindowSizeRebuild();
-            return;
-        }
-
-        if (pendingWindowRebuildTimer === null) {
-            pendingWindowRebuildTimer = setTimeout(() => {
-                pendingWindowRebuildTimer = null;
-                lastSizeRebuildAt = performance.now();
-                void emitPendingWindowSizeChange();
-            }, Math.max(0, SIZE_REBUILD_INTERVAL_MS - elapsed));
-        }
+    function triggerWindowPreview(axis) {
+        emitWindowSizePreview(axis);
     }
 
-    widthInput.addEventListener('input', () => triggerWindowRebuild('width'));
-    heightInput.addEventListener('input', () => triggerWindowRebuild('height'));
+    widthInput.addEventListener('input', () => triggerWindowPreview('width'));
+    heightInput.addEventListener('input', () => triggerWindowPreview('height'));
     widthInput.addEventListener('change', () => flushWindowSizeRebuild('width'));
     heightInput.addEventListener('change', () => flushWindowSizeRebuild('height'));
 
