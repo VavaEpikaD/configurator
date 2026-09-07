@@ -6,7 +6,7 @@ import {
 } from './config.js';
 import { createComponentSelection } from './component-selection.js';
 import { createSceneContext } from './scene.js';
-import { initializeUIControls } from './ui-controls.js?v=2';
+import { initializeUIControls } from './ui-controls.js?v=3';
 import { createWindowBuilder } from './window-builder.js';
 import { createMaterialManager } from './materials.js';
 import { createARController } from './ar-controller.js';
@@ -381,6 +381,88 @@ let windowLayoutController = null;
 let windowLayoutOverlay = null;
 let arController = null;
 let windowSummaryController = null;
+let isWindowSizeBuildInProgress = false;
+let deferredFabricationSnapshot = null;
+let deferredSummaryTimer = null;
+let topologyStableLayoutSourceSignature = null;
+let topologyStableLayoutState = null;
+const RESIZE_SUMMARY_DEBOUNCE_MS = 180;
+
+function getTopologyStableLayoutSignature(snapshot) {
+    const state = snapshot?.windowState;
+    if (!state) return snapshot?.layoutId || 'single';
+
+    // Physical resizing changes only gridTracks.sizeM. The topology-facing UI
+    // and the detached 10 cm section samples depend on the structure itself,
+    // not on those physical dimensions. Keep a separate signature that changes
+    // for add/merge/type/trans/profile edits but stays stable while dragging a
+    // width/height control.
+    return `topology:${JSON.stringify({
+        layoutId: snapshot.layoutId,
+        dividerProfileId: snapshot.dividerProfileId,
+        transProfileId: snapshot.transProfileId,
+        windows: state.windows || [],
+        mergeGuides: state.mergeGuides || [],
+        transConnections: state.transConnections || [],
+    })}`;
+}
+
+function getTopologyStableLayoutState() {
+    const snapshot = windowLayoutController?.getConfigurationSnapshot();
+    if (!snapshot) {
+        return {
+            layoutId: 'single',
+            dividerOrientation: null,
+            dividerProfileId: null,
+        };
+    }
+
+    if (
+        topologyStableLayoutState
+        && topologyStableLayoutSourceSignature === snapshot.layoutSignature
+    ) {
+        return topologyStableLayoutState;
+    }
+
+    topologyStableLayoutSourceSignature = snapshot.layoutSignature;
+    topologyStableLayoutState = {
+        ...snapshot,
+        layoutSignature: getTopologyStableLayoutSignature(snapshot),
+    };
+    return topologyStableLayoutState;
+}
+
+function flushDeferredWindowSummary() {
+    if (deferredSummaryTimer !== null) {
+        clearTimeout(deferredSummaryTimer);
+        deferredSummaryTimer = null;
+    }
+    if (!deferredFabricationSnapshot || !windowSummaryController) return;
+    const snapshot = deferredFabricationSnapshot;
+    deferredFabricationSnapshot = null;
+    windowSummaryController.update(snapshot);
+}
+
+function queueWindowSummaryUpdate(snapshot) {
+    if (!snapshot) return;
+
+    if (!isWindowSizeBuildInProgress) {
+        deferredFabricationSnapshot = null;
+        if (deferredSummaryTimer !== null) {
+            clearTimeout(deferredSummaryTimer);
+            deferredSummaryTimer = null;
+        }
+        windowSummaryController?.update(snapshot);
+        return;
+    }
+
+    deferredFabricationSnapshot = snapshot;
+    if (deferredSummaryTimer !== null) clearTimeout(deferredSummaryTimer);
+    deferredSummaryTimer = setTimeout(
+        flushDeferredWindowSummary,
+        RESIZE_SUMMARY_DEBOUNCE_MS
+    );
+}
 
 const componentSelection = createComponentSelection({
     renderer,
@@ -502,7 +584,15 @@ windowLayoutController = createWindowLayoutController({
     initialSelection: requestedWindowLayoutSelection,
     initialWidthM: Number(widthInput.value) || 0.6,
     initialHeightM: Number(heightInput.value) || 0.9,
-    onLayoutChange: async (layoutSelection, { reloadDivider = false, reloadTrans = false, topologyOnly = false } = {}) => {
+    onLayoutChange: async (
+        layoutSelection,
+        {
+            reloadDivider = false,
+            reloadTrans = false,
+            topologyOnly = false,
+            sizeOnly = false,
+        } = {}
+    ) => {
         profileSelectionController?.markCustomCadAssembly();
         if (
             topologyOnly
@@ -518,14 +608,16 @@ windowLayoutController = createWindowLayoutController({
             )
         ) {
             windowBuilder?.buildWindow();
-            syncSelectedWindowSelectionUI();
+            if (sizeOnly) syncSelectedWindowSizeControls();
+            else syncSelectedWindowSelectionUI();
             return;
         }
         await profileController.loadProfileSelection({
             ...profileSelectionController.getConfigurationSnapshot(),
             ...layoutSelection,
         });
-        syncSelectedWindowSelectionUI();
+        if (sizeOnly) syncSelectedWindowSizeControls();
+        else syncSelectedWindowSelectionUI();
     },
 });
 
@@ -621,21 +713,19 @@ windowBuilder = createWindowBuilder({
     getActiveGasketCode,
     getProfileComponentNumber,
     getEffectiveProfileBbox,
-    updateComponentPictures,
+    updateComponentPictures: () => {
+        if (!isWindowSizeBuildInProgress) updateComponentPictures();
+    },
     getFinishState: materialManager.getFinishState,
     getSelectedHandleSide: () => selectedHandleSide,
     onGlassClick: ({ cellId }) => {
         selectWindowCell(cellId);
     },
-    onFabricationSnapshot: snapshot => windowSummaryController?.update(snapshot),
+    onFabricationSnapshot: queueWindowSummaryUpdate,
     isProfileEnabled: accessoryController.isProfileEnabled,
     isProfileGroupVisible,
     canPlaceProfileOnSide: accessoryController.canPlaceProfileOnSide,
-    getWindowLayoutState: () => windowLayoutController?.getConfigurationSnapshot() || {
-        layoutId: 'single',
-        dividerOrientation: null,
-        dividerProfileId: null,
-    },
+    getWindowLayoutState: getTopologyStableLayoutState,
 });
 
 const {
@@ -652,12 +742,13 @@ windowSummaryController = createWindowSummaryController({
     getActiveGlazingBeadCode,
     getAccessorySelection: () => accessoryController?.getConfigurationSnapshot() || {},
 });
+flushDeferredWindowSummary();
 
 windowLayoutOverlay = createWindowLayoutOverlay({
     container: document.getElementById('canvas-container'),
     camera,
     mainGroup,
-    getWindowLayoutState: () => windowLayoutController?.getConfigurationSnapshot(),
+    getWindowLayoutState: getTopologyStableLayoutState,
     getWidth: () => Number(widthInput?.value) || 1,
     getHeight: () => Number(heightInput?.value) || 1,
     getSelectedHandleSide: () => selectedHandleSide,
@@ -909,11 +1000,36 @@ initializeUIControls({
     renderer,
     componentSelection,
     buildWindow,
-    onWindowSizeChange: ({ widthM, heightM }) => {
+    onWindowSizeChange: async ({ widthM, heightM }) => {
         if (!selectedWindowCellId) return;
-        windowLayoutController.setWindowSize(selectedWindowCellId, { widthM, heightM })
-            .then(() => syncSelectedWindowSelectionUI())
-            .catch(error => console.error('Unable to resize selected window:', error));
+
+        const currentSize = getWindowActualSizeInState(
+            windowLayoutController.getWindowState(),
+            selectedWindowCellId
+        );
+        const nextSize = {};
+        if (
+            Number.isFinite(widthM)
+            && (!currentSize || Math.abs(Number(currentSize.widthM) - widthM) > 1e-7)
+        ) {
+            nextSize.widthM = widthM;
+        }
+        if (
+            Number.isFinite(heightM)
+            && (!currentSize || Math.abs(Number(currentSize.heightM) - heightM) > 1e-7)
+        ) {
+            nextSize.heightM = heightM;
+        }
+        if (!Object.keys(nextSize).length) return;
+
+        isWindowSizeBuildInProgress = true;
+        try {
+            await windowLayoutController.setWindowSize(selectedWindowCellId, nextSize);
+        } catch (error) {
+            console.error('Unable to resize selected window:', error);
+        } finally {
+            isWindowSizeBuildInProgress = false;
+        }
     },
     syncModeButtons,
     setExploded: (value) => {

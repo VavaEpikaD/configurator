@@ -1,7 +1,7 @@
 import { getWindowLocale, windowT } from './i18n.js';
 import { WINDOW_WIDTH_MAX_M } from './config.js';
 
-const SIZE_REBUILD_INTERVAL_MS = 70;
+const SIZE_REBUILD_INTERVAL_MS = 80;
 
 function setSidebarCollapsed(collapsed) {
     const controlsPanel = document.getElementById('controls');
@@ -71,6 +71,8 @@ export function initializeUIControls({
 
     let pendingWindowRebuildTimer = null;
     let lastSizeRebuildAt = 0;
+    let sizeChangeInFlight = false;
+    let flushSizeChangeAfterFlight = false;
     const pendingSizeAxes = new Set();
 
     const widthValueInput = document.getElementById('valWidth');
@@ -133,16 +135,46 @@ export function initializeUIControls({
         if (axis === 'width' || axis === 'height') pendingSizeAxes.add(axis);
     }
 
-    function emitPendingWindowSizeChange() {
+    function getSizeAxisValue(axis) {
+        return axis === 'width'
+            ? Number.parseFloat(widthInput.value)
+            : Number.parseFloat(heightInput.value);
+    }
+
+    async function emitPendingWindowSizeChange() {
+        if (sizeChangeInFlight) {
+            flushSizeChangeAfterFlight = true;
+            return;
+        }
+
         const payload = {};
-        if (pendingSizeAxes.has('width')) payload.widthM = Number.parseFloat(widthInput.value);
-        if (pendingSizeAxes.has('height')) payload.heightM = Number.parseFloat(heightInput.value);
+        pendingSizeAxes.forEach(axis => {
+            const value = getSizeAxisValue(axis);
+            if (!Number.isFinite(value)) return;
+            payload[axis === 'width' ? 'widthM' : 'heightM'] = value;
+        });
         pendingSizeAxes.clear();
 
-        if (typeof onWindowSizeChange === 'function') {
-            onWindowSizeChange(payload);
-        } else {
+        if (!Object.keys(payload).length) return;
+
+        if (typeof onWindowSizeChange !== 'function') {
             buildWindow();
+            return;
+        }
+
+        sizeChangeInFlight = true;
+        try {
+            await onWindowSizeChange(payload);
+        } catch (error) {
+            console.error('Unable to resize selected window:', error);
+        } finally {
+            sizeChangeInFlight = false;
+            if (pendingSizeAxes.size || flushSizeChangeAfterFlight) {
+                flushSizeChangeAfterFlight = false;
+                requestAnimationFrame(() => {
+                    void emitPendingWindowSizeChange();
+                });
+            }
         }
     }
 
@@ -154,7 +186,7 @@ export function initializeUIControls({
         }
 
         lastSizeRebuildAt = performance.now();
-        emitPendingWindowSizeChange();
+        void emitPendingWindowSizeChange();
     }
 
     function triggerWindowRebuild(axis) {
@@ -171,7 +203,7 @@ export function initializeUIControls({
             pendingWindowRebuildTimer = setTimeout(() => {
                 pendingWindowRebuildTimer = null;
                 lastSizeRebuildAt = performance.now();
-                emitPendingWindowSizeChange();
+                void emitPendingWindowSizeChange();
             }, Math.max(0, SIZE_REBUILD_INTERVAL_MS - elapsed));
         }
     }
@@ -328,9 +360,14 @@ export function initializeUIControls({
 
     document.getElementById('ar-start-button').addEventListener('click', startAR);
 
+    let pendingViewportResizeFrame = null;
     window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        if (pendingViewportResizeFrame !== null) return;
+        pendingViewportResizeFrame = requestAnimationFrame(() => {
+            pendingViewportResizeFrame = null;
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     });
 }
