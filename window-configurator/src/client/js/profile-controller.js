@@ -25,7 +25,11 @@ import {
     isStandaloneProfileGeometryRegistered,
 } from './profile-catalog.js';
 import { transformCadPoint } from './profile-coordinate-transform.js';
-import { getDividerConnectionVariantKey } from './window-layout-state.js';
+import {
+    FIXED_WINDOW_TYPE,
+    SASH_WINDOW_TYPE,
+    getDividerConnectionVariantKey,
+} from './window-layout-state.js';
 import { getWindowLocale, windowT } from './i18n.js';
 
 export function createProfileController({
@@ -501,9 +505,128 @@ export function createProfileController({
         });
     }
 
+    function getAccessoryType(profile) {
+        return profile?.accessoryType
+            || getProfileCatalogEntry(profile)?.accessoryType
+            || null;
+    }
+
+    function getComponentType(profile) {
+        return profile?.componentType
+            || getProfileCatalogEntry(profile)?.componentType
+            || null;
+    }
+
+    function isSealProfile(profile) {
+        const accessoryType = getAccessoryType(profile);
+        if (
+            accessoryType === 'centre-gasket'
+            || accessoryType === 'joint-sealing-piece'
+            || getComponentType(profile) === 'seal'
+        ) {
+            return true;
+        }
+
+        // Legacy centre-seal geometry is sometimes identified only by the CAD
+        // material classification. Keep the locking bar and glazing bridge out
+        // of this bucket even though older drawings put them on the same layer.
+        return profile?.materialKey === 'centralSeal'
+            && accessoryType !== 'locking-bar'
+            && accessoryType !== 'glazing-bridge';
+    }
+
+    function isGasketProfile(profile) {
+        if (isSealProfile(profile)) return false;
+
+        const accessoryType = getAccessoryType(profile);
+        // 200988 can inherit the same legacy EPDM/#CCB266 CAD classification as
+        // nearby gaskets, but it is a distinct insulation profile and must have
+        // its own Component Types toggle.
+        if (accessoryType === 'insulation-profile') return false;
+
+        return profile?.materialKey === 'epdm'
+            || getComponentType(profile) === 'gasket'
+            || accessoryType === 'rebate-gasket'
+            || accessoryType === 'glass-gasket'
+            || accessoryType === 'glazing-bead-gasket'
+            // Some legacy gasket occurrences arrive from connection CAD without
+            // a catalog accessory type. #CCB266 is their authored gasket colour.
+            || String(profile?.baseCadColor || '').toLowerCase() === '#ccb266';
+    }
+
+    function getCurrentConfigurationContext() {
+        const geometry = getWindowBuilder()?.getEditableTopologyGeometry?.();
+        const cells = Array.isArray(geometry?.cells) ? geometry.cells : [];
+        if (!cells.length) return null;
+
+        return {
+            hasSash: cells.some(cell => cell?.cellType === SASH_WINDOW_TYPE),
+            hasFixed: cells.some(cell => cell?.cellType === FIXED_WINDOW_TYPE),
+            hasDivider: Boolean(geometry?.dividerSegments?.length),
+            hasTrans: Boolean(geometry?.transSegments?.length),
+        };
+    }
+
+    function isProfilePresentInConfiguration(profile, context = getCurrentConfigurationContext()) {
+        if (!context) return true;
+
+        const accessoryType = getAccessoryType(profile);
+        const catalogEntry = getProfileCatalogEntry(profile);
+        const attachment = catalogEntry?.attachment || null;
+
+        switch (accessoryType) {
+            case 'locking-bar':
+            case 'centre-gasket':
+            case 'insulation-profile':
+            case 'rebate-gasket':
+            case 'glazing-bridge':
+                return context.hasSash;
+            case 'joint-sealing-piece':
+                return context.hasDivider || context.hasTrans;
+            case 'trans-end-cap':
+                return context.hasTrans;
+            case 'glass-gasket':
+            case 'glazing-bead-gasket':
+            case 'glazing-bead':
+            case 'glazing-rebate-insulation':
+                return context.hasSash || context.hasFixed;
+            case 'drainage-cap':
+                return true;
+            default:
+                break;
+        }
+
+        const connectionCellTypes = attachment?.connectionCellTypes || [];
+        if (
+            connectionCellTypes.length
+            && connectionCellTypes.every(type => type === SASH_WINDOW_TYPE)
+        ) {
+            return context.hasSash;
+        }
+
+        const hostProfileClasses = attachment?.hostProfileClasses || [];
+        if (
+            hostProfileClasses.length
+            && hostProfileClasses.every(profileClass => profileClass === 'sash')
+        ) {
+            return context.hasSash;
+        }
+
+        const group = getProfileGroup(profile);
+        if (group === 'sash') return context.hasSash;
+        if (group === 'divider') return context.hasDivider;
+        if (group === 'trans') return context.hasTrans;
+        if (group === 'bead') return context.hasSash || context.hasFixed;
+        return true;
+    }
+
     function updateColorFilterToggles() {
+        const configurationContext = getCurrentConfigurationContext();
         renderedColorFilters.forEach(item => {
-            const matchingProfiles = profilesData.filter(profile => item.filter.match(profile));
+            const matchingProfiles = profilesData.filter(profile =>
+                isProfilePresentInConfiguration(profile, configurationContext)
+                && item.filter.match(profile)
+            );
             if (matchingProfiles.length === 0) return;
 
             const allActive = matchingProfiles.every(profile => {
@@ -523,8 +646,9 @@ export function createProfileController({
         groupFiltersContainer.innerHTML = '';
         renderedColorFilters = [];
 
-        const getAccessoryType = profile =>
-            profile.accessoryType || getProfileCatalogEntry(profile)?.accessoryType || null;
+        const configurationContext = getCurrentConfigurationContext();
+        const isPresent = profile =>
+            isProfilePresentInConfiguration(profile, configurationContext);
 
         const filterDefinitions = [
             {
@@ -534,12 +658,13 @@ export function createProfileController({
             },
             {
                 name: windowT(getWindowLocale(), 'profile.filter.sash'),
+                available: context => !context || context.hasSash,
                 match: profile => profile.materialKey === 'alu'
                     && ['sash', 'bead'].includes(getProfileGroup(profile)),
             },
             {
-                name: windowT(getWindowLocale(), 'profile.filter.gaskets'),
-                match: profile => profile.materialKey === 'epdm',
+                name: 'Seals',
+                match: profile => isSealProfile(profile),
             },
             {
                 name: windowT(getWindowLocale(), 'profile.filter.drainage'),
@@ -551,7 +676,12 @@ export function createProfileController({
             },
             {
                 name: windowT(getWindowLocale(), 'profile.filter.bar'),
-                match: profile => profile.materialKey === 'iso',
+                match: profile => profile.materialKey === 'iso'
+                    && getAccessoryType(profile) !== 'insulation-profile',
+            },
+            {
+                name: windowT(getWindowLocale(), 'accessory.group.insulation-profile.label'),
+                match: profile => getAccessoryType(profile) === 'insulation-profile',
             },
             {
                 name: windowT(getWindowLocale(), 'accessory.group.glazing-bridge.label'),
@@ -561,20 +691,30 @@ export function createProfileController({
                 name: windowT(getWindowLocale(), 'accessory.group.locking-bar.label'),
                 match: profile => getAccessoryType(profile) === 'locking-bar',
             },
+            {
+                name: 'Gaskets',
+                match: profile => isGasketProfile(profile),
+            },
         ];
 
         const activeFilters = filterDefinitions.filter(definition =>
-            profilesData.some(definition.match)
+            (definition.available?.(configurationContext) ?? true)
+            && profilesData.some(profile => isPresent(profile) && definition.match(profile))
         );
 
         const unmatchedProfiles = profilesData.filter(profile =>
-            !filterDefinitions.some(definition => definition.match(profile))
+            isPresent(profile)
+            && !filterDefinitions.some(definition => definition.match(profile))
         );
-        const unmatchedColors = [...new Set(unmatchedProfiles.map(profile => profile.baseCadColor))];
+        const unmatchedColors = [...new Set(
+            unmatchedProfiles
+                .map(profile => profile.baseCadColor)
+                .filter(Boolean)
+        )];
 
         unmatchedColors.forEach(hex => {
             activeFilters.push({
-                name: hex.toUpperCase(),
+                name: String(hex).toUpperCase(),
                 match: profile => profile.baseCadColor === hex,
             });
         });
@@ -584,7 +724,9 @@ export function createProfileController({
             row.className = 'category-filter-row';
             row.style.cssText = 'display: flex; align-items: center; justify-content: space-between; font-size: 12px; background: rgba(30, 41, 59, 0.4); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);';
 
-            const matchingProfiles = profilesData.filter(profile => filter.match(profile));
+            const matchingProfiles = profilesData.filter(profile =>
+                isPresent(profile) && filter.match(profile)
+            );
             const indicatorBackground = makeColourIndicatorBackground(matchingProfiles);
             const allActive = matchingProfiles.every(profile => {
                 const checkbox = document.getElementById(`toggle_${profile.index}`);
@@ -612,7 +754,7 @@ export function createProfileController({
                 const isChecked = event.target.checked;
                 const matchingProfileStates = [];
                 profilesData.forEach(profile => {
-                    if (filter.match(profile)) {
+                    if (isPresent(profile) && filter.match(profile)) {
                         const checkbox = document.getElementById(`toggle_${profile.index}`);
                         if (checkbox) checkbox.checked = isChecked;
                         matchingProfileStates.push({ profile, enabled: isChecked });
@@ -1212,8 +1354,8 @@ export function createProfileController({
                 sectionSampleProfilesData
             );
             renderPartToggles();
-            renderGroupFilters();
             buildWindow();
+            renderGroupFilters();
             await forceSceneRender();
             loadSucceeded = true;
             window.CONFIGURATOR_READY = true;
@@ -1251,8 +1393,8 @@ export function createProfileController({
             profile.material = getMaterialForProfile(profile);
         });
         renderPartToggles();
-        renderGroupFilters();
         buildWindow();
+        renderGroupFilters();
         await forceSceneRender();
     }
 
@@ -1262,6 +1404,15 @@ export function createProfileController({
             renderPartToggles();
             renderGroupFilters();
         }
+    });
+
+    let groupFilterRefreshFrame = null;
+    globalThis.window?.addEventListener('window-pricing-updated', () => {
+        if (!profilesData.length || groupFilterRefreshFrame !== null) return;
+        groupFilterRefreshFrame = requestAnimationFrame(() => {
+            groupFilterRefreshFrame = null;
+            renderGroupFilters();
+        });
     });
 
     return {
