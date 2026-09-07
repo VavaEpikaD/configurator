@@ -20,6 +20,18 @@
     <link rel="stylesheet" href="./shared-ui/styles/standalone.css?v=23">
     <link rel="stylesheet" href="./shared-shell.css?v=4">
     <link rel="stylesheet" href="./css/styles.css?v=3">
+    <style>
+        /* Keep selected-window dimension values visually consistent with the
+           overall-layout values in the sidebar. */
+        #selected-window-panel .selected-window-size-value input[type="number"] {
+            background: #f5f7f8 !important;
+            padding: 1px 4px !important;
+        }
+
+        body.shared-ui-dark-mode #selected-window-panel .selected-window-size-value input[type="number"] {
+            background: rgba(255, 255, 255, 0.08) !important;
+        }
+    </style>
 
     <script type="importmap">
     {
@@ -144,6 +156,47 @@
                             <option value="575830">575830</option>
                         </select>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="overallWindowSizeControls" class="overall-layout-size-controls"
+            style="margin: 2px 0 18px;">
+            <label>Overall layout size</label>
+
+            <div class="window-size-control selected-window-size-control overall-window-size-control"
+                id="overallWindowWidthControl" style="margin-bottom: 10px;">
+                <div class="selected-window-size-heading">
+                    <span class="selected-window-size-name">Width:</span>
+                    <span class="selected-window-size-value">
+                        <input type="number" id="valOverallWidth" step="1" inputmode="numeric"
+                            aria-label="Overall layout width in millimetres">
+                        <span class="selected-window-size-unit">mm</span>
+                    </span>
+                </div>
+                <div class="selected-window-size-row">
+                    <button type="button" id="btnOverallWidthDec" class="handle-side-btn">-</button>
+                    <input type="range" id="overallWidthA" min="0.45" max="2" step="0.001" value="0.6"
+                        aria-label="Overall layout width">
+                    <button type="button" id="btnOverallWidthInc" class="handle-side-btn">+</button>
+                </div>
+            </div>
+
+            <div class="window-size-control selected-window-size-control overall-window-size-control"
+                id="overallWindowHeightControl" style="margin-bottom: 0; padding-top: 0; border-top: 0;">
+                <div class="selected-window-size-heading">
+                    <span class="selected-window-size-name">Height:</span>
+                    <span class="selected-window-size-value">
+                        <input type="number" id="valOverallHeight" step="1" inputmode="numeric"
+                            aria-label="Overall layout height in millimetres">
+                        <span class="selected-window-size-unit">mm</span>
+                    </span>
+                </div>
+                <div class="selected-window-size-row">
+                    <button type="button" id="btnOverallHeightDec" class="handle-side-btn">-</button>
+                    <input type="range" id="overallHeightB" min="0.45" max="2.2" step="0.001" value="0.9"
+                        aria-label="Overall layout height">
+                    <button type="button" id="btnOverallHeightInc" class="handle-side-btn">+</button>
                 </div>
             </div>
         </div>
@@ -565,7 +618,7 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js"></script>
     <script src="./ar-upload-config.js"></script>
-    <script type="module" src="./js/main.js?v=8"></script>
+    <script type="module" src="./js/main.js?v=10"></script>
 </body>
 
 </html>

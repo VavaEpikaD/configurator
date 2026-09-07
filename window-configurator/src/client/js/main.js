@@ -17,7 +17,8 @@ import { createProfileSelectionController } from './profile-selection-controller
 import {
     createWindowLayoutController,
     getWindowLayoutRequest,
-} from './window-layout-controller.js';
+} from './window-layout-controller.js?v=2';
+import { createLayoutSizingManager } from './layout-sizing-manager.js?v=2';
 import { requireTenantConfiguratorAccess } from '../shared-ui/src/tenantBootstrap.js?v=1';
 import { readShareState } from '../shared-ui/src/shareState.js?v=4';
 
@@ -31,6 +32,7 @@ import { resolveLegacyProfileSelection } from './profile-compatibility.js';
 import { createProfileSelectionSignature } from './profile-composition.js';
 import { createWindowLayoutOverlay } from './window-layout-overlay.js';
 import {
+    DEFAULT_WINDOW_EDGE_EXTENSION_M,
     FIXED_WINDOW_TYPE,
     SASH_WINDOW_TYPE,
     canDeleteWindowFromState,
@@ -74,6 +76,7 @@ const parseBoundedNumber = (value, fallback, min, max) => {
 
 let selectedHandleSide = 'right';
 let selectedWindowCellId = null;
+let layoutSizingManager = null;
 
 if (isARMode) {
     const width = parseBoundedNumber(
@@ -285,6 +288,13 @@ function selectWindowCell(cellId) {
 }
 
 function getOverallWindowDimensions() {
+    const managed = layoutSizingManager?.getOverallDimensions?.();
+    if (
+        Number.isFinite(Number(managed?.widthM))
+        && Number.isFinite(Number(managed?.heightM))
+    ) {
+        return managed;
+    }
     const geometry = windowBuilder?.getEditableTopologyGeometry?.();
     const widthM = Number(geometry?.overallWidth);
     const heightM = Number(geometry?.overallHeight);
@@ -570,6 +580,8 @@ profileSelectionController = createProfileSelectionController({
     }),
     onCadAssemblyPresetSelected: async ({ accessoryPresetId }) => {
         await windowLayoutController?.setLayout('single', { notify: false });
+        layoutSizingManager?.resetModifiedFlags();
+        layoutSizingManager?.syncOverallControls();
         accessoryController.setAccessoryPreset(accessoryPresetId, {
             rebuild: false,
             source: 'cad-assembly',
@@ -610,6 +622,7 @@ windowLayoutController = createWindowLayoutController({
             windowBuilder?.buildWindow();
             if (sizeOnly) syncSelectedWindowSizeControls();
             else syncSelectedWindowSelectionUI();
+            layoutSizingManager?.syncOverallControls();
             return;
         }
         await profileController.loadProfileSelection({
@@ -618,6 +631,20 @@ windowLayoutController = createWindowLayoutController({
         });
         if (sizeOnly) syncSelectedWindowSizeControls();
         else syncSelectedWindowSelectionUI();
+        layoutSizingManager?.syncOverallControls();
+    },
+});
+
+layoutSizingManager = createLayoutSizingManager({
+    controller: windowLayoutController,
+    edgeExtensionM: DEFAULT_WINDOW_EDGE_EXTENSION_M,
+    widthMaxM: WINDOW_WIDTH_MAX_M,
+    heightMaxM: WINDOW_HEIGHT_MAX_M,
+    onResizeStateChange: active => {
+        isWindowSizeBuildInProgress = Boolean(active);
+    },
+    onAfterChange: () => {
+        syncSelectedWindowSizeControls();
     },
 });
 
@@ -654,13 +681,15 @@ function initializeSelectedWindowPanel() {
         if (!selectedWindowCellId) return;
         const selectedId = selectedWindowCellId;
         await windowLayoutController.unmergeWindow(selectedId);
+        layoutSizingManager?.resetModifiedFlags();
+        layoutSizingManager?.syncOverallControls();
         selectWindowCell(null);
     });
 
     selectedWindowDelete?.addEventListener('click', async () => {
         if (!selectedWindowCellId || selectedWindowDelete.disabled) return;
         const selectedId = selectedWindowCellId;
-        await windowLayoutController.deleteWindow(selectedId);
+        await layoutSizingManager.deleteWindow(selectedId);
         selectWindowCell(null);
     });
 
@@ -749,11 +778,11 @@ windowLayoutOverlay = createWindowLayoutOverlay({
     camera,
     mainGroup,
     getWindowLayoutState: getTopologyStableLayoutState,
-    getWidth: () => Number(widthInput?.value) || 1,
-    getHeight: () => Number(heightInput?.value) || 1,
+    getWidth: () => layoutSizingManager?.getOverallDimensions?.().widthM || Number(widthInput?.value) || 1,
+    getHeight: () => layoutSizingManager?.getOverallDimensions?.().heightM || Number(heightInput?.value) || 1,
     getSelectedHandleSide: () => selectedHandleSide,
     onAddWindow: async (cellId, direction, type, handleSide, edge = {}) => {
-        return windowLayoutController.addWindow(cellId, direction, type, {
+        return layoutSizingManager.addWindow(cellId, direction, type, {
             handleSide,
             start: edge.start,
             end: edge.end,
@@ -761,6 +790,8 @@ windowLayoutOverlay = createWindowLayoutOverlay({
     },
     onMergeWindows: async (cellAId, cellBId, type, handleSide) => {
         const result = await windowLayoutController.mergeWindows(cellAId, cellBId, type, { handleSide });
+        layoutSizingManager?.resetModifiedFlags();
+        layoutSizingManager?.syncOverallControls();
         selectWindowCell(null);
         return result;
     },
@@ -854,6 +885,8 @@ window.applyConfiguration = async function applyConfiguration(configuration) {
         configuration,
         { notify: false }
     );
+    layoutSizingManager?.resetModifiedFlags();
+    layoutSizingManager?.syncOverallControls();
     const combinedProfileSelection = {
         ...selectedProfiles,
         ...selectedLayout,
@@ -1022,13 +1055,10 @@ initializeUIControls({
         }
         if (!Object.keys(nextSize).length) return;
 
-        isWindowSizeBuildInProgress = true;
         try {
-            await windowLayoutController.setWindowSize(selectedWindowCellId, nextSize);
+            await layoutSizingManager.resizeWindow(selectedWindowCellId, nextSize);
         } catch (error) {
             console.error('Unable to resize selected window:', error);
-        } finally {
-            isWindowSizeBuildInProgress = false;
         }
     },
     syncModeButtons,

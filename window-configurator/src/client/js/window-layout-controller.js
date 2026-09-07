@@ -572,7 +572,11 @@ export function createWindowLayoutController({
         return getConfigurationSnapshot();
     }
 
-    async function applyConfiguration(configuration = {}, { notify = false } = {}) {
+    async function applyConfiguration(configuration = {}, {
+        notify = false,
+        sizeOnly = false,
+        refreshOptions = true,
+    } = {}) {
         const previous = getConfigurationSnapshot();
         const request = getWindowLayoutRequest(configuration);
         dividerProfileId = request.dividerProfileId;
@@ -605,8 +609,10 @@ export function createWindowLayoutController({
             reloadDivider: dividerProfileId !== previous.dividerProfileId,
             reloadTrans: transProfileId !== previous.transProfileId,
             topologyOnly: dividerProfileId === previous.dividerProfileId && transProfileId === previous.transProfileId,
+            sizeOnly,
+            refreshOptions: sizeOnly ? false : refreshOptions,
         });
-        syncControls();
+        syncControls({ refreshOptions });
         return getConfigurationSnapshot();
     }
 
