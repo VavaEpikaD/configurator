@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { createSurfaceSystem } from '../shared-3d/src/index.js?v=1';
 
 function createWindowCameraViewController({ camera, controls }) {
     let lastReportedSide = null;
@@ -120,10 +121,10 @@ export function createSceneContext({
     // Keep the grid disabled by default, matching the previous implementation.
     // scene.add(gridHelper);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
     scene.add(ambientLight);
 
-    const primaryLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    const primaryLight = new THREE.DirectionalLight(0xffffff, 3.0);
     primaryLight.position.set(5, 8, 5);
     primaryLight.castShadow = !captureMode;
     primaryLight.shadow.mapSize.width = 2048;
@@ -131,11 +132,46 @@ export function createSceneContext({
     primaryLight.shadow.bias = -0.0002;
     scene.add(primaryLight);
 
-    const fillLight = new THREE.DirectionalLight(0x3b82f6, 0.5);
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.45);
     fillLight.position.set(-5, 3, -5);
     scene.add(fillLight);
 
+    let preferredQuality = 'balanced';
+    try {
+        preferredQuality = JSON.parse(localStorage.getItem('360-configurator:window:preferences') || '{}').quality || 'balanced';
+    } catch { /* Private/blocked storage uses the middle tier. */ }
+    const surfaceSystem = createSurfaceSystem(THREE, {
+        renderer, scene, shadowLights: [primaryLight], quality: preferredQuality, capture: captureMode,
+    });
+    const applyQuality = (value = preferredQuality) => {
+        preferredQuality = value;
+        surfaceSystem.setQuality(value, {
+            compact: window.innerWidth <= 760 || (window.innerWidth <= 900 && window.innerHeight <= 520),
+        });
+    };
+    const onPreference = event => {
+        if (event.detail?.name === 'quality') applyQuality(event.detail.value);
+    };
+    const onShellReady = () => applyQuality(window.WINDOW_CONFIGURATOR_SHARED_SHELL?.state?.quality || preferredQuality);
+    const onResize = () => applyQuality();
+    window.addEventListener('window-preference-change', onPreference);
+    window.addEventListener('window-shared-shell-ready', onShellReady);
+    window.addEventListener('resize', onResize);
+    onShellReady();
+    const visualsApi = Object.freeze({ getDiagnostics: () => surfaceSystem.getDiagnostics() });
+    window.WINDOW_VISUALS_API = visualsApi;
+    window.addEventListener('pagehide', event => {
+        // A BFCache page can be resumed with the same WebGL context.
+        if (event.persisted) return;
+        window.removeEventListener('window-preference-change', onPreference);
+        window.removeEventListener('window-shared-shell-ready', onShellReady);
+        window.removeEventListener('resize', onResize);
+        surfaceSystem.dispose();
+        if (window.WINDOW_VISUALS_API === visualsApi) delete window.WINDOW_VISUALS_API;
+    });
+
     return {
+        surfaceSystem,
         scene,
         camera,
         renderer,

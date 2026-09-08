@@ -43,7 +43,11 @@ async function loadModule(moduleUrl) {
         return moduleCache.get(moduleUrl);
     }
 
-    const filePath = fileURLToPath(moduleUrl);
+    let filePath = fileURLToPath(moduleUrl);
+    const shared3dPrefix = path.join(clientRoot, 'shared-3d') + path.sep;
+    if (filePath.startsWith(shared3dPrefix)) {
+        filePath = path.join(projectRoot, '..', 'shared-3d', filePath.slice(shared3dPrefix.length));
+    }
     const source = fs.readFileSync(filePath, 'utf8');
     const module = new vm.SourceTextModule(source, {
         context,

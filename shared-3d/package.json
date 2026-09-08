@@ -1,0 +1,7 @@
+{
+  "name": "@360configurator/shared-3d",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Engine-injected surface rendering for the Window and Pergola pilots."
+}

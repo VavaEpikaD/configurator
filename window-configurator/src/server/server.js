@@ -10,6 +10,7 @@ const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
 const WORKSPACE_ROOT = path.resolve(PROJECT_ROOT, '..');
 const CLIENT_ROOT = path.join(PROJECT_ROOT, 'src', 'client');
 const SHARED_UI_ROOT = path.join(WORKSPACE_ROOT, 'shared-ui');
+const SHARED_3D_ROOT = path.join(WORKSPACE_ROOT, 'shared-3d');
 const GENERATED_DIR = path.join(PROJECT_ROOT, 'runtime', 'generated');
 const CAD_SCREENSHOTS_DIR = path.join(CLIENT_ROOT, 'cad_screenshots');
 const MAX_BODY_BYTES = 1024 * 1024;
@@ -668,17 +669,18 @@ function listCadScreenshots(req, res, requestUrl) {
 function serveStaticFile(req, res, pathname) {
     const isGeneratedModel = pathname.startsWith('/generated/');
     const isSharedUi = pathname.startsWith('/shared-ui/');
+    const isShared3d = pathname.startsWith('/shared-3d/');
     const baseDirectory = isGeneratedModel
         ? GENERATED_DIR
         : isSharedUi
             ? SHARED_UI_ROOT
-            : CLIENT_ROOT;
+            : isShared3d ? SHARED_3D_ROOT : CLIENT_ROOT;
     const requestedFile = pathname === '/' ? '/index.html' : pathname;
     const relativePath = isGeneratedModel
         ? requestedFile.slice('/generated'.length)
         : isSharedUi
             ? requestedFile.slice('/shared-ui'.length)
-            : requestedFile;
+            : isShared3d ? requestedFile.slice('/shared-3d'.length) : requestedFile;
     const filePath = path.resolve(baseDirectory, `.${relativePath}`);
 
     if (filePath !== baseDirectory && !filePath.startsWith(`${baseDirectory}${path.sep}`)) {

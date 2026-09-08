@@ -5,10 +5,10 @@ import {
     WINDOW_HEIGHT_MAX_M,
 } from './config.js';
 import { createComponentSelection } from './component-selection.js';
-import { createSceneContext } from './scene.js';
+import { createSceneContext } from './scene.js?v=materials-1';
 import { initializeUIControls } from './ui-controls.js?v=4';
-import { createWindowBuilder } from './window-builder.js';
-import { createMaterialManager } from './materials.js';
+import { createWindowBuilder } from './window-builder.js?v=materials-1';
+import { createMaterialManager } from './materials.js?v=materials-1';
 import { createARController } from './ar-controller.js';
 import { createCadReferenceController } from './cad-reference.js';
 import { createProfileController } from './profile-controller.js';
@@ -388,6 +388,7 @@ const {
     controls,
     ground,
     gridHelper,
+    surfaceSystem,
 } = createSceneContext({
     container: document.getElementById('canvas-container'),
     isARMode,
@@ -498,6 +499,7 @@ const componentSelection = createComponentSelection({
 
 // MATERIALS AND ALUMINUM FINISH STATE
 const materialManager = createMaterialManager({
+    surfaceLibrary: surfaceSystem.materials,
     captureMode,
     pageParams,
     requestedColour,
