@@ -108,7 +108,7 @@ export function syncAccountIdentity(root, locale, user, { busy = false } = {}) {
   if (guestDomainContent) guestDomainContent.hidden = authenticated;
 }
 
-export function renderAccountMenu(state) {
+export function renderAccountMenu(state, { profile = true } = {}) {
   const locale = state.locale;
   const authenticated = Boolean(state.authUser?.uid);
   const domainOpen = Boolean(state.domainOpen);
@@ -136,12 +136,8 @@ export function renderAccountMenu(state) {
       </div>
       <div data-account-authenticated-content ${authenticated ? '' : 'hidden'}>
         <nav class="account-menu__items">
-<<<<<<< Updated upstream
-          <button type="button" data-action="account-profile"><span>${sharedIcon('account')}</span><strong>${escapeHtml(sharedT(locale, 'account.profile'))}</strong></button>
-=======
           ${profile ? `<button type="button" data-action="account-profile"><span>${sharedIcon('account')}</span><strong>${escapeHtml(sharedT(locale, 'account.profile'))}</strong></button>` : ''}
           <button type="button" data-action="account-orders"><span>${sharedIcon('cart')}</span><strong>${escapeHtml(accountOrdersLabel(locale))}</strong></button>
->>>>>>> Stashed changes
           <button type="button" data-action="account-saved"><span>${sharedIcon('folder')}</span><strong>${escapeHtml(sharedT(locale, 'account.saved'))}</strong></button>
           ${renderDomainControl(locale, domainOpen, currentDomainLocale)}
           <button class="account-menu__help" type="button" data-action="toggle-account-help" aria-expanded="${helpOpen}">

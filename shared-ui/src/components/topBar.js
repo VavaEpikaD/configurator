@@ -106,7 +106,7 @@ export function renderTopBar({ brandSrc, brandAlt, projectName, state, capabilit
         </button>
       </div>
 
-      ${renderAccountMenu(state)}
+      ${renderAccountMenu(state, { profile: capabilities.profile !== false })}
       ${renderLanguageMenu(locale)}
     </header>
   `;
