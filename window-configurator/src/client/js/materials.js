@@ -281,9 +281,15 @@ export function createMaterialManager({
             button.setAttribute('aria-label', presetLabel);
             button.setAttribute('aria-pressed', selection.presetId === preset.id ? 'true' : 'false');
             button.addEventListener('click', () => {
+                const hadDebug = debugColoursEnabled;
+                debugColoursEnabled = false;
                 setFinishSelection(side, createFinishSelection(selection.type, preset.id));
                 syncFinishControls();
-                refreshAluminiumFinishMaterials();
+                if (hadDebug) {
+                    refreshAllProfileMaterials();
+                } else {
+                    refreshAluminiumFinishMaterials();
+                }
             });
             ui.swatches.appendChild(button);
         });
@@ -299,9 +305,13 @@ export function createMaterialManager({
         const insideCard = document.getElementById('insideFinishCard');
         const outsideTitle = document.getElementById('outsideFinishTitle');
         const debugButton = document.getElementById('debugColorsButton');
+        const debugToggle = document.getElementById('debugColorsToggle');
 
         sameButton?.classList.toggle('active', aluminiumFinishMode === 'same');
         differentButton?.classList.toggle('active', aluminiumFinishMode === 'different');
+        if (debugToggle) {
+            debugToggle.checked = debugColoursEnabled;
+        }
         if (debugButton) {
             debugButton.classList.toggle('active', debugColoursEnabled);
             debugButton.setAttribute('aria-pressed', debugColoursEnabled ? 'true' : 'false');
@@ -374,18 +384,33 @@ export function createMaterialManager({
                     const nextType = button.dataset.finishType;
                     if (!ALUMINIUM_FINISH_CATALOG[nextType]) return;
                     const currentSelection = getFinishSelection(side);
-                    if (currentSelection.type === nextType) return;
+                    if (currentSelection.type === nextType && !debugColoursEnabled) return;
+                    const hadDebug = debugColoursEnabled;
+                    debugColoursEnabled = false;
                     setFinishSelection(side, createFinishSelection(nextType));
                     syncFinishControls();
-                    refreshAluminiumFinishMaterials();
+                    if (hadDebug) {
+                        refreshAllProfileMaterials();
+                    } else {
+                        refreshAluminiumFinishMaterials();
+                    }
                 });
             });
         }
 
-        document.getElementById('debugColorsButton')?.addEventListener('click', () => {
-            debugColoursEnabled = !debugColoursEnabled;
+        const handleDebugChange = (enabled) => {
+            if (debugColoursEnabled === enabled) return;
+            debugColoursEnabled = enabled;
             syncFinishControls();
             refreshAllProfileMaterials();
+        };
+
+        document.getElementById('debugColorsToggle')?.addEventListener('change', (e) => {
+            handleDebugChange(Boolean(e.target.checked));
+        });
+
+        document.getElementById('debugColorsButton')?.addEventListener('click', () => {
+            handleDebugChange(!debugColoursEnabled);
         });
 
         syncFinishControls();
@@ -431,9 +456,19 @@ export function createMaterialManager({
             finishConfigurationChanged = true;
         }
 
+        if (typeof configuration.debugColors === 'boolean') {
+            debugColoursEnabled = configuration.debugColors;
+        } else if (finishConfigurationChanged && (configuration.colour || configuration.insideColour || configuration.inside_colour)) {
+            debugColoursEnabled = false;
+        }
+
         if (finishConfigurationChanged) {
             configurationColour = outsideFinishSelection.color;
-            clearCachedAluminiumMaterials();
+            if (!debugColoursEnabled) {
+                clearAllCachedProfileMaterials();
+            } else {
+                clearCachedAluminiumMaterials();
+            }
             syncFinishControls();
             invalidateSectionSamples();
         }

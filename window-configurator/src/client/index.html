@@ -201,6 +201,14 @@
             </div>
         </div>
 
+        <div class="action-box" id="debugColorsActionBox">
+            <label for="debugColorsToggle" id="debugColorsLabel">Debug colors for professionals</label>
+            <label class="switch">
+                <input type="checkbox" id="debugColorsToggle" checked>
+                <span class="switch-slider"></span>
+            </label>
+        </div>
+
         <div class="control-group" id="aluminiumFinishControls">
             <label>Aluminum finish</label>
             <div class="finish-mode-row">
@@ -208,17 +216,6 @@
                     <button id="finishModeSame" type="button" class="finish-mode-btn active">Uniform</button>
                     <button id="finishModeDifferent" type="button" class="finish-mode-btn">Bicolor</button>
                 </div>
-
-                <button id="debugColorsButton" type="button" class="square-toggle-btn finish-debug-btn active"
-                    aria-label="Toggle debug colors" aria-pressed="true" title="Show original CAD/debug colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="3" width="7" height="7" rx="1"></rect>
-                        <rect x="14" y="3" width="7" height="7" rx="1"></rect>
-                        <rect x="3" y="14" width="7" height="7" rx="1"></rect>
-                        <rect x="14" y="14" width="7" height="7" rx="1"></rect>
-                    </svg>
-                </button>
             </div>
 
             <div class="finish-side-card" id="outsideFinishCard">
