@@ -82,6 +82,8 @@ const targetFiles = [
     'js/profile-controller.js',
     'js/materials.js',
     'js/window-builder.js',
+    'js/window-geometry.js',
+    'js/mesh-joint-geometry.js',
     'js/window-summary.js',
 ];
 

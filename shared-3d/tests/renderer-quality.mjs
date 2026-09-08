@@ -114,3 +114,36 @@ test('failed reflection allocation preserves the previous probe and can be retri
   assert.equal(targets[0].disposed, true);
   environment.dispose(); assert.equal(scene.environment, original);
 });
+
+test('scene teardown releases owned geometry once, without disposing it on a quality change', () => {
+  const { scene, system } = context();
+  const material = system.materials.create('aluminium.powderCoated');
+  const geometry = system.geometry.create('primitive.box', { width: 2, height: 0.2, depth: 0.1 });
+  const mesh = system.geometry.mesh(geometry, material, { uv: { grainAxis: 'x' } });
+  scene.add(mesh);
+  const before = Array.from(geometry.getAttribute('position').array);
+  let disposed = 0;
+  geometry.addEventListener('dispose', () => { disposed++; });
+  for (const tier of ['low', 'balanced', 'high', 'low']) {
+    system.setQuality(tier);
+    assert.equal(mesh.geometry, geometry);
+    assert.deepEqual(Array.from(geometry.getAttribute('position').array), before);
+    assert.equal(system.getDiagnostics().geometry.geometryCount, 1);
+    assert.equal(disposed, 0);
+  }
+  assert.equal(system.getDiagnostics().geometry.version, system.getDiagnostics().version);
+  system.dispose(); system.dispose();
+  assert.equal(disposed, 1);
+  assert.equal(system.getDiagnostics().geometry.geometryCount, 0);
+});
+
+test('a manually disposed product buffer is not retained or disposed again at scene teardown', () => {
+  const { system } = context();
+  const geometry = system.geometry.create('panel.rectangular', { width: 1, height: 2, thickness: 0.02 });
+  let disposed = 0;
+  geometry.addEventListener('dispose', () => { disposed++; });
+  geometry.dispose();
+  assert.equal(system.geometry.getDiagnostics().geometryCount, 0);
+  system.dispose();
+  assert.equal(disposed, 1);
+});

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { createSurfaceSystem, applySurfaceUVs } from '../../../shared-3d/src/index.js?v=1';
+import { createSurfaceSystem, disposeObjectResources } from '../../../shared-3d/src/index.js?v=2';
+import { createPergolaGeometry } from './pergolaGeometry.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { buildPergola } from './buildPergola.js';
@@ -7,20 +8,10 @@ import { AssetLibrary, fitAssetToBox } from './AssetLibrary.js';
 import { pergolaT } from '../i18n.js';
 
 function disposeObject(object) {
-  const geometries = new Set();
-  const materials = new Set();
-  object.traverse((child) => {
-    if (child.geometry) geometries.add(child.geometry);
-    for (const item of (Array.isArray(child.material) ? child.material : [child.material])) {
-      if (item) materials.add(item);
-    }
-  });
-  geometries.forEach((geometry) => geometry.dispose());
-  // Surface maps are library-owned and may still be used by the deck or the
-  // next product rebuild. Only the locally generated compass owns its map.
-  materials.forEach((item) => {
-    if (item.userData?.ownsCompassMap) item.map?.dispose();
-    item.dispose?.();
+  // Rebuilds own their materials, but PBR texture maps are library-owned.
+  return disposeObjectResources(object, {
+    materialFilter: () => true,
+    ownedTextures: item => item.userData?.ownsCompassMap ? [item.map] : [],
   });
 }
 
@@ -137,6 +128,7 @@ export class PergolaScene {
     this.surfaceSystem = createSurfaceSystem(THREE, {
       renderer: this.renderer, scene: this.scene, shadowLights: [this.sun], quality: this.state.quality,
     });
+    this.geometry = createPergolaGeometry(this.surfaceSystem.geometry);
     this.visualsApi = Object.freeze({ getDiagnostics: () => this.surfaceSystem.getDiagnostics() });
     window.PERGOLA_VISUALS_API = this.visualsApi;
     this.applyQuality(this.state.quality);
@@ -171,7 +163,7 @@ export class PergolaScene {
     this.environmentGroup.clear();
 
     const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(50, 50),
+      this.surfaceSystem.geometry.create('primitive.plane', { width: 50, height: 50 }),
       makeMaterial('#cfd8d8', { roughness: 1 }),
     );
     ground.rotation.x = -Math.PI / 2;
@@ -181,7 +173,7 @@ export class PergolaScene {
     this.environmentGroup.add(ground);
 
     const deckMaterial = this.surfaceSystem.materials.create('wood.oak', { color: '#b8ada0' });
-    this.deckPlatform = new THREE.Mesh(new THREE.BoxGeometry(1, 0.12, 1), deckMaterial);
+    this.deckPlatform = this.geometry.box(1, 0.12, 1, deckMaterial);
     this.deckPlatform.position.set(0, -0.01, 0);
     this.deckPlatform.receiveShadow = true;
     this.deckPlatform.castShadow = true;
@@ -274,7 +266,7 @@ export class PergolaScene {
       side: THREE.DoubleSide,
     });
 
-    const body = new THREE.Mesh(new THREE.BoxGeometry(9.2, 4.3, 2.4), wallMaterial);
+    const body = this.geometry.box(9.2, 4.3, 2.4, wallMaterial, { castShadow: false, receiveShadow: false });
     body.position.y = 2.15;
     group.add(body);
 
@@ -293,7 +285,7 @@ export class PergolaScene {
     const roof = new THREE.Mesh(roofGeometry, makeMaterial('#c8c7bc', { roughness: 0.92, side: THREE.DoubleSide }));
     group.add(roof);
 
-    const eave = new THREE.Mesh(new THREE.BoxGeometry(10.0, 0.08, 2.7), trimMaterial);
+    const eave = this.geometry.box(10.0, 0.08, 2.7, trimMaterial, { castShadow: false, receiveShadow: false });
     eave.position.set(0, 4.24, 0);
     group.add(eave);
 
@@ -302,20 +294,20 @@ export class PergolaScene {
     windowSet.userData.environmentHouseWindows = true;
     const spacing = 1.85;
     [-2.75, -0.95, 1.0, 2.8].forEach((x) => {
-      const frame = new THREE.Mesh(new THREE.BoxGeometry(1.15, 1.65, 0.08), trimMaterial);
+      const frame = this.geometry.box(1.15, 1.65, 0.08, trimMaterial, { castShadow: false, receiveShadow: false });
       frame.position.set(x, 2.65, 1.17);
       windowSet.add(frame);
-      const pane = new THREE.Mesh(new THREE.BoxGeometry(0.98, 1.48, 0.03), glassMaterial);
+      const pane = this.geometry.box(0.98, 1.48, 0.03, glassMaterial, { castShadow: false, receiveShadow: false });
       pane.position.set(x, 2.65, 1.22);
       windowSet.add(pane);
     });
-    const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.35, 0.09), trimMaterial);
+    const doorFrame = this.geometry.box(1.1, 2.35, 0.09, trimMaterial, { castShadow: false, receiveShadow: false });
     doorFrame.position.set(-4.05, 1.63, 1.16);
     windowSet.add(doorFrame);
-    const door = new THREE.Mesh(new THREE.BoxGeometry(0.92, 2.16, 0.045), makeMaterial('#1b2024', { roughness: 0.55, metalness: 0.2 }));
+    const door = this.geometry.box(0.92, 2.16, 0.045, makeMaterial('#1b2024', { roughness: 0.55, metalness: 0.2 }), { castShadow: false, receiveShadow: false });
     door.position.set(-4.05, 1.63, 1.22);
     windowSet.add(door);
-    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.16, 0.03), makeMaterial('#888e92', { roughness: 0.3, metalness: 0.7 }));
+    const handle = this.geometry.box(0.05, 0.16, 0.03, makeMaterial('#888e92', { roughness: 0.3, metalness: 0.7 }), { castShadow: false, receiveShadow: false });
     handle.position.set(-3.78, 1.63, 1.26);
     windowSet.add(handle);
     group.add(windowSet);
@@ -326,7 +318,7 @@ export class PergolaScene {
     const tree = new THREE.Group();
     const trunkMaterial = makeMaterial('#7a6657', { roughness: 1 });
     const foliageMaterial = makeMaterial('#577446', { roughness: 1 });
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.2, 2.3, 9), trunkMaterial);
+    const trunk = new THREE.Mesh(this.surfaceSystem.geometry.create('primitive.cylinder', { radiusTop: 0.11, radiusBottom: 0.2, height: 2.3, radialSegments: 9 }), trunkMaterial);
     trunk.position.y = 1.15;
     tree.add(trunk);
     const crown = new THREE.Mesh(new THREE.IcosahedronGeometry(1.2, 1), foliageMaterial);
@@ -356,15 +348,15 @@ export class PergolaScene {
     const doorHeight = 2.16;
     const bottomClearance = 0.015;
 
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(frameThickness, frameHeight, 1.08), trimMaterial);
+    const frame = this.geometry.box(frameThickness, frameHeight, 1.08, trimMaterial, { castShadow: false, receiveShadow: false });
     frame.position.set(wallX - frameThickness / 2 - 0.004, bottomClearance + frameHeight / 2, -0.2);
     group.add(frame);
 
-    const door = new THREE.Mesh(new THREE.BoxGeometry(doorThickness, doorHeight, 0.9), doorMaterial);
+    const door = this.geometry.box(doorThickness, doorHeight, 0.9, doorMaterial, { castShadow: false, receiveShadow: false });
     door.position.set(wallX - frameThickness - doorThickness / 2 - 0.006, bottomClearance + 0.045 + doorHeight / 2, -0.2);
     group.add(door);
 
-    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.16, 0.05), handleMaterial);
+    const handle = this.geometry.box(0.03, 0.16, 0.05, handleMaterial, { castShadow: false, receiveShadow: false });
     handle.position.set(wallX - frameThickness - doorThickness - 0.025, 1.05, 0.05);
     group.add(handle);
 
@@ -411,7 +403,7 @@ export class PergolaScene {
     disposeObject(this.dimensionGroup);
     this.dimensionGroup.clear();
 
-    this.pergola = buildPergola(this.state, this.assets, this.surfaceSystem.materials);
+    this.pergola = buildPergola(this.state, this.assets, this.surfaceSystem.materials, this.surfaceSystem.geometry);
     this.pergolaGroup.add(this.pergola);
     this.buildDimensions(this.pergola.userData.dimensions);
 
@@ -499,8 +491,7 @@ export class PergolaScene {
     if (signature === this.platformSizeSignature) return;
 
     this.deckPlatform.geometry.dispose();
-    this.deckPlatform.geometry = applySurfaceUVs(THREE,
-      new THREE.BoxGeometry(platformWidth, 0.10, platformDepth), { grainAxis: 'x' });
+    this.deckPlatform.geometry = this.geometry.boardGeometry(platformWidth, 0.10, platformDepth);
     this.deckPlatform.scale.set(1, 1, 1);
     // The board tops stay at y=0; posts and feet keep their original placement.
     this.deckPlatform.position.set(platformOffsetX, -0.07, platformOffsetZ);
@@ -511,10 +502,10 @@ export class PergolaScene {
     const plankCount = Math.max(2, Math.ceil(platformDepth / 0.16));
     const pitch = platformDepth / plankCount;
     for (let index = 0; index < plankCount; index += 1) {
-      const geometry = applySurfaceUVs(THREE,
-        new THREE.BoxGeometry(platformWidth, 0.02, Math.max(0.01, pitch - 0.004)),
-        { grainAxis: 'x', offset: [(index * 0.731) % 2.4, (index * 0.117) % 0.24] });
-      const plank = new THREE.Mesh(geometry, this.deckPlankMaterial);
+      const geometry = this.geometry.boardGeometry(
+        platformWidth, 0.02, Math.max(0.01, pitch - 0.004),
+        { offset: [(index * 0.731) % 2.4, (index * 0.117) % 0.24] });
+      const plank = this.geometry.mesh(geometry, this.deckPlankMaterial, { uv: false, castShadow: false });
       plank.position.set(0, -0.01, -platformDepth / 2 + (index + 0.5) * pitch);
       plank.receiveShadow = true;
       this.deckPlankGroup.add(plank);

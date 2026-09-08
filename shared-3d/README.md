@@ -1,10 +1,20 @@
-# Shared 3D surfaces — Step 1
+# Shared 3D — Materials and common geometry foundation
 
-Release: `20260908-materials-1`
+Release: `20260908-geometry-2` (Step 2, built on the accepted materials Step 1)
 
-This is the material and quality foundation for the **Window and Pergola pilots only**. It is not a completed photorealism pass. Product geometry, fabrication dimensions, finish selections, pricing, saved-configuration schemas and account/cart code are not migrated or redesigned here.
+This is the shared material, quality and geometry foundation for **Window and Pergola only**. Step 2 moves reusable geometry creation, section processing, UV finalization and resource lifetime into `shared-3d`, with explicit product adapters. It preserves the accepted materials and product output; it is not a new bevel or lighting pass. Fabrication rules, dimensions, finish selections, pricing, saved-configuration schemas and account/cart code are not redesigned.
 
 The library uses the host configurator's Three.js namespace. It neither imports a second Three.js runtime nor upgrades the existing engines: Window retains its vendored r160 engine/mesh-reuse adapter; Pergola retains its package-pinned 0.185.1 dependency. See `VALIDATION.md` for the important distinction between intended engine support and what was actually executable in the delivery environment.
+
+## Common geometry in this update
+
+Each scene's `createSurfaceSystem` now provides `surfaces.geometry`, an engine-injected `GeometryLibrary` with an extensible registry. Boxes, rectangular panels, planes, cylinders and arbitrary profile extrusions share factories; source-section simplification, rounded sections, intermediate scalar cuts, UV/normal/bounds finalization and resource disposal share implementations.
+
+`window-geometry.js` adapts CAD templates, final glass/handle/profile meshes and ownership to Window's existing millimetre-source transforms, capture behavior and mesh pool. `pergolaGeometry.js` adapts metre-authored posts, beams, louvers, side closures, accessories and deck planks. Neither adapter imports the other's product code.
+
+Product layouts, selected profiles, connection/cut-plane decisions, pivots, fabrication calculations and accessory placement remain local. Imported assets, UI/helpers and scene-specific house/tree composition are not forcibly rewritten as manufactured primitives. This is a common construction foundation, not a single universal product model. See `GEOMETRY.md` for extension examples, unit policies, lifecycle and limits.
+
+Quality controls change render/material budgets, **not product tessellation, manufacturing dimensions or clearances**. No automatic beveling, smoothing or geometry simplification has been introduced. The existing Window simplification policy is retained in its adapter; both pilots continue using their original engine versions.
 
 ## Included surfaces and integration
 
@@ -43,7 +53,7 @@ There is no AO, screen-space reflection, bloom, path tracing, new antialiasing a
 
 ## Ownership and geometry contract
 
-- One `createSurfaceSystem` / `MaterialLibrary` per scene. Each host keeps ownership of its renderer, scene, camera, controls and product state.
+- One `createSurfaceSystem` (including `MaterialLibrary` and `GeometryLibrary`) per scene. Each host keeps ownership of its renderer, scene, camera, controls and product state.
 - Each `materials.create()` returns an independent material. Its texture data can be shared with compatible materials in the same library. Tints and opacity are not implicitly shared between products.
 - Dispose per-product materials when rebuilding the product. Do not dispose their maps: the library owns those textures and disposes them when the scene ends.
 - Use `materials.clone(material)` instead of a raw material clone for managed variants. Otherwise a new clone would not participate in subsequent quality changes.
@@ -55,7 +65,7 @@ There is no AO, screen-space reflection, bloom, path tracing, new antialiasing a
 
 ```js
 // Import from the correct built/source path for the host configurator.
-import { createSurfaceSystem, applySurfaceUVs } from './shared-3d/src/index.js?v=1';
+import { createSurfaceSystem } from './shared-3d/src/index.js?v=2';
 
 const surfaces = createSurfaceSystem(THREE, {
   renderer, scene, shadowLights: [sun], quality: 'balanced',
@@ -64,17 +74,20 @@ const surfaces = createSurfaceSystem(THREE, {
 const frameMaterial = surfaces.materials.create('aluminium.powderCoated', {
   color: selectedRalHex,
 });
-const geometry = applySurfaceUVs(THREE, new THREE.BoxGeometry(4, 0.16, 0.12), {
-  grainAxis: 'x',
+const geometry = surfaces.geometry.create('primitive.box', {
+  width: 4, height: 0.16, depth: 0.12,
 });
-const beam = new THREE.Mesh(geometry, frameMaterial);
+const beam = surfaces.geometry.mesh(geometry, frameMaterial, {
+  uv: { grainAxis: 'x' }, castShadow: true, receiveShadow: true,
+});
 scene.add(beam);
 
 // Subscribe this call to the host's existing quality setting.
 surfaces.setQuality('high', { compact: false });
 
 // Product rebuild: dispose that product's geometry/materials, not shared maps.
-geometry.dispose();
+scene.remove(beam);
+beam.geometry.dispose(); // use the actual mesh buffer when a host has a mesh pool
 frameMaterial.dispose();
 
 // Whole scene teardown, after its animation/subscriptions have been stopped.
@@ -108,7 +121,7 @@ A future material that needs a genuinely new shader model should extend the libr
 
 ## Build and deployment
 
-Apply this update at the **repository root**, over the version that already includes the Orders/font fix. The ZIP contains only changed/new source, validation and documentation files. It contains no dependencies, prebuilt site, font files or existing customer content.
+Apply this update at the **repository root**, over the accepted materials Step 1 update (`configurator_shared_materials_step1_20260908.zip`), which already includes the Orders/font fix. The ZIP contains only changed/new source, validation and documentation files, plus `commit_message.md` at its root. It contains no dependencies, prebuilt site, font files or existing customer content.
 
 Run the existing build/deployment pipeline. Window's static-site preparation now copies `shared-3d/src` into its own built site, so relative imports work under `/window-configurator/` and localized routes. Its Node development server exposes the corresponding workspace folder. Pergola's existing Vite build bundles the shared source directly. The normal deployment workflows already copy these built application directories; no production nginx changes are required for this pipeline.
 
@@ -142,12 +155,14 @@ WINDOW_VISUALS_API.getDiagnostics()
 PERGOLA_VISUALS_API.getDiagnostics()
 ```
 
-Expect `version: "20260908-materials-1"`, the selected `quality`, `environment: true`, and `environmentError: null`. `profile` describes the requested budgets; `environmentWidth` reports the actually allocated probe. The result also lists active material IDs and counts. Neither hook writes configuration/account data.
+Expect `version: "20260908-geometry-2"`, the selected `quality`, `environment: true`, and `environmentError: null`. `profile` describes the requested budgets; `environmentWidth` reports the actually allocated probe. The result also lists active material IDs and counts. Its `geometry` object reports the geometry-library version, registered types, active buffers by type, and cumulative registrations. `registeredCount` is cumulative; it is not a live-memory count, and neither count includes unadopted imported/context/helper geometry. For a lifecycle check compare `geometryCount` after equivalent settled rebuilds, not cumulative registrations. Neither hook writes configuration/account data.
 
 **Window:** disable the existing square CAD/debug-color toggle beside the aluminium finish controls (or select a finish/color, which already turns it off). Its previous default is deliberately preserved. Compare Mill finish, Anodized and Color coated at the same view; also test separate inside/outside colors, an open sash, glass from both sides, exploded view and several dimension changes. Debug mode is meant to show CAD colors, not the final finish.
 
 **Pergola:** compare frame and louver colors, zoom toward the deck to check long-axis grain, enable side glazing, change width/depth and wall-mounted side, then test the existing day/night and studio controls. Different colors must not leak into another component that uses the same material family.
 
 **Both:** switch Low → Balanced → High → Low without reloading. Check the diagnostics each time, make sure the model remains interactive, and compare one close-up with one full-product view. Test a compact/mobile viewport and portrait/landscape rotation, not only desktop. Save/reopen a configuration and verify selections/pricing, then inspect any capture/AR workflow you use before production acceptance.
+
+For Step 2 the expected appearance is the same as the accepted Step 1. Pay particular attention to resizing, mixed fixed/opening Window layouts, trans-mullions, exploded view, Pergola side closures and switching between presets.
 
 Rendered appearance and actual device performance remain acceptance items. Desktop/mobile screenshots, including one metal close-up and one glass/wood view, are the basis for the next tuning pass. Do not interpret the automated tests as visual approval.
