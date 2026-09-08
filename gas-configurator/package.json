@@ -1,0 +1,20 @@
+{
+  "name": "gas-configurator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "start": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "check": "node --check src/main.js && node --check src/state.js && node --check src/i18n.js && node --check src/domain/geometry.js && node --check src/domain/depthProfile.js && node --check src/domain/pipeCatalog.js && node --check src/domain/routeEvents.js && node --check src/domain/calculations.js && node --check src/elevation/routeElevation.js && node --check src/network/networkConnection.js && node --check src/obstacles/routeObstacles.js && node --check src/regulatory/ruleRegistry.js && node --check src/regulatory/ruleEngine.js && node --check src/map/leafletCoordinates.js && node --check src/map/RouteMap.js && node --check src/ui/layout.js && node --check src/ui/renderers.js && node --check src/ui/sharedShell.js && node --test tests/*.test.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "leaflet": "1.9.4"
+  },
+  "devDependencies": {
+    "vite": "8.1.5"
+  }
+}

@@ -154,7 +154,7 @@ const SHARED_MESSAGES = Object.freeze({
     'feedback.cartOpenFailed': 'The cart configuration could not be opened.',
   }),
   'ro-RO': Object.freeze({
-    'topbar.home': 'Acasă configurator',
+    'topbar.home': 'Pagina configuratorului',
     'topbar.projectName': 'Nume proiect',
     'topbar.unsavedChanges': 'Modificări nesalvate',
     'topbar.viewAr': 'Vezi în AR',
@@ -170,7 +170,7 @@ const SHARED_MESSAGES = Object.freeze({
     'account.greetingGuest': 'Salut, vizitator',
     'account.greetingUser': 'Salut, {name}',
     'account.userFallback': 'Utilizator',
-    'account.loginGoogle': 'Autentificare cu Google',
+    'account.loginGoogle': 'Continuă cu Google',
     'account.signingIn': 'Se autentifică…',
     'feedback.loginUnavailable': 'Autentificarea Google nu este disponibilă',
     'feedback.loggedOut': 'Te-ai deconectat',

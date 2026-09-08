@@ -1,0 +1,45 @@
+/* Keep the floating solar settings panel below the compact viewer header. */
+body.shared-ui-mounted {
+  --solar-viewer-header-height: 58px;
+  --solar-sidebar-header-gap: 12px;
+}
+
+/* The solar panel is absolutely positioned inside .app-shell, whose own top
+   edge already starts below the shared 47 px Common UI bar. */
+body.shared-ui-mounted .sidebar {
+  top: calc(var(--solar-viewer-header-height) + var(--solar-sidebar-header-gap)) !important;
+}
+
+body.shared-ui-mounted #solarSidebarToggle {
+  top: calc(
+    var(--solar-viewer-header-height)
+    + var(--solar-sidebar-header-gap)
+    + 14px
+  ) !important;
+}
+
+/* Preserve the same clearance if Common UI later switches this configurator
+   to viewport-relative floating-right geometry. */
+body.shared-ui-mounted .sidebar[data-shared-panel-geometry="floating-right"] {
+  top: calc(
+    var(--shared-topbar-height, 47px)
+    + var(--solar-viewer-header-height)
+    + var(--solar-sidebar-header-gap)
+  ) !important;
+}
+
+body.shared-ui-mounted .shared-configurator-panel__toggle--floating-right {
+  top: calc(
+    var(--shared-topbar-height, 47px)
+    + var(--solar-viewer-header-height)
+    + var(--solar-sidebar-header-gap)
+    + 14px
+  ) !important;
+}
+
+@media (max-width: 760px) {
+  body.shared-ui-mounted {
+    --solar-viewer-header-height: 56px;
+    --solar-sidebar-header-gap: 10px;
+  }
+}

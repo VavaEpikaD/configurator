@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow,noarchive" />
+  <meta name="theme-color" content="#f5f6f8" />
+  <title>Sales Dashboard | 360Configurator</title>
+  <link rel="stylesheet" href="/shared-ui/styles/salesDashboard.css?v=1" />
+</head>
+<body>
+  <main class="dashboard-page">
+    <header class="dashboard-header">
+      <div class="brand-block">
+        <img src="/shared-ui/assets/360CONFIGURATOR.png" alt="360Configurator" />
+        <div>
+          <p class="eyebrow">360Configurator internal</p>
+          <h1>Sales dashboard</h1>
+          <p>Users, quotation requests, shopping carts and requested demos.</p>
+        </div>
+      </div>
+      <div class="auth-panel" id="authPanel" aria-live="polite">
+        <span id="authState">Checking sign-in…</span>
+        <button class="button button--secondary" id="authButton" type="button" hidden>Sign in with Google</button>
+        <button class="button button--secondary" id="signOutButton" type="button" hidden>Sign out</button>
+      </div>
+    </header>
+
+    <section class="access-card" id="accessCard">
+      <div class="spinner" aria-hidden="true"></div>
+      <div>
+        <strong id="accessTitle">Checking access</strong>
+        <p id="accessMessage">Sign in with an authorized Google account to continue.</p>
+      </div>
+    </section>
+
+    <div class="dashboard-workspace" id="dashboardWorkspace" hidden>
+      <nav class="dashboard-tabs" aria-label="Dashboard sections">
+        <button class="tab-button is-active" type="button" data-tab="users" aria-selected="true">Users</button>
+        <button class="tab-button" type="button" data-tab="demos" aria-selected="false">Requested demos</button>
+      </nav>
+
+      <section class="tab-panel" id="usersPanel" data-panel="users">
+        <div class="two-column-layout">
+          <aside class="sidebar-card">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">Firebase accounts</p>
+                <h2>Users</h2>
+              </div>
+              <button class="icon-button" id="refreshUsersButton" type="button" title="Refresh users" aria-label="Refresh users">↻</button>
+            </div>
+            <label class="search-field">
+              <span class="sr-only">Search users</span>
+              <input id="userSearch" type="search" placeholder="Search name, email or UID" autocomplete="off" />
+            </label>
+            <div class="list-status" id="userListStatus" role="status" aria-live="polite"></div>
+            <div class="user-list" id="userList"></div>
+          </aside>
+
+          <section class="content-card user-details" id="userDetailsCard">
+            <div class="empty-state" id="userEmptyState">
+              <div class="empty-icon">U</div>
+              <h2>Select a user</h2>
+              <p>Quotation history and current shopping cart items will appear here.</p>
+            </div>
+
+            <div id="userDetailsContent" hidden>
+              <div class="section-heading user-heading">
+                <div>
+                  <p class="eyebrow">Selected user</p>
+                  <h2 id="selectedUserName">—</h2>
+                  <p id="selectedUserEmail">—</p>
+                </div>
+                <div class="user-meta-pills" id="selectedUserMeta"></div>
+              </div>
+
+              <div class="summary-grid" id="userSummaryGrid"></div>
+
+              <section class="details-section">
+                <div class="section-heading compact">
+                  <div>
+                    <p class="eyebrow">Sales history</p>
+                    <h3>Quotation requests</h3>
+                  </div>
+                  <span class="count-badge" id="quotationCount">0</span>
+                </div>
+                <div class="stack-list" id="quotationList"></div>
+                <p class="empty-copy" id="quotationEmpty" hidden>No quotation requests recorded for this user.</p>
+              </section>
+
+              <section class="details-section">
+                <div class="section-heading compact">
+                  <div>
+                    <p class="eyebrow">Current state</p>
+                    <h3>Shopping cart</h3>
+                  </div>
+                  <span class="count-badge" id="cartCount">0</span>
+                </div>
+                <div class="table-wrap" id="cartTableWrap" hidden>
+                  <table class="data-table">
+                    <thead><tr><th>Configuration</th><th>Scope</th><th>Added</th><th>Price</th><th></th></tr></thead>
+                    <tbody id="cartTableBody"></tbody>
+                  </table>
+                </div>
+                <p class="empty-copy" id="cartEmpty" hidden>The shopping cart is empty.</p>
+              </section>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="demosPanel" data-panel="demos" hidden>
+        <section class="content-card demos-card">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Incoming leads</p>
+              <h2>Requested demos</h2>
+              <p>Form contact information is shown separately from the Firebase account that was signed in when the request was submitted.</p>
+            </div>
+            <button class="button button--secondary" id="refreshDemosButton" type="button">Refresh</button>
+          </div>
+          <label class="search-field demo-search">
+            <span class="sr-only">Search demo requests</span>
+            <input id="demoSearch" type="search" placeholder="Search email, name, company or logged-in user" autocomplete="off" />
+          </label>
+          <div class="list-status" id="demoListStatus" role="status" aria-live="polite"></div>
+          <div class="demo-list" id="demoList"></div>
+          <p class="empty-copy" id="demoEmpty" hidden>No demo requests match this search.</p>
+        </section>
+      </section>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  </main>
+
+  <script type="module" src="/shared-ui/src/salesDashboard.js?v=1"></script>
+</body>
+</html>

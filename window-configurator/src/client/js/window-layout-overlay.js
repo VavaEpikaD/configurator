@@ -114,8 +114,9 @@ export function createWindowLayoutOverlay({
                 ? windowT(locale, definition.active ? 'layout.transRemove' : 'layout.transAdd')
                 : windowT(locale, 'layout.merge');
         button.setAttribute('aria-label', button.title);
-        button.textContent = definition.kind === 'add' ? '+' : (definition.kind === 'trans' ? 'DV' : '↔');
-        button.classList.toggle('is-active', definition.kind === 'trans' && definition.active);
+        button.textContent = definition.kind === 'add'
+            ? '+'
+            : (definition.kind === 'trans' ? (definition.active ? 'M' : 'DV') : '↔');
         stopPointerPropagation(button);
         button.addEventListener('click', async () => {
             const state = getWindowLayoutState?.();

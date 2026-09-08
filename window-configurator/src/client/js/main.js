@@ -6,7 +6,7 @@ import {
 } from './config.js';
 import { createComponentSelection } from './component-selection.js';
 import { createSceneContext } from './scene.js';
-import { initializeUIControls } from './ui-controls.js?v=2';
+import { initializeUIControls } from './ui-controls.js?v=4';
 import { createWindowBuilder } from './window-builder.js';
 import { createMaterialManager } from './materials.js';
 import { createARController } from './ar-controller.js';
@@ -17,7 +17,9 @@ import { createProfileSelectionController } from './profile-selection-controller
 import {
     createWindowLayoutController,
     getWindowLayoutRequest,
-} from './window-layout-controller.js';
+} from './window-layout-controller.js?v=2';
+import { createLayoutSizingManager } from './layout-sizing-manager.js?v=3';
+import { createSegmentedResizeOptimizer } from './segmented-resize-optimizer.js?v=2';
 import { requireTenantConfiguratorAccess } from '../shared-ui/src/tenantBootstrap.js?v=1';
 import { readShareState } from '../shared-ui/src/shareState.js?v=4';
 
@@ -31,6 +33,7 @@ import { resolveLegacyProfileSelection } from './profile-compatibility.js';
 import { createProfileSelectionSignature } from './profile-composition.js';
 import { createWindowLayoutOverlay } from './window-layout-overlay.js';
 import {
+    DEFAULT_WINDOW_EDGE_EXTENSION_M,
     FIXED_WINDOW_TYPE,
     SASH_WINDOW_TYPE,
     canDeleteWindowFromState,
@@ -74,6 +77,7 @@ const parseBoundedNumber = (value, fallback, min, max) => {
 
 let selectedHandleSide = 'right';
 let selectedWindowCellId = null;
+let layoutSizingManager = null;
 
 if (isARMode) {
     const width = parseBoundedNumber(
@@ -159,6 +163,7 @@ const selectedWindowOpenRight = document.getElementById('selectedWindowOpenRight
 const selectedWindowUnmerge = document.getElementById('selectedWindowUnmerge');
 const selectedWindowDelete = document.getElementById('selectedWindowDelete');
 const selectedWindowClose = document.getElementById('selectedWindowClose');
+const selectedWindowModifiedBadge = document.getElementById('selectedWindowModifiedBadge');
 const baseWidthMax = Number(widthInput?.max) || WINDOW_WIDTH_MAX_M;
 const baseHeightMax = Number(heightInput?.max) || WINDOW_HEIGHT_MAX_M;
 
@@ -212,6 +217,15 @@ function syncSelectedWindowSizeControls() {
     return true;
 }
 
+function syncSelectedWindowModifiedBadge(cellId = selectedWindowCellId) {
+    if (!selectedWindowModifiedBadge) return false;
+    const modified = Boolean(
+        cellId && layoutSizingManager?.isWindowModified?.(cellId)
+    );
+    selectedWindowModifiedBadge.hidden = !modified;
+    return modified;
+}
+
 function syncSelectedWindowPanel() {
     if (!selectedWindowPanel) return false;
     const snapshot = windowLayoutController?.getConfigurationSnapshot?.();
@@ -223,9 +237,11 @@ function syncSelectedWindowPanel() {
 
     if (!cell) {
         selectedWindowPanel.hidden = true;
+        if (selectedWindowModifiedBadge) selectedWindowModifiedBadge.hidden = true;
         return false;
     }
 
+    syncSelectedWindowModifiedBadge(cell.id);
     const locale = getWindowLocale();
     const isSash = cell.type === SASH_WINDOW_TYPE;
     const targetType = isSash ? FIXED_WINDOW_TYPE : SASH_WINDOW_TYPE;
@@ -285,6 +301,13 @@ function selectWindowCell(cellId) {
 }
 
 function getOverallWindowDimensions() {
+    const managed = layoutSizingManager?.getOverallDimensions?.();
+    if (
+        Number.isFinite(Number(managed?.widthM))
+        && Number.isFinite(Number(managed?.heightM))
+    ) {
+        return managed;
+    }
     const geometry = windowBuilder?.getEditableTopologyGeometry?.();
     const widthM = Number(geometry?.overallWidth);
     const heightM = Number(geometry?.overallHeight);
@@ -381,6 +404,89 @@ let windowLayoutController = null;
 let windowLayoutOverlay = null;
 let arController = null;
 let windowSummaryController = null;
+let segmentedResizeOptimizer = null;
+let isWindowSizeBuildInProgress = false;
+let deferredFabricationSnapshot = null;
+let deferredSummaryTimer = null;
+let topologyStableLayoutSourceSignature = null;
+let topologyStableLayoutState = null;
+const RESIZE_SUMMARY_DEBOUNCE_MS = 180;
+
+function getTopologyStableLayoutSignature(snapshot) {
+    const state = snapshot?.windowState;
+    if (!state) return snapshot?.layoutId || 'single';
+
+    // Physical resizing changes only gridTracks.sizeM. The topology-facing UI
+    // and the detached 10 cm section samples depend on the structure itself,
+    // not on those physical dimensions. Keep a separate signature that changes
+    // for add/merge/type/trans/profile edits but stays stable while dragging a
+    // width/height control.
+    return `topology:${JSON.stringify({
+        layoutId: snapshot.layoutId,
+        dividerProfileId: snapshot.dividerProfileId,
+        transProfileId: snapshot.transProfileId,
+        windows: state.windows || [],
+        mergeGuides: state.mergeGuides || [],
+        transConnections: state.transConnections || [],
+    })}`;
+}
+
+function getTopologyStableLayoutState() {
+    const snapshot = windowLayoutController?.getConfigurationSnapshot();
+    if (!snapshot) {
+        return {
+            layoutId: 'single',
+            dividerOrientation: null,
+            dividerProfileId: null,
+        };
+    }
+
+    if (
+        topologyStableLayoutState
+        && topologyStableLayoutSourceSignature === snapshot.layoutSignature
+    ) {
+        return topologyStableLayoutState;
+    }
+
+    topologyStableLayoutSourceSignature = snapshot.layoutSignature;
+    topologyStableLayoutState = {
+        ...snapshot,
+        layoutSignature: getTopologyStableLayoutSignature(snapshot),
+    };
+    return topologyStableLayoutState;
+}
+
+function flushDeferredWindowSummary() {
+    if (deferredSummaryTimer !== null) {
+        clearTimeout(deferredSummaryTimer);
+        deferredSummaryTimer = null;
+    }
+    if (!deferredFabricationSnapshot || !windowSummaryController) return;
+    const snapshot = deferredFabricationSnapshot;
+    deferredFabricationSnapshot = null;
+    windowSummaryController.update(snapshot);
+}
+
+function queueWindowSummaryUpdate(snapshot) {
+    if (!snapshot) return;
+
+    if (!isWindowSizeBuildInProgress) {
+        deferredFabricationSnapshot = null;
+        if (deferredSummaryTimer !== null) {
+            clearTimeout(deferredSummaryTimer);
+            deferredSummaryTimer = null;
+        }
+        windowSummaryController?.update(snapshot);
+        return;
+    }
+
+    deferredFabricationSnapshot = snapshot;
+    if (deferredSummaryTimer !== null) clearTimeout(deferredSummaryTimer);
+    deferredSummaryTimer = setTimeout(
+        flushDeferredWindowSummary,
+        RESIZE_SUMMARY_DEBOUNCE_MS
+    );
+}
 
 const componentSelection = createComponentSelection({
     renderer,
@@ -488,6 +594,8 @@ profileSelectionController = createProfileSelectionController({
     }),
     onCadAssemblyPresetSelected: async ({ accessoryPresetId }) => {
         await windowLayoutController?.setLayout('single', { notify: false });
+        layoutSizingManager?.resetModifiedFlags();
+        layoutSizingManager?.syncOverallControls();
         accessoryController.setAccessoryPreset(accessoryPresetId, {
             rebuild: false,
             source: 'cad-assembly',
@@ -502,7 +610,15 @@ windowLayoutController = createWindowLayoutController({
     initialSelection: requestedWindowLayoutSelection,
     initialWidthM: Number(widthInput.value) || 0.6,
     initialHeightM: Number(heightInput.value) || 0.9,
-    onLayoutChange: async (layoutSelection, { reloadDivider = false, reloadTrans = false, topologyOnly = false } = {}) => {
+    onLayoutChange: async (
+        layoutSelection,
+        {
+            reloadDivider = false,
+            reloadTrans = false,
+            topologyOnly = false,
+            sizeOnly = false,
+        } = {}
+    ) => {
         profileSelectionController?.markCustomCadAssembly();
         if (
             topologyOnly
@@ -518,14 +634,35 @@ windowLayoutController = createWindowLayoutController({
             )
         ) {
             windowBuilder?.buildWindow();
-            syncSelectedWindowSelectionUI();
+            if (sizeOnly) syncSelectedWindowSizeControls();
+            else syncSelectedWindowSelectionUI();
+            layoutSizingManager?.syncOverallControls();
             return;
         }
         await profileController.loadProfileSelection({
             ...profileSelectionController.getConfigurationSnapshot(),
             ...layoutSelection,
         });
-        syncSelectedWindowSelectionUI();
+        if (sizeOnly) syncSelectedWindowSizeControls();
+        else syncSelectedWindowSelectionUI();
+        layoutSizingManager?.syncOverallControls();
+    },
+});
+
+layoutSizingManager = createLayoutSizingManager({
+    controller: windowLayoutController,
+    edgeExtensionM: DEFAULT_WINDOW_EDGE_EXTENSION_M,
+    widthMaxM: WINDOW_WIDTH_MAX_M,
+    heightMaxM: WINDOW_HEIGHT_MAX_M,
+    onResizeStateChange: active => {
+        isWindowSizeBuildInProgress = Boolean(active);
+    },
+    onAfterChange: () => {
+        syncSelectedWindowSizeControls();
+        syncSelectedWindowModifiedBadge();
+    },
+    onPreviewStateChange: state => {
+        segmentedResizeOptimizer?.previewState(state);
     },
 });
 
@@ -562,13 +699,15 @@ function initializeSelectedWindowPanel() {
         if (!selectedWindowCellId) return;
         const selectedId = selectedWindowCellId;
         await windowLayoutController.unmergeWindow(selectedId);
+        layoutSizingManager?.resetModifiedFlags();
+        layoutSizingManager?.syncOverallControls();
         selectWindowCell(null);
     });
 
     selectedWindowDelete?.addEventListener('click', async () => {
         if (!selectedWindowCellId || selectedWindowDelete.disabled) return;
         const selectedId = selectedWindowCellId;
-        await windowLayoutController.deleteWindow(selectedId);
+        await layoutSizingManager.deleteWindow(selectedId);
         selectWindowCell(null);
     });
 
@@ -621,21 +760,19 @@ windowBuilder = createWindowBuilder({
     getActiveGasketCode,
     getProfileComponentNumber,
     getEffectiveProfileBbox,
-    updateComponentPictures,
+    updateComponentPictures: () => {
+        if (!isWindowSizeBuildInProgress) updateComponentPictures();
+    },
     getFinishState: materialManager.getFinishState,
     getSelectedHandleSide: () => selectedHandleSide,
     onGlassClick: ({ cellId }) => {
         selectWindowCell(cellId);
     },
-    onFabricationSnapshot: snapshot => windowSummaryController?.update(snapshot),
+    onFabricationSnapshot: queueWindowSummaryUpdate,
     isProfileEnabled: accessoryController.isProfileEnabled,
     isProfileGroupVisible,
     canPlaceProfileOnSide: accessoryController.canPlaceProfileOnSide,
-    getWindowLayoutState: () => windowLayoutController?.getConfigurationSnapshot() || {
-        layoutId: 'single',
-        dividerOrientation: null,
-        dividerProfileId: null,
-    },
+    getWindowLayoutState: getTopologyStableLayoutState,
 });
 
 const {
@@ -646,23 +783,31 @@ const {
     applyCurrentPoseInstantly,
 } = windowBuilder;
 
+segmentedResizeOptimizer = createSegmentedResizeOptimizer({
+    mainGroup,
+    getWindowState: () => windowLayoutController?.getWindowState?.(),
+    getIsExploded: () => windowBuilder?.getIsExploded?.() || false,
+    edgeExtensionM: DEFAULT_WINDOW_EDGE_EXTENSION_M,
+});
+
 windowSummaryController = createWindowSummaryController({
     getProfileSelection: () => profileSelectionController?.getConfigurationSnapshot() || {},
     getLayoutSelection: () => windowLayoutController?.getConfigurationSnapshot() || {},
     getActiveGlazingBeadCode,
     getAccessorySelection: () => accessoryController?.getConfigurationSnapshot() || {},
 });
+flushDeferredWindowSummary();
 
 windowLayoutOverlay = createWindowLayoutOverlay({
     container: document.getElementById('canvas-container'),
     camera,
     mainGroup,
-    getWindowLayoutState: () => windowLayoutController?.getConfigurationSnapshot(),
-    getWidth: () => Number(widthInput?.value) || 1,
-    getHeight: () => Number(heightInput?.value) || 1,
+    getWindowLayoutState: getTopologyStableLayoutState,
+    getWidth: () => layoutSizingManager?.getOverallDimensions?.().widthM || Number(widthInput?.value) || 1,
+    getHeight: () => layoutSizingManager?.getOverallDimensions?.().heightM || Number(heightInput?.value) || 1,
     getSelectedHandleSide: () => selectedHandleSide,
     onAddWindow: async (cellId, direction, type, handleSide, edge = {}) => {
-        return windowLayoutController.addWindow(cellId, direction, type, {
+        return layoutSizingManager.addWindow(cellId, direction, type, {
             handleSide,
             start: edge.start,
             end: edge.end,
@@ -670,6 +815,8 @@ windowLayoutOverlay = createWindowLayoutOverlay({
     },
     onMergeWindows: async (cellAId, cellBId, type, handleSide) => {
         const result = await windowLayoutController.mergeWindows(cellAId, cellBId, type, { handleSide });
+        layoutSizingManager?.resetModifiedFlags();
+        layoutSizingManager?.syncOverallControls();
         selectWindowCell(null);
         return result;
     },
@@ -763,6 +910,8 @@ window.applyConfiguration = async function applyConfiguration(configuration) {
         configuration,
         { notify: false }
     );
+    layoutSizingManager?.resetModifiedFlags();
+    layoutSizingManager?.syncOverallControls();
     const combinedProfileSelection = {
         ...selectedProfiles,
         ...selectedLayout,
@@ -909,11 +1058,37 @@ initializeUIControls({
     renderer,
     componentSelection,
     buildWindow,
-    onWindowSizeChange: ({ widthM, heightM }) => {
+    onWindowSizePreview: ({ widthM, heightM }) => {
         if (!selectedWindowCellId) return;
-        windowLayoutController.setWindowSize(selectedWindowCellId, { widthM, heightM })
-            .then(() => syncSelectedWindowSelectionUI())
-            .catch(error => console.error('Unable to resize selected window:', error));
+        layoutSizingManager?.previewWindow(selectedWindowCellId, { widthM, heightM });
+    },
+    onWindowSizeChange: async ({ widthM, heightM }) => {
+        if (!selectedWindowCellId) return;
+
+        const currentSize = getWindowActualSizeInState(
+            windowLayoutController.getWindowState(),
+            selectedWindowCellId
+        );
+        const nextSize = {};
+        if (
+            Number.isFinite(widthM)
+            && (!currentSize || Math.abs(Number(currentSize.widthM) - widthM) > 1e-7)
+        ) {
+            nextSize.widthM = widthM;
+        }
+        if (
+            Number.isFinite(heightM)
+            && (!currentSize || Math.abs(Number(currentSize.heightM) - heightM) > 1e-7)
+        ) {
+            nextSize.heightM = heightM;
+        }
+        if (!Object.keys(nextSize).length) return;
+
+        try {
+            await layoutSizingManager.resizeWindow(selectedWindowCellId, nextSize);
+        } catch (error) {
+            console.error('Unable to resize selected window:', error);
+        }
     },
     syncModeButtons,
     setExploded: (value) => {

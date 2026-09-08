@@ -14,7 +14,7 @@ export function LocalizedHome({ locale }: { locale: Locale }) {
   const copy = homeCopy[locale];
   const ui = uiCopy[locale];
   const configurators = getLocalizedConfigurators(locale);
-  const schemaDescription = locale === "ro" ? "Configurare vizuală și spațială 3D pentru produse industriale complexe." : locale === "de" ? "Visuelle und räumliche 3D-Produktkonfiguration für komplexe Industrieprodukte." : "Industrial 3D visual and spatial product configuration for complex products.";
+  const schemaDescription = locale === "ro" ? "Configuratoare 3D pentru produse industriale complexe, cu reguli tehnice, prețuri și liste de materiale." : locale === "de" ? "Visuelle und räumliche 3D-Produktkonfiguration für komplexe Industrieprodukte." : "Industrial 3D visual and spatial product configuration for complex products.";
   const structuredData = graphSchema([
     organizationSchema(locale, schemaDescription),
     websiteSchema(locale, schemaDescription),

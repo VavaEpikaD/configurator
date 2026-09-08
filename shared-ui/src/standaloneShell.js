@@ -1,4 +1,4 @@
-import { LANGUAGE_PROFILES, LOCALE_HOSTS, getLanguageProfile, getLocaleForHostname, getLocalizedConfiguratorUrl } from './config.js?v=2';
+import { LANGUAGE_PROFILES, LOCALE_HOSTS, getLanguageProfile, getLocaleForHostname, getLocalizedConfiguratorUrl } from './config.js?v=3';
 import { sharedT } from './i18n.js?v=26';
 import { renderActionFeedback } from './components/feedback.js?v=17';
 import { renderTopBar } from './components/topBar.js?v=24';
@@ -11,10 +11,10 @@ import { renderLanguageSwitchLoading } from './components/languageSwitchLoading.
 import { renderConfiguratorPanelFooter } from './components/configuratorPanel.js?v=2';
 import { renderCartMenu } from './components/cartMenu.js?v=5';
 import { getUserCart, mutateUserCart } from './userCart.js?v=4';
-import { deleteUserConfiguration, getUserConfiguration, listUserConfigurations, saveUserConfiguration } from './savedConfigurations.js?v=17';
+import { deleteUserConfiguration, getUserConfiguration, listUserConfigurations, saveUserConfiguration } from './savedConfigurations.js?v=18';
 import { readShareState } from './shareState.js?v=6';
 import { getTenantSlugForHostname } from './tenantBootstrap.js?v=2';
-import { recordConfiguratorAccessOnce, recordConfiguratorAnalyticsEvent } from './configuratorAnalytics.js?v=2';
+import { recordConfiguratorAccessOnce, recordConfiguratorAnalyticsEvent } from './configuratorAnalytics.js?v=3';
 import { deleteUserAccount, exportUserProfileData, getUserProfile, updateUserProfile } from './userProfile.js?v=1';
 
 const MAX_PROJECT_NUMBER = 1000;
@@ -36,7 +36,7 @@ const CART_EDIT_PRODUCT_PARAM = 'cartProduct';
 const CART_EDIT_ITEM_ID_PATTERN = /^[A-Za-z0-9_-]{1,180}$/;
 const CART_EDIT_PRODUCTS = new Set(['window', 'roof', 'pergola', 'hall', 'solar', 'fence', 'cardbox']);
 const DOMAIN_SAVE_FAILURE_MESSAGE = 'Domain change failed because of a saving failure';
-const DRAFT_PRODUCTS = new Set(['window', 'roof', 'pergola', 'hall', 'fence', 'solar', 'cardbox']);
+const DRAFT_PRODUCTS = new Set(['window', 'roof', 'pergola', 'hall', 'fence', 'solar', 'cardbox', 'bookshelf']);
 const SUPPORT_EMAIL = 'office@360configurator.com';
 const SUPPORT_PRODUCT_NAMES = Object.freeze({
   window: 'Window',
@@ -46,6 +46,7 @@ const SUPPORT_PRODUCT_NAMES = Object.freeze({
   fence: 'Fence',
   solar: 'Solar',
   cardbox: 'Cardbox',
+  bookshelf: 'Bookshelf',
 });
 const CART_SUCCESS_FEEDBACK_MS = 1500;
 const CART_ERROR_FEEDBACK_MS = 2500;
@@ -87,6 +88,7 @@ function normalizeProductId(value = '') {
   if (normalized.includes('fence')) return 'fence';
   if (normalized.includes('solar')) return 'solar';
   if (normalized.includes('cardbox') || normalized.includes('cardboard') || normalized.includes('carton') || normalized.includes('karton')) return 'cardbox';
+  if (normalized.includes('bookshelf') || normalized.includes('bibliotec') || normalized.includes('bücherregal') || normalized.includes('buecherregal')) return 'bookshelf';
   return normalized || 'configuration';
 }
 
@@ -1523,7 +1525,7 @@ export class StandaloneConfiguratorShell {
     const token = ++this.sessionSwitchToken;
     this.authUser = user;
     this.activeSessionUid = uid;
-    void this.refreshProfileSummary(uid);
+    if (this.options.capabilities.profile !== false) void this.refreshProfileSummary(uid);
     this.cartOpen = false;
     this.loadCart(uid);
     void this.refreshCartFromBackend(uid, { force: true });
@@ -1918,7 +1920,7 @@ export class StandaloneConfiguratorShell {
   }
 
   async openProfile() {
-    if (!this.authUser?.uid) return;
+    if (this.options.capabilities.profile === false || !this.authUser?.uid) return;
     this.accountOpen = false;
     this.helpOpen = false;
     this.domainOpen = false;

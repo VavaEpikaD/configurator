@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="Configure a client-specific modular bookshelf system with straight and L-corner modules, two fixed dimensional families, door variants, finishes and automatic aluminium connections." />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Modular Bookshelf Configurator | 360Configurator</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="../shared-ui/styles/standalone.css?v=25" />
+  <link rel="stylesheet" href="./styles.css?v=2" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <main class="app-shell">
+    <section class="viewer-panel" aria-label="Modular bookshelf 3D viewer">
+      <div class="viewer-stage">
+        <div id="canvasHost" aria-label="Interactive modular bookshelf model"></div>
+        <div id="dimensionLayer" class="dimension-layer" aria-hidden="true"></div>
+
+        <button id="addStartButton" class="endpoint-plus endpoint-plus--start" type="button" aria-label="Add module at the start" hidden>+</button>
+        <button id="addEndButton" class="endpoint-plus endpoint-plus--end" type="button" aria-label="Add module at the end" hidden>+</button>
+
+        <div id="addModulePanel" class="floating-panel add-module-panel" hidden>
+          <div class="floating-panel__heading">
+            <div>
+              <span class="panel-kicker" data-i18n="add.kicker">Extend configuration</span>
+              <h2 data-i18n="add.title">Add module</h2>
+            </div>
+            <button id="closeAddPanelButton" class="icon-close" type="button" aria-label="Close">×</button>
+          </div>
+
+          <div class="module-choice-grid">
+            <button class="module-choice is-selected" type="button" data-module-kind="straight">
+              <svg viewBox="0 0 64 44" aria-hidden="true"><rect x="12" y="5" width="40" height="34" rx="2"/><path d="M18 13h28M18 21h28M18 29h28"/></svg>
+              <span><b data-i18n="add.straight">Straight module</b><small data-i18n="add.straightHint">Continue in the same direction</small></span>
+            </button>
+            <button class="module-choice" type="button" data-module-kind="corner">
+              <svg viewBox="0 0 64 44" aria-hidden="true"><path d="M10 7h28v10H20v20H10Z"/><path d="M20 17h34v20H44V27H20Z"/></svg>
+              <span><b data-i18n="add.corner">L-corner module</b><small data-i18n="add.cornerHint">Turn the run by 90°</small></span>
+            </button>
+          </div>
+
+          <div id="cornerDirectionGroup" class="corner-direction-group" hidden>
+            <span class="control-label" data-i18n="add.direction">Corner direction</span>
+            <div class="segmented-control">
+              <button class="is-selected" type="button" data-corner-turn="left" data-i18n="add.turnLeft">Turn left</button>
+              <button type="button" data-corner-turn="right" data-i18n="add.turnRight">Turn right</button>
+            </div>
+          </div>
+
+          <div id="addModuleError" class="panel-error" hidden></div>
+          <button id="confirmAddModuleButton" class="primary-button" type="button" data-i18n="add.confirm">Add module</button>
+        </div>
+
+        <div id="viewerHint" class="viewer-hint" data-i18n="viewer.hint">Click a module to edit it. Use the + buttons to extend the configuration.</div>
+      </div>
+    </section>
+
+    <aside class="sidebar shared-settings-panel shared-settings-panel--light" aria-label="Bookshelf settings">
+      <section class="panel-section intro-section">
+        <p class="eyebrow" data-i18n="intro.eyebrow">Client-specific modular system</p>
+        <h1 data-i18n="intro.title">Bookshelf configurator</h1>
+        <p class="section-copy" data-i18n="intro.copy">Build one continuous run from straight modules and 90° L-corners. Every connected module always uses the same dimensional family.</p>
+      </section>
+
+      <section class="accordion-section is-open" data-accordion="family">
+        <button class="accordion-toggle" type="button" aria-expanded="true">
+          <span data-i18n="section.family">Dimensional family</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div class="accordion-panel">
+          <div class="family-grid">
+            <button id="familyCompactButton" class="family-card is-selected" type="button" data-family="compact">
+              <span class="family-card__height">2150 mm</span>
+              <b data-i18n="family.compact">Compact</b>
+              <small data-i18n="family.compactDims">Straight 800 × 350 mm · Corner 800 × 800 mm</small>
+            </button>
+            <button id="familyTallButton" class="family-card" type="button" data-family="tall">
+              <span class="family-card__height">2300 mm</span>
+              <b data-i18n="family.tall">Tall</b>
+              <small data-i18n="family.tallDims">Straight 900 × 350 mm · Corner 900 × 900 mm</small>
+            </button>
+          </div>
+          <div class="rule-note">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+            <span data-i18n="family.rule">Changing the family updates every module together; heights cannot be mixed.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="accordion-section is-open" data-accordion="selected">
+        <button class="accordion-toggle" type="button" aria-expanded="true">
+          <span data-i18n="section.selected">Selected module</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div class="accordion-panel">
+          <div id="selectedEmptyState" class="empty-state">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+            <p data-i18n="selected.empty">Select a bookshelf module in the 3D view to choose its doors, colour or delete it.</p>
+          </div>
+
+          <div id="selectedModuleControls" hidden>
+            <div class="selected-module-header">
+              <div><span data-i18n="selected.module">Module</span><strong id="selectedModuleLabel">1</strong></div>
+              <span id="selectedModuleTypeBadge" class="type-badge">Straight</span>
+            </div>
+
+            <span class="control-label" data-i18n="selected.doors">Door configuration</span>
+            <div class="door-grid">
+              <button class="door-card is-selected" type="button" data-door="open">
+                <svg viewBox="0 0 50 58" aria-hidden="true"><rect x="6" y="4" width="38" height="50"/><path d="M10 15h30M10 27h30M10 39h30"/></svg>
+                <b data-i18n="doors.open">Open</b>
+                <small data-i18n="doors.openHint">No doors</small>
+              </button>
+              <button class="door-card" type="button" data-door="lower">
+                <svg viewBox="0 0 50 58" aria-hidden="true"><rect x="6" y="4" width="38" height="50"/><path d="M10 15h30M10 27h30M25 35v19M6 35h38"/><circle cx="22" cy="45" r="1"/><circle cx="28" cy="45" r="1"/></svg>
+                <b data-i18n="doors.lower">Lower doors</b>
+                <small data-i18n="doors.lowerHint">Closed storage at the base</small>
+              </button>
+              <button class="door-card" type="button" data-door="glazed">
+                <svg viewBox="0 0 50 58" aria-hidden="true"><rect x="6" y="4" width="38" height="50"/><rect x="10" y="8" width="13" height="42"/><rect x="27" y="8" width="13" height="42"/><path d="M10 31h13M27 31h13"/></svg>
+                <b data-i18n="doors.glazed">Glazed doors</b>
+                <small data-i18n="doors.glazedHint">Full-height glass closure</small>
+              </button>
+            </div>
+
+            <span class="control-label top-gap" data-i18n="selected.colour">Module colour</span>
+            <div id="moduleColourPalette" class="colour-palette">
+              <button class="colour-swatch is-selected" type="button" data-colour="#b98555" style="--colour:#b98555" aria-label="Natural oak"></button>
+              <button class="colour-swatch" type="button" data-colour="#d0a878" style="--colour:#d0a878" aria-label="Light oak"></button>
+              <button class="colour-swatch" type="button" data-colour="#835735" style="--colour:#835735" aria-label="Dark oak"></button>
+              <button class="colour-swatch" type="button" data-colour="#65422d" style="--colour:#65422d" aria-label="Walnut"></button>
+              <button class="colour-swatch" type="button" data-colour="#e7e3da" style="--colour:#e7e3da" aria-label="Warm white"></button>
+              <button class="colour-swatch" type="button" data-colour="#34312f" style="--colour:#34312f" aria-label="Black"></button>
+            </div>
+
+            <button id="deleteModuleButton" class="danger-button top-gap" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg>
+              <span data-i18n="selected.delete">Delete module</span>
+            </button>
+            <small id="deleteModuleHint" class="delete-hint" hidden data-i18n="selected.keepOne">At least one module must remain in the configuration.</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="accordion-section" data-accordion="components">
+        <button class="accordion-toggle" type="button" aria-expanded="false">
+          <span data-i18n="section.components">Components</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div class="accordion-panel" hidden>
+          <div class="component-summary">
+            <div><span data-i18n="components.modules">Modules</span><strong id="componentModuleCount">1</strong></div>
+            <div><span data-i18n="components.joints">Connections</span><strong id="componentJointCount">0</strong></div>
+            <div><span data-i18n="components.layout">Layout</span><strong id="componentLayoutState">Open run</strong></div>
+          </div>
+          <div id="componentsList" class="components-list"></div>
+          <p class="components-note" data-i18n="components.note">No prices are shown. One aluminium connection set is added automatically for every joint between two modules.</p>
+        </div>
+      </section>
+    </aside>
+
+    <button id="bookshelfSidebarToggle" class="shared-settings-toggle shared-settings-toggle--light" type="button" aria-label="Hide bookshelf settings" aria-expanded="true" title="Hide bookshelf settings"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+  </main>
+
+  <script type="module" src="./js/app.js?v=5"></script>
+  <script type="module" src="./js/sharedShell.js?v=1"></script>
+</body>
+</html>

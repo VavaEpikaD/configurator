@@ -39,7 +39,7 @@ const SHARES_COLLECTION = 'sharedConfigurations';
 const SYSTEM_COLLECTION = 'sharedConfigurationSystem';
 const APP_CHECK_USAGE_DOCUMENT = 'appCheckUsage';
 const FIRESTORE_RECORD_VERSION = 1;
-const ALLOWED_PRODUCTS = new Set(['window', 'roof', 'pergola', 'hall', 'solar', 'fence', 'cardbox']);
+const ALLOWED_PRODUCTS = new Set(['window', 'roof', 'pergola', 'hall', 'solar', 'fence', 'cardbox', 'bookshelf']);
 
 // Tier-1 tenant provisioning.
 const TENANTS_COLLECTION = 'tenants';
@@ -241,6 +241,7 @@ const DEMO_REQUEST_CONFIGURATOR_NAMES = Object.freeze({
   solar: 'Solar configurator',
   fence: 'Fence configurator',
   cardbox: 'Cardbox configurator',
+  bookshelf: 'Bookshelf configurator',
 });
 const DEMO_REQUEST_TIMINGS = new Set(['', 'asap', 'week', 'fortnight', 'exploring']);
 const DEMO_REQUEST_JOB_TITLES = Object.freeze({

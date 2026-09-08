@@ -27,7 +27,7 @@ const checks = [
   ['shared-ui/tenant-dashboard/index.html', [
     'id="activityList"',
     'id="activityEmpty"',
-    'tenantDashboard.js?v=4',
+    'tenantDashboard.js?v=',
     'tenantDashboard.css?v=4',
   ]],
   ['shared-ui/src/tenantDashboard.js', [
@@ -38,7 +38,7 @@ const checks = [
   ['shared-ui/admin/tenant-provisioning/index.html', [
     'id="manageActivityList"',
     'id="manageActivityEmpty"',
-    'tenantProvisioningAdmin.js?v=8',
+    'tenantProvisioningAdmin.js?v=',
   ]],
   ['shared-ui/src/tenantProvisioningAdmin.js', [
     'function populateTenantActivity',

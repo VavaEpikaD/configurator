@@ -76,11 +76,11 @@ const roofSeoContent: Record<Locale, ConfiguratorSeoContent> = {
     workflow: {
       label: "Cum funcționează",
       heading: "De la forma acoperișului la cantități măsurabile în cinci pași.",
-      intro: "Geometria și necesarul rămân conectate. Când schimbi o dimensiune, acoperișul se reconstruiește, iar informațiile de măsurare pornesc din aceeași stare.",
+      intro: "Geometria și necesarul rămân conectate. Când schimbi o dimensiune, acoperișul se reconstruiește, iar măsurătorile se actualizează din aceeași configurație.",
       steps: [
         { title: "Alege tipul de acoperiș", body: "Pornește de la un acoperiș în două ape, patru ape, o apă, formă L sau cu lucarnă, în funcție de situația pe care vrei să o configurezi." },
         { title: "Setează dimensiunile și panta", body: "Modifică lungimea, adâncimea, înălțimea pereților, panta și streașina, iar învelitoarea se reconstruiește în timp real." },
-        { title: "Alege sistemul de învelitoare", body: "Aplică presetul metalic sau mineral disponibil, astfel încât aspectul și regulile geometrice compatibile să rămână legate de configurație." },
+        { title: "Alege sistemul de învelitoare", body: "Alege varianta metalică sau minerală disponibilă, astfel încât aspectul și regulile geometrice compatibile să rămână legate de configurație." },
         { title: "Verifică geometria măsurabilă", body: "Urmărește suprafața acoperișului și lungimile de coamă, streașină, dolie, tinichigerie și jgheab rezultate din modelul curent." },
         { title: "Continuă cu BOM și CSV", body: "Folosește lista de componente pentru estimare și exportă BOM-ul în format CSV atunci când configurația este pregătită pentru etapa comercială." },
       ],
@@ -88,17 +88,17 @@ const roofSeoContent: Record<Locale, ConfiguratorSeoContent> = {
     decisions: {
       label: "Ce poți configura",
       heading: "Testează deciziile care schimbă atât forma, cât și necesarul.",
-      intro: "La acoperiș, aceeași modificare geometrică influențează aspectul, dimensiunile și cantitățile. Configuratorul păstrează aceste efecte în aceeași stare.",
+      intro: "La acoperiș, aceeași modificare geometrică influențează aspectul, dimensiunile și cantitățile. Configuratorul păstrează toate aceste rezultate sincronizate.",
       groups: [
         { title: "Geometria acoperișului", body: "Alege tipologia arhitecturală înainte de reglarea dimensiunilor.", items: ["Acoperiș în două ape", "Acoperiș în patru ape", "Acoperiș într-o apă", "Acoperiș în L", "Acoperiș cu lucarnă"] },
         { title: "Dimensiuni și pantă", body: "Modifică parametrii principali ai volumului.", items: ["Lungime și adâncime", "Înălțimea pereților", "Panta acoperișului", "Streașină", "Dimensiuni vizibile în scenă"] },
-        { title: "Învelitoare și reguli", body: "Leagă modelul 3D de un sistem de material, nu doar de o textură.", items: ["Preseturi de învelitoare metalică", "Preseturi de învelitoare minerală", "Aspect specific materialului", "Reguli de compatibilitate cu panta"] },
-        { title: "Cantități și export", body: "Folosește geometria generată ca sursă pentru etapa comercială.", items: ["Suprafață acoperiș", "Coame, streșini și dolii", "Tinichigerii și jgheaburi", "Bill of Materials", "Export CSV"] },
+        { title: "Învelitoare și reguli", body: "Leagă modelul 3D de un sistem de material, nu doar de o textură.", items: ["Învelitoare metalică", "Învelitoare minerală", "Aspect specific materialului", "Reguli de compatibilitate cu panta"] },
+        { title: "Cantități și export", body: "Folosește geometria generată ca sursă pentru etapa comercială.", items: ["Suprafață acoperiș", "Coame, streșini și dolii", "Tinichigerii și jgheaburi", "Listă de materiale", "Export CSV"] },
       ],
     },
     outcomes: {
       label: "De ce configurare 3D",
-      heading: "Aceeași stare pentru proiectare și estimare.",
+      heading: "Aceeași configurație pentru proiectare și estimare.",
       body: "Un acoperiș devine greu de urmărit atunci când forma, cotele și necesarul sunt păstrate în documente diferite. Legarea lor de același model face mai clar efectul fiecărei modificări și reduce refacerea manuală.",
       items: [
         { title: "Pentru beneficiar", body: "Compară vizual tipuri de acoperiș și proporții înainte ca proiectul să fie redus la cote și liste de materiale." },
@@ -258,7 +258,7 @@ const windowSeoContent: Record<Locale, ConfiguratorSeoContent> = {
     intro: {
       label: "Configurare ferestre 3D",
       heading: "Configurează fereastra ca ansamblu tehnic, nu ca imagine de catalog.",
-      body: "Configuratorul de ferestre 360Configurator păstrează dimensiunile, geometria profilelor, vitrajul, garniturile, baghetele, modul de deschidere și finisajele în aceeași stare interactivă. Este util atunci când un sistem de ferestre trebuie explicat ca produs tehnic, nu redus doar la lățime, înălțime și culoare.",
+      body: "Configuratorul de ferestre păstrează împreună dimensiunile, profilele, vitrajul, garniturile, baghetele, modul de deschidere și finisajele. Astfel, clientul poate înțelege produsul tehnic complet, nu doar lățimea, înălțimea și culoarea.",
       launch: "Deschide configuratorul de ferestre 3D",
       learn: "Vezi cum funcționează",
     },
@@ -268,7 +268,7 @@ const windowSeoContent: Record<Locale, ConfiguratorSeoContent> = {
       intro: "Fereastra rămâne legată de logica sistemului de profile pe măsură ce configurația se schimbă, inclusiv în compozițiile cu mai multe celule acceptate de instrumentul actual.",
       steps: [
         { title: "Stabilește compartimentarea și dimensiunile", body: "Alege aranjamentul curent al celulelor și modifică dimensiunile generale în limitele sistemului configurat." },
-        { title: "Rezolvă profilul și pachetul de sticlă", body: "Păstrează cadrul, cerceveaua, vitrajul, garniturile și baghetele conectate atunci când se schimbă grosimea sticlei și componentele compatibile." },
+        { title: "Alege profilele și pachetul de sticlă", body: "Tocul, cerceveaua, vitrajul, garniturile și baghetele se actualizează împreună când schimbi grosimea sticlei sau componentele compatibile." },
         { title: "Alege modul de deschidere", body: "Configurează celule fixe sau mobile unde sunt disponibile, schimbă tipul de deschidere și urmărește mișcarea cercevelei în modelul 3D." },
         { title: "Specifică finisajele", body: "Folosește același finisaj sau tratamente diferite la interior și exterior, inclusiv configurații bicolore acceptate de sistem." },
         { title: "Inspectează ansamblul", body: "Folosește vederea montată, explodată și modurile tehnice pentru a înțelege secțiunile de profil și relațiile dintre componente." },
@@ -277,11 +277,11 @@ const windowSeoContent: Record<Locale, ConfiguratorSeoContent> = {
     decisions: {
       label: "Ce poți configura",
       heading: "Fă vizibile deciziile tehnice înainte ca fereastra să ajungă în producție.",
-      intro: "Sistemele de profile au dependențe greu de explicat într-un formular clasic. Configuratorul le păstrează în aceeași scenă și în aceeași stare de produs.",
+      intro: "Componentele unui sistem de profile depind unele de altele și sunt greu de explicat într-un formular. Configuratorul le păstrează împreună în același model 3D.",
       groups: [
         { title: "Compartimentare și dimensiuni", body: "Definește compoziția vizibilă și mărimea ansamblului.", items: ["Configurații cu una sau mai multe celule", "Celule fixe și cercevele", "Controlul lățimii și înălțimii", "Stări de îmbinare acolo unde sunt acceptate"] },
         { title: "Profile și vitraj", body: "Leagă secțiunea tehnică de pachetul de sticlă selectat.", items: ["Profile de cadru și cercevea", "Grosimea vitrajului", "Coduri compatibile de garnituri", "Coduri compatibile de baghete"] },
-        { title: "Comportamentul la deschidere", body: "Urmărește mișcarea elementelor mobile, nu doar o pictogramă de deschidere.", items: ["Deschidere laterală", "Deschidere oscilobatantă / tilt", "Controlul unghiului de deschidere", "Mișcare 3D a cercevelei"] },
+        { title: "Modul de deschidere", body: "Urmărește direct mișcarea elementelor mobile.", items: ["Deschidere batantă", "Deschidere oscilo-batantă", "Controlul unghiului de deschidere", "Mișcarea 3D a cercevelei"] },
         { title: "Finisaje și diagnostic", body: "Combină alegerea comercială a finisajului cu inspecția tehnică.", items: ["Finisaj brut, anodizat sau vopsit", "Tratamente independente interior/exterior", "Configurație bicoloră", "Vedere explodată și secțiuni de profil"] },
       ],
     },
@@ -457,27 +457,27 @@ const hallSeoContent: Record<Locale, ConfiguratorSeoContent> = {
       intro: "Structura principală, structura secundară, anvelopa și golurile de acces rămân sincronizate, în loc să fie configurate în formulare independente.",
       steps: [
         { title: "Setează dimensiunile clădirii", body: "Modifică lungimea, deschiderea, înălțimea la streașină și panta acoperișului pentru a defini volumul halei." },
-        { title: "Rezolvă ritmul structural", body: "Alege distanța țintă dintre cadre și presetul structural, iar distribuția cadrelor portal urmărește lungimea clădirii." },
+        { title: "Stabilește distanța dintre cadre", body: "Alege distanța dorită și varianta structurală, iar cadrele portal se distribuie automat pe lungimea clădirii." },
         { title: "Configurează anvelopa", body: "Privește închiderile și structura împreună sau izolează straturile atunci când trebuie explicată construcția din spatele halei finite." },
         { title: "Poziționează uși și ferestre", body: "Adaugă uși pietonale, uși de garaj și ferestre pe pereții disponibili, apoi ajustează poziția și dimensiunile lor." },
-        { title: "Validează configurația", body: "Folosește detectarea suprapunerilor, rezumatul și vederile tehnice/explodate pentru a verifica starea halei înainte de etapa următoare." },
+        { title: "Verifică configurația", body: "Rezolvă suprapunerile și folosește rezumatul, vederile tehnice și vederea explodată înainte de etapa următoare." },
       ],
     },
     decisions: {
       label: "Ce poți configura",
       heading: "Coordonează deciziile care definesc o hală industrială.",
-      intro: "Dimensiunile clădirii, ritmul structurii și golurile de fațadă se influențează reciproc. Configuratorul le păstrează spațial, astfel încât conflictele să poată fi observate înainte de predare.",
+      intro: "Dimensiunile clădirii, structura și golurile de fațadă se influențează reciproc. Configuratorul le arată în același model, astfel încât conflictele să poată fi observate înainte de predare.",
       groups: [
         { title: "Anvelopa clădirii", body: "Definește volumul industrial principal.", items: ["Lungimea halei", "Deschiderea liberă", "Înălțimea la streașină", "Panta acoperișului", "Vizibilitatea închiderilor"] },
-        { title: "Structură", body: "Controlează ritmul și clasa vizuală a sistemului metalic.", items: ["Distanța dintre cadre portal", "Travei egale", "Preseturi light / standard / heavy", "Vedere structură principală și secundară"] },
+        { title: "Structură", body: "Controlează distanța dintre cadre și varianta structurii metalice.", items: ["Distanța dintre cadre portal", "Travei egale", "Structură ușoară, standard sau grea", "Structură principală și secundară"] },
         { title: "Uși și ferestre", body: "Configurează accesul și golurile direct pe pereți.", items: ["Uși pietonale", "Uși de garaj", "Ferestre", "Poziție și dimensiuni", "Amplasare pe fiecare fațadă"] },
-        { title: "Validare și inspecție", body: "Verifică dacă starea curentă este coerentă înainte de rezumat.", items: ["Detectarea suprapunerilor", "Feedback pentru stări invalide", "Vizibilitatea straturilor", "Muchii tehnice", "Vedere explodată"] },
+        { title: "Verificare și inspecție", body: "Verifică modelul înainte de a genera rezumatul.", items: ["Detectarea suprapunerilor", "Mesaje pentru configurații invalide", "Afișarea separată a componentelor", "Muchii tehnice", "Vedere explodată"] },
       ],
     },
     outcomes: {
       label: "De ce configurare 3D",
-      heading: "O hală coordonată înainte ca desenele și oferta să se separe.",
-      body: "Halele industriale combină o structură repetitivă cu dimensiuni și goluri specifice fiecărui proiect. O singură stare spațială face mai ușor de urmărit relația dintre sisteme și oferă o referință comună pentru partea comercială și tehnică.",
+      heading: "Aceeași configurație pentru prezentare, verificare și ofertare.",
+      body: "O hală industrială combină o structură repetitivă cu dimensiunile și golurile fiecărui proiect. Modelul 3D oferă o referință comună pentru client, vânzări și echipa tehnică.",
       items: [
         { title: "Pentru beneficiar", body: "Înțelege proporțiile halei, punctele de acces și anvelopa înainte de a analiza un set complet de desene tehnice." },
         { title: "Pentru vânzare și planificare", body: "Păstrează dimensiunea halei, ritmul cadrelor și golurile sincronizate atunci când se discută variante." },
@@ -636,20 +636,20 @@ const solarSeoContent: Record<Locale, ConfiguratorSeoContent> = {
     intro: {
       label: "Configurare sistem fotovoltaic 3D",
       heading: "Configurează împreună acoperișul, panourile și modelul energetic al locuinței.",
-      body: "Configuratorul solar 360Configurator leagă geometria acoperișului, amplasarea panourilor, contextul geografic, poziția soarelui, consumul locuinței și bateria într-un singur model interactiv. Astfel poți vedea nu doar cum se așază sistemul fotovoltaic pe acoperiș, ci și cum dimensiunea sistemului și profilul de consum influențează rezultatul energetic.",
-      launch: "Deschide configuratorul solar 3D",
+      body: "Configuratorul fotovoltaic 360Configurator leagă geometria acoperișului, amplasarea panourilor, contextul geografic, poziția soarelui, consumul locuinței și bateria într-un singur model interactiv. Astfel poți vedea nu doar cum se așază sistemul fotovoltaic pe acoperiș, ci și cum dimensiunea sistemului și profilul de consum influențează rezultatul energetic.",
+      launch: "Deschide configuratorul fotovoltaic 3D",
       learn: "Vezi cum funcționează",
     },
     workflow: {
       label: "Cum funcționează",
-      heading: "De la locație și geometria acoperișului la un scenariu energetic zilnic în cinci pași.",
+      heading: "De la adresă și forma acoperișului la estimarea producției în cinci pași.",
       intro: "Fluxul combină potrivirea fizică a panourilor cu ipotezele energetice, astfel încât sistemul fotovoltaic să poată fi analizat ca produs montat pe acoperiș și ca sistem energetic.",
       steps: [
-        { title: "Setează locația și orientarea", body: "Folosește locația proiectului și orientarea fațadei/acoperișului drept context pentru poziția soarelui și estimările de producție." },
+        { title: "Confirmă locația și orientarea", body: "Folosește adresa proiectului și orientarea acoperișului pentru poziția soarelui și estimarea producției." },
         { title: "Configurează acoperișul", body: "Alege tipologia suportată și modifică dimensiunile și panta pentru ca suprafețele disponibile panourilor să urmărească clădirea." },
         { title: "Amplasează panourile fotovoltaice", body: "Alege numărul dorit de module și versantul; configuratorul așază module rezidențiale pe suprafața utilizabilă." },
         { title: "Modelează consumul și bateria", body: "Selectează profilul de consum al locuinței și activează sau dimensionează bateria LiFePO₄ pentru a compara utilizarea energiei pe parcursul zilei." },
-        { title: "Verifică rezultatul energetic", body: "Urmărește puterea instalată, producția, consumul, autoconsumul/autonomia, importul și exportul din rețea și profilul zilnic producție versus consum." },
+        { title: "Verifică rezultatele", body: "Vezi puterea instalată, producția, consumul, autoconsumul, autonomia, energia preluată din rețea și surplusul livrat." },
       ],
     },
     decisions: {
@@ -657,15 +657,15 @@ const solarSeoContent: Record<Locale, ConfiguratorSeoContent> = {
       heading: "Leagă amplasarea fizică a panourilor de deciziile energetice.",
       intro: "Un sistem fotovoltaic nu este definit doar de numărul de panouri. Spațiul disponibil pe acoperiș, orientarea, momentul consumului și stocarea influențează rezultatul.",
       groups: [
-        { title: "Locație și soare", body: "Definește contextul de mediu al sistemului.", items: ["Adresă / coordonate proiect", "Orientarea acoperișului", "Ora și data", "Poziția sezonieră a soarelui", "Date calibrate / PVGIS la locație unde sunt disponibile"] },
+        { title: "Locație și soare", body: "Folosește condițiile reale ale amplasamentului.", items: ["Adresa sau coordonatele proiectului", "Orientarea acoperișului", "Ora și data", "Poziția soarelui în fiecare anotimp", "Date PVGIS pentru locația exactă, unde sunt disponibile"] },
         { title: "Acoperiș și panouri", body: "Construiește suprafața fizică pe care trebuie să încapă sistemul.", items: ["Acoperiș în două ape", "Acoperiș în patru ape", "Acoperiș într-o apă", "Dimensiuni și pantă", "Amplasare module la dimensiune fizică"] },
-        { title: "Consum și stocare", body: "Testează cum schimbă comportamentul locuinței utilizarea aceleiași producții solare.", items: ["Profile rezidențiale de consum", "Consum anual", "Baterie LiFePO₄", "Dimensionare automată sau manuală a bateriei"] },
-        { title: "Rezultat energetic și comercial", body: "Analizează sistemul ca scenariu energetic zilnic.", items: ["Putere instalată kWp", "Producție fotovoltaică", "Autonomie / self-sufficiency", "Import și export din rețea", "Estimare sistem"] },
+        { title: "Consum și stocare", body: "Testează cum influențează profilul de consum energia fotovoltaică folosită direct în locuință.", items: ["Profile rezidențiale de consum", "Consum anual", "Baterie LiFePO₄", "Dimensionare automată sau manuală a bateriei"] },
+        { title: "Rezultate energetice și estimare", body: "Compară producția sistemului cu necesarul locuinței.", items: ["Putere instalată în kWp", "Producție fotovoltaică", "Autoconsum și autonomie energetică", "Energie preluată și livrată în rețea", "Estimarea sistemului"] },
       ],
     },
     outcomes: {
       label: "De ce configurare 3D",
-      heading: "O propunere fotovoltaică ce leagă acoperișul de comportamentul energetic.",
+      heading: "O propunere fotovoltaică adaptată acoperișului și consumului.",
       body: "Amplasarea panourilor și performanța energetică sunt adesea discutate în instrumente separate. Un model comun explică mai ușor de ce sistemul are o anumită dimensiune, unde încap modulele și cum schimbă profilul de consum sau bateria rezultatul.",
       items: [
         { title: "Pentru proprietar", body: "Vezi unde se așază panourile pe acoperiș și compară producția, consumul și stocarea într-o singură vedere." },
@@ -674,7 +674,7 @@ const solarSeoContent: Record<Locale, ConfiguratorSeoContent> = {
       ],
     },
     faq: {
-      label: "Întrebări despre configuratorul solar",
+      label: "Întrebări despre configuratorul fotovoltaic",
       heading: "Întrebări frecvente despre configurarea unui sistem fotovoltaic 3D.",
       items: [
         { question: "Pe ce tipuri de acoperiș pot amplasa panourile?", answer: "Configuratorul actual include acoperișuri rezidențiale în două ape, patru ape și o apă." },
@@ -690,7 +690,7 @@ const solarSeoContent: Record<Locale, ConfiguratorSeoContent> = {
       eyebrow: "Testează produsul",
       heading: "Construiește un scenariu fotovoltaic pe acoperiș direct în browser.",
       body: "Deschide configuratorul pentru a testa geometria acoperișului, amplasarea panourilor, poziția soarelui, consumul și bateria sau discută cu noi despre un configurator pentru propriul produs energetic.",
-      launch: "Deschide configuratorul solar",
+      launch: "Deschide configuratorul fotovoltaic",
       contact: "Discută un proiect de configurator",
     },
   },
@@ -791,14 +791,14 @@ const fenceSeoContent: Record<Locale, ConfiguratorSeoContent> = {
     finalCta: { eyebrow: "Try the actual product", heading: "Resolve a complete fence perimeter in the browser.", body: "Open the live configurator to test layouts, panel systems, finishes, gates and foundations, or contact us about adapting the system to your own fence range.", launch: "Launch fence configurator", contact: "Discuss a configurator project" },
   },
   ro: {
-    intro: { label: "Proiectare gard 3D", heading: "Configurează perimetrul complet înainte de calculul manual.", body: "Configuratorul de garduri 360Configurator leagă traseul, lungimile, traveile, panourile, finisajele, porțile și fundațiile într-o singură stare 3D măsurabilă. Sistemul arată cum produsul urmărește limita reală și păstrează fiecare componentă conectată la rezultat.", launch: "Deschide configuratorul de garduri 3D", learn: "Vezi cum funcționează" },
+    intro: { label: "Proiectare gard 3D", heading: "Configurează perimetrul complet înainte de calculul manual.", body: "Configuratorul de garduri 360Configurator leagă traseul, lungimile, traveile, panourile, finisajele, porțile și fundațiile într-o singură configurație 3D măsurabilă. Sistemul arată cum produsul urmărește limita reală și păstrează fiecare componentă conectată la rezultat.", launch: "Deschide configuratorul de garduri 3D", learn: "Vezi cum funcționează" },
     workflow: { label: "Cum funcționează", heading: "De la geometria limitei la un sistem de gard rezolvat în cinci pași.", intro: "Fiecare decizie reconstruiește același perimetru și păstrează vizualizarea sincronizată cu datele tehnice.", steps: [
       { title: "Definește perimetrul", body: "Alege traseu drept, în L, în U sau închis și setează lungimile și unghiul de colț." }, { title: "Rezolvă ritmul traveilor", body: "Alege lățimea țintă pentru ca fiecare latură să devină o succesiune practică de panouri egale." }, { title: "Alege panoul și finisajul", body: "Compară lamele verticale, orizontale, panouri pline și plasă, apoi aplică finisajul." }, { title: "Adaugă accesul și fundațiile", body: "Poziționează porți pietonale sau auto și alege fundații din beton ori plăci de bază." }, { title: "Verifică BOM-ul și prețul", body: "Folosește geometria pentru lungimi, suprafețe, stâlpi, panouri, porți și montaj." },
     ] },
     decisions: { label: "Ce poți configura", heading: "Coordonează traseul, construcția și accesul în același perimetru.", intro: "Un gard este greu de ofertat când geometria, modulele și porțile sunt tratate separat. Configuratorul le păstrează conectate.", groups: [
-      { title: "Traseu și dimensiuni", body: "Construiește limita măsurabilă.", items: ["Trasee drept, L și U", "Perimetre închise", "Lungimi și unghi", "Înălțime"] }, { title: "Travei și panouri", body: "Rezolvă module fabricabile.", items: ["Lățime țintă", "Distribuție egală", "Lamele verticale și orizontale", "Panouri pline și plasă"] }, { title: "Finisaj și montaj", body: "Specifică aspectul și suportul.", items: ["Culori vopsite", "Efect lemn", "Fundații beton", "Plăci de bază"] }, { title: "Acces și rezultate", body: "Conectează golurile la cantități.", items: ["Porți pietonale", "Porți auto", "Sens de deschidere", "BOM și preț live"] },
+      { title: "Traseu și dimensiuni", body: "Construiește limita măsurabilă.", items: ["Trasee drept, L și U", "Perimetre închise", "Lungimi și unghi", "Înălțime"] }, { title: "Travei și panouri", body: "Rezolvă module fabricabile.", items: ["Lățime țintă", "Distribuție egală", "Lamele verticale și orizontale", "Panouri pline și plasă"] }, { title: "Finisaj și montaj", body: "Specifică aspectul și suportul.", items: ["Culori vopsite", "Efect lemn", "Fundații beton", "Plăci de bază"] }, { title: "Acces și rezultate", body: "Conectează golurile la cantități.", items: ["Porți pietonale", "Porți auto", "Sens de deschidere", "Listă de materiale și preț actualizat"] },
     ] },
-    outcomes: { label: "De ce configurare 3D", heading: "Un perimetru ușor de înțeles și de măsurat.", body: "Modelul face vizibile colțurile, ritmul panourilor și porțile, iar aceeași stare produce cantitățile necesare.", items: [{ title: "Pentru client", body: "Vede traseul, panourile, finisajul și porțile înainte de aprobare." }, { title: "Pentru vânzări", body: "Păstrează dimensiunile și opțiunile comerciale în aceeași ofertă." }, { title: "Pentru producție și montaj", body: "Folosește traveile, stâlpii, porțile și fundațiile ca date structurate." }] },
+    outcomes: { label: "De ce configurare 3D", heading: "Un perimetru ușor de înțeles și de măsurat.", body: "Modelul face vizibile colțurile, ritmul panourilor și porțile, iar configurația generează cantitățile necesare.", items: [{ title: "Pentru client", body: "Vede traseul, panourile, finisajul și porțile înainte de aprobare." }, { title: "Pentru vânzări", body: "Păstrează dimensiunile și opțiunile comerciale în aceeași ofertă." }, { title: "Pentru producție și montaj", body: "Folosește traveile, stâlpii, porțile și fundațiile ca date structurate." }] },
     faq: { label: "Întrebări despre garduri", heading: "Întrebări frecvente despre configuratorul de garduri 3D.", items: [{ question: "Ce trasee pot configura?", answer: "Sistemul acceptă trasee drepte, în L, în U și perimetre închise cu patru sau cinci laturi." }, { question: "Pot controla lungimile?", answer: "Da. Laturile active, înălțimea, traveea țintă și unghiul principal sunt configurabile." }, { question: "Ce panouri sunt disponibile?", answer: "Lamele verticale, orizontale, panouri pline și plasă sudată." }, { question: "Pot adăuga porți?", answer: "Da. Porțile pietonale și auto pot ocupa travei valide." }, { question: "Sunt incluse fundațiile?", answer: "Da. Sunt disponibile fundații din beton și plăci de bază." }, { question: "Există listă de materiale?", answer: "Da. Geometria actualizează BOM-ul și prețul." }, { question: "Trebuie instalat un program?", answer: "Nu. Configuratorul rulează în browser cu WebGL." }] },
     finalCta: { eyebrow: "Testează produsul", heading: "Rezolvă un perimetru complet direct în browser.", body: "Testează traseele, panourile, finisajele, porțile și fundațiile sau discută cu noi despre adaptarea sistemului la gama ta.", launch: "Deschide configuratorul", contact: "Discută un proiect" },
   },

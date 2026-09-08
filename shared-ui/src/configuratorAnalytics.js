@@ -3,7 +3,7 @@ import { getFirebaseIdToken } from './firebaseAuth.js?v=18';
 const PROJECT_ID = 'configurator-360';
 const FUNCTIONS_REGION = 'europe-west1';
 const FUNCTION_URL = `https://${FUNCTIONS_REGION}-${PROJECT_ID}.cloudfunctions.net/recordConfiguratorAnalyticsEvent`;
-const PRODUCT_IDS = new Set(['window', 'roof', 'pergola', 'hall', 'solar', 'fence', 'cardbox']);
+const PRODUCT_IDS = new Set(['window', 'roof', 'pergola', 'hall', 'solar', 'fence', 'cardbox', 'bookshelf']);
 const EVENT_TYPES = new Set(['access', 'login', 'configuration_created']);
 
 function normalizeProduct(value = '') {

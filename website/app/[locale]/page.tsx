@@ -10,7 +10,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   if (!isLocale(locale) || locale === "en") return {};
   return locale === "ro"
-    ? pageMetadata({ locale, title: "Configurare 3D pentru produse industriale", description: "Configuratoare 3D spațiale cu prețuri dinamice, BOM și randare în timp real." })
+    ? pageMetadata({ locale, title: "Configuratoare 3D pentru produse industriale", description: "Configuratoare 3D cu reguli tehnice, prețuri actualizate și liste de materiale." })
     : pageMetadata({ locale, title: "3D-Konfiguration für Industrieprodukte", description: "Räumliche 3D-Konfiguratoren mit dynamischer Preisbildung, Stücklisten und Echtzeit-Rendering." });
 }
 export default async function LocaleHome({ params }: Props) { const { locale } = await params; if (!isLocale(locale) || locale === "en") notFound(); return <LocalizedHome locale={locale} />; }

@@ -116,11 +116,11 @@ export const pergolaSeoContent: Record<Locale, ConfiguratorSeoContent> = {
       heading: "De la dimensiuni la o pergolă configurată în cinci pași.",
       intro: "Fluxul urmărește deciziile care definesc produsul fizic. Fiecare modificare rămâne vizibilă în același model 3D, fără să fie împărțită între formulare, schițe și calcule separate.",
       steps: [
-        { title: "Alege montajul și dimensiunile", body: "Pornește cu o pergolă independentă sau montată la perete, apoi stabilește lățimea, adâncimea și înălțimea în limitele disponibile în configurator." },
+        { title: "Alege montajul și dimensiunile", body: "Pornește cu o pergolă autoportantă sau montată la perete, apoi stabilește lățimea, adâncimea și înălțimea în limitele disponibile." },
         { title: "Configurează acoperișul cu lamele", body: "Alege orientarea și înclinarea lamelelor, apoi folosește poziția soarelui, direcția nordului și previzualizarea de noapte pentru a înțelege umbra și lumina." },
-        { title: "Configurează separat fiecare latură", body: "Lasă latura deschisă sau adaugă screen manual, screen motorizat, element de intimitate ori sticlă glisantă fără rame. Fiecare margine a pergolei poate avea propria configurație." },
+        { title: "Configurează separat fiecare segment", body: "Lasă segmentul deschis sau adaugă un rulou manual, un rulou ZIP motorizat, un perete cu lamele ori panouri glisante din sticlă." },
         { title: "Adaugă iluminat, încălzire și senzori", body: "Configurează LED-ul perimetral, spoturile integrate, încălzitoarele cu infraroșu și senzorii de ploaie sau vânt direct pe modelul pergolei." },
-        { title: "Verifică rezultatul comercial", body: "Vezi estimarea de preț, detalierea costurilor și rezumatul configurației, apoi continuă către fluxul de ofertare cu geometria și opțiunile păstrate în aceeași stare." },
+        { title: "Verifică rezultatul comercial", body: "Vezi estimarea de preț, detalierea costurilor și rezumatul configurației, apoi continuă către ofertare fără să pierzi geometria și opțiunile alese." },
       ],
     },
     decisions: {
@@ -128,9 +128,9 @@ export const pergolaSeoContent: Record<Locale, ConfiguratorSeoContent> = {
       heading: "Testează deciziile care schimbă efectiv pergola finală.",
       intro: "Configuratorul face vizibile opțiunile care se influențează reciproc. Este util atunci când o simplă fotografie de catalog nu mai poate explica suficient diferența dintre două configurații.",
       groups: [
-        { title: "Geometrie și montaj", body: "Stabilește forma arhitecturală de bază înainte de a adăuga accesoriile.", items: ["Montaj independent sau la perete", "Lățime, adâncime și înălțime", "Direcția lamelelor și orientarea acoperișului", "Afișarea dimensiunilor în scena 3D"] },
+        { title: "Geometrie și montaj", body: "Stabilește forma pergolei înainte de a adăuga accesoriile.", items: ["Montaj autoportant sau la perete", "Lățime, adâncime și înălțime", "Direcția lamelelor și orientarea acoperișului", "Afișarea dimensiunilor în modelul 3D"] },
         { title: "Lumină și orientare", body: "Evaluează pergola în condiții diferite de lumină, nu într-un singur rand static.", items: ["Unghiul lamelelor", "Poziția soarelui", "Direcția nordului și busola", "Previzualizare zi/noapte și iluminat integrat"] },
-        { title: "Închideri și intimitate", body: "Tratează fiecare latură ca pe o zonă configurabilă independent.", items: ["Latură deschisă", "Screen manual", "Screen motorizat", "Element de intimitate", "Sticlă glisantă fără rame"] },
+        { title: "Închideri laterale", body: "Configurează independent fiecare segment al pergolei.", items: ["Latură deschisă", "Rulou textil manual", "Rulou ZIP motorizat", "Perete cu lamele", "Panouri glisante din sticlă"] },
         { title: "Confort și opțiuni comerciale", body: "Adaugă elementele care influențează utilizarea, automatizarea și totalul estimativ.", items: ["LED perimetral", "Spoturi integrate", "Încălzitoare cu infraroșu", "Senzori de ploaie și vânt", "Preț estimativ și rezumat de ofertă"] },
       ],
     },
@@ -141,17 +141,17 @@ export const pergolaSeoContent: Record<Locale, ConfiguratorSeoContent> = {
       items: [
         { title: "Pentru client", body: "Compară vizual configurații și înțelege ce schimbă fiecare opțiune înainte de alegerea variantei finale." },
         { title: "Pentru echipa de vânzări", body: "Păstrează geometria, opțiunile vizibile și estimarea comercială sincronizate în aceeași discuție." },
-        { title: "Pentru producători și distribuitori", body: "Folosește aceeași stare de produs în browser ca punct de pornire pentru un flux mai conectat de ofertare și procesare." },
+        { title: "Pentru producători și distribuitori", body: "Folosește configurația din browser ca punct de pornire pentru ofertare și procesarea comenzii." },
       ],
     },
     faq: {
       label: "Întrebări despre configurator",
       heading: "Întrebări frecvente despre configuratorul de pergole 3D.",
       items: [
-        { question: "Pot configura atât o pergolă independentă, cât și una montată la perete?", answer: "Da. Configuratorul include mod de montaj independent și mod montat la perete, iar geometria de susținere se adaptează condiției selectate." },
+        { question: "Pot configura atât o pergolă autoportantă, cât și una montată la perete?", answer: "Da. Configuratorul include montaj autoportant și montaj la perete, iar structura de susținere se adaptează opțiunii alese." },
         { question: "Pot modifica dimensiunile pergolei?", answer: "Da. Lățimea, adâncimea și înălțimea sunt configurabile, iar structura parametrică se reconstruiește pe măsură ce dimensiunile se schimbă." },
         { question: "Pot testa lamelele, poziția soarelui și iluminatul de noapte?", answer: "Da. Poți schimba orientarea și unghiul lamelelor, poziția soarelui și direcția nordului, poți afișa busola și poți activa previzualizarea de noapte pentru a verifica iluminatul." },
-        { question: "Ce tipuri de închideri laterale pot adăuga?", answer: "Fiecare latură poate rămâne deschisă sau poate primi screen manual, screen motorizat, element de intimitate ori sticlă glisantă fără rame, în funcție de configurație." },
+        { question: "Ce tipuri de închideri laterale pot adăuga?", answer: "Fiecare segment poate rămâne deschis sau poate avea rulou textil manual, rulou ZIP motorizat, perete cu lamele ori panouri glisante din sticlă." },
         { question: "Pot adăuga iluminat, încălzitoare și senzori meteo?", answer: "Da. Configuratorul actual permite LED perimetral, spoturi integrate, încălzitoare cu infraroșu și senzori de ploaie și vânt poziționați pe pergolă." },
         { question: "Configuratorul de pergole calculează și prețul?", answer: "Da, afișează un preț estimativ și o detaliere care se actualizează în funcție de dimensiuni și opțiuni. Rezumatul poate fi apoi folosit ca bază pentru fluxul de ofertare." },
         { question: "Trebuie să instalez un program pentru a folosi configuratorul?", answer: "Nu. Configuratorul rulează direct într-un browser modern și folosește WebGL pentru vizualizarea 3D interactivă." },
@@ -160,7 +160,7 @@ export const pergolaSeoContent: Record<Locale, ConfiguratorSeoContent> = {
     finalCta: {
       eyebrow: "Testează produsul real",
       heading: "Construiește o configurație de pergolă direct în browser.",
-      body: "Deschide configuratorul live pentru a testa geometria, lamelele, închiderile laterale, iluminatul și accesoriile sau contactează-ne dacă ai nevoie de un configurator similar pentru propriul sistem de produse.",
+      body: "Deschide configuratorul pentru a testa geometria, lamelele, închiderile laterale, iluminatul și accesoriile sau contactează-ne dacă ai nevoie de un configurator similar pentru propria gamă de produse.",
       launch: "Deschide configuratorul de pergole",
       contact: "Discută un proiect de configurator",
     },

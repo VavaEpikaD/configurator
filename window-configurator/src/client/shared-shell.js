@@ -1,6 +1,7 @@
 import { convertCartMoneyAmount, mountStandaloneConfiguratorShell } from './shared-ui/src/standaloneShell.js?v=40';
 import { SharedUndoManager } from './shared-ui/src/history/undoManager.js?v=1';
 import { createShareUrl } from './shared-ui/src/shareState.js?v=5';
+import { resolveSharedTools } from './shared-ui/src/tools/registry.js?v=12';
 import { applyWindowTranslations, resolveWindowLocale, windowT } from './js/i18n.js?v=1';
 import { requireTenantConfiguratorAccess } from './shared-ui/src/tenantBootstrap.js?v=1';
 
@@ -10,12 +11,50 @@ const initialLocale = resolveWindowLocale();
 applyWindowTranslations(initialLocale);
 const t = (key, variables = {}, locale = null) => windowT(locale ?? window.WINDOW_CONFIGURATOR_SHARED_SHELL?.state?.locale ?? initialLocale, key, variables);
 
+const CAMERA_VIEW_TEXT = Object.freeze({
+  'en-US': Object.freeze({ outside: 'Outside', inside: 'Inside', prefix: 'Camera' }),
+  'ro-RO': Object.freeze({ outside: 'Exterior', inside: 'Interior', prefix: 'Cameră' }),
+  'de-DE': Object.freeze({ outside: 'Außen', inside: 'Innen', prefix: 'Kamera' }),
+});
+
+let shell = null;
+
+function getCameraViewText() {
+  return CAMERA_VIEW_TEXT[shell?.state?.locale] || CAMERA_VIEW_TEXT['en-US'];
+}
+
+function enableWindowSharedCameraTool() {
+  if (document.getElementById('window-shared-camera-tool-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'window-shared-camera-tool-styles';
+  style.textContent = `
+/* Window opts into the Common UI camera tool. Override the legacy rule that
+   hid the whole shared Tools launcher in this configurator. */
+body.shared-ui-mounted .shared-ui-host [data-shared-tools] {
+  display: flex !important;
+}
+`;
+  document.head.appendChild(style);
+}
+
+function cycleWindowCameraView() {
+  const api = window.WINDOW_CAMERA_VIEW_API;
+  if (!api?.getViewSide || !api?.setViewSide) return null;
+  const nextSide = api.getViewSide() === 'outside' ? 'inside' : 'outside';
+  api.setViewSide(nextSide);
+  const labels = getCameraViewText();
+  shell?.showFeedback?.(`${labels.prefix}: ${labels[nextSide]}`);
+  return nextSide;
+}
+
+enableWindowSharedCameraTool();
+
 const history = new SharedUndoManager({
   capture: () => window.WINDOW_CONFIGURATOR_API?.captureState?.(),
   restore: (snapshot) => window.WINDOW_CONFIGURATOR_API?.restoreState?.(snapshot),
 });
 
-const shell = mountStandaloneConfiguratorShell({
+shell = mountStandaloneConfiguratorShell({
   productType: t('project.type'),
   productId: 'window',
   storagePrefix: '360-configurator:window',
@@ -28,10 +67,10 @@ const shell = mountStandaloneConfiguratorShell({
     reset: true,
     share: true,
   },
-  // Tools are deliberately opt-in. Window developers can select tools from the
-  // root registry later; none are enabled by this shared-UI update.
   tools: {
-    items: [],
+    // Use the exact Common UI camera tool used by Pergola and the other
+    // configurators. Window intentionally exposes no other shared tool here.
+    items: resolveSharedTools(['camera']),
     placement: { side: 'left', direction: 'down', offsetX: 12, offsetY: 12 },
   },
   settingsPanel: {
@@ -98,10 +137,18 @@ const shell = mountStandaloneConfiguratorShell({
         ? createShareUrl({ productType: 'window', state: snapshot })
         : window.location.href;
     },
+    onToolAction({ toolId }) {
+      if (toolId === 'camera') cycleWindowCameraView();
+    },
   },
 });
 
-
+// The shared camera tool is present immediately; the scene API arrives a
+// moment later when main.js creates the Three.js context.
+shell.setToolDisabled('camera', !window.WINDOW_CAMERA_VIEW_API);
+window.addEventListener('window-camera-view-api-ready', () => {
+  shell.setToolDisabled('camera', false);
+});
 
 const controls = document.querySelector('#controls');
 history.bindSource(controls);

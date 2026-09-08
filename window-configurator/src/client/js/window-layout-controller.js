@@ -267,13 +267,24 @@ export function createWindowLayoutSignature(configuration = {}) {
 
 function replaceSelectOptions(select, options, selectedValue) {
     if (!select || typeof document === 'undefined') return;
-    select.innerHTML = '';
-    options.forEach(optionDefinition => {
-        const option = document.createElement('option');
-        option.value = optionDefinition.value;
-        option.textContent = optionDefinition.label;
-        select.appendChild(option);
-    });
+
+    const optionsUnchanged = select.options.length === options.length
+        && options.every((optionDefinition, index) => {
+            const existing = select.options[index];
+            return existing?.value === String(optionDefinition.value)
+                && existing?.textContent === String(optionDefinition.label);
+        });
+
+    if (!optionsUnchanged) {
+        select.innerHTML = '';
+        options.forEach(optionDefinition => {
+            const option = document.createElement('option');
+            option.value = optionDefinition.value;
+            option.textContent = optionDefinition.label;
+            select.appendChild(option);
+        });
+    }
+
     select.value = options.some(option => option.value === selectedValue)
         ? selectedValue
         : (options[0]?.value || '');
@@ -377,36 +388,61 @@ export function createWindowLayoutController({
         return compatibilitySnapshot(windowState, layoutId, dividerProfileId, transProfileId);
     }
 
-    function syncControls() {
+    function syncControls({ refreshOptions = true, topology = null } = {}) {
         if (layoutInput) {
-            replaceSelectOptions(
-                layoutInput,
-                Object.values(WINDOW_LAYOUTS).map(layout => ({
-                    value: layout.id,
-                    label: localizeLayoutLabel(getWindowLocale(), layout.id, layout.label),
-                })),
-                layoutId === 'dynamic' ? DEFAULT_WINDOW_LAYOUT_ID : layoutId
-            );
+            const selectedLayoutId = layoutId === 'dynamic' ? DEFAULT_WINDOW_LAYOUT_ID : layoutId;
+            if (refreshOptions) {
+                replaceSelectOptions(
+                    layoutInput,
+                    Object.values(WINDOW_LAYOUTS).map(layout => ({
+                        value: layout.id,
+                        label: localizeLayoutLabel(getWindowLocale(), layout.id, layout.label),
+                    })),
+                    selectedLayoutId
+                );
+            } else {
+                layoutInput.value = selectedLayoutId;
+            }
         }
         if (dividerProfileInput) {
-            replaceSelectOptions(dividerProfileInput, getDividerOptions(), dividerProfileId);
+            if (refreshOptions) {
+                replaceSelectOptions(dividerProfileInput, getDividerOptions(), dividerProfileId);
+            } else {
+                dividerProfileInput.value = dividerProfileId;
+            }
             const hasDivider = windowState.windows.length > 1;
             dividerProfileInput.disabled = !hasDivider;
             dividerProfileInput.closest?.('.divider-profile-field')?.classList.toggle('is-disabled', !hasDivider);
         }
         if (transProfileInput) {
-            replaceSelectOptions(transProfileInput, getTransOptions(), transProfileId);
-            const hasTransCandidate = deriveWindowTopology(windowState).transCandidates.length > 0;
+            if (refreshOptions) {
+                replaceSelectOptions(transProfileInput, getTransOptions(), transProfileId);
+            } else {
+                transProfileInput.value = transProfileId;
+            }
+            const resolvedTopology = topology || deriveWindowTopology(windowState);
+            const hasTransCandidate = resolvedTopology.transCandidates.length > 0;
             transProfileInput.disabled = !hasTransCandidate;
             transProfileInput.closest?.('.trans-profile-field')?.classList.toggle('is-disabled', !hasTransCandidate);
         }
     }
 
-    async function notifyChange(previous, { reloadDivider = false, reloadTrans = false, topologyOnly = false } = {}) {
+    async function notifyChange(previous, {
+        reloadDivider = false,
+        reloadTrans = false,
+        topologyOnly = false,
+        sizeOnly = false,
+        refreshOptions = true,
+    } = {}) {
         const next = getConfigurationSnapshot();
-        syncControls();
+        syncControls({ refreshOptions, topology: next.topology });
         if (next.layoutSignature !== previous.layoutSignature || reloadDivider || reloadTrans) {
-            await onLayoutChange(next, { reloadDivider, reloadTrans, topologyOnly });
+            await onLayoutChange(next, {
+                reloadDivider,
+                reloadTrans,
+                topologyOnly,
+                sizeOnly,
+            });
         }
         return next;
     }
@@ -420,8 +456,8 @@ export function createWindowLayoutController({
             transProfileId,
             { defaultWidthM: initialWidthM, defaultHeightM: initialHeightM, edgeExtensionM }
         );
-        syncControls();
         if (notify) return notifyChange(previous, { topologyOnly: false });
+        syncControls();
         return getConfigurationSnapshot();
     }
 
@@ -432,8 +468,8 @@ export function createWindowLayoutController({
             ? String(nextProfileId)
             : (availableIds[0] || DEFAULT_DIVIDER_PROFILE_ID);
         windowState = setWindowStateDividerProfile(windowState, dividerProfileId);
-        syncControls();
         if (notify) return notifyChange(previous, { reloadDivider: true });
+        syncControls();
         return getConfigurationSnapshot();
     }
 
@@ -445,8 +481,8 @@ export function createWindowLayoutController({
             ? String(nextProfileId)
             : (availableIds[0] || DEFAULT_TRANS_PROFILE_ID);
         windowState = setWindowStateTransProfile(windowState, transProfileId);
-        syncControls();
         if (notify) return notifyChange(previous, { reloadTrans: true });
+        syncControls();
         return getConfigurationSnapshot();
     }
 
@@ -516,8 +552,14 @@ export function createWindowLayoutController({
         const previous = getConfigurationSnapshot();
         windowState = setWindowSizeInState(windowState, cellId, { widthM, heightM, edgeExtensionM });
         layoutId = 'dynamic';
-        if (notify) return notifyChange(previous, { topologyOnly: true });
-        syncControls();
+        if (notify) {
+            return notifyChange(previous, {
+                topologyOnly: true,
+                sizeOnly: true,
+                refreshOptions: false,
+            });
+        }
+        syncControls({ refreshOptions: false });
         return getConfigurationSnapshot();
     }
 
@@ -530,7 +572,11 @@ export function createWindowLayoutController({
         return getConfigurationSnapshot();
     }
 
-    async function applyConfiguration(configuration = {}, { notify = false } = {}) {
+    async function applyConfiguration(configuration = {}, {
+        notify = false,
+        sizeOnly = false,
+        refreshOptions = true,
+    } = {}) {
         const previous = getConfigurationSnapshot();
         const request = getWindowLayoutRequest(configuration);
         dividerProfileId = request.dividerProfileId;
@@ -559,12 +605,14 @@ export function createWindowLayoutController({
                 edgeExtensionM,
             });
         }
-        syncControls();
         if (notify) return notifyChange(previous, {
             reloadDivider: dividerProfileId !== previous.dividerProfileId,
             reloadTrans: transProfileId !== previous.transProfileId,
             topologyOnly: dividerProfileId === previous.dividerProfileId && transProfileId === previous.transProfileId,
+            sizeOnly,
+            refreshOptions: sizeOnly ? false : refreshOptions,
         });
+        syncControls({ refreshOptions });
         return getConfigurationSnapshot();
     }
 

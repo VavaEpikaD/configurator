@@ -14,10 +14,22 @@ const LOCALES = new Set(['en-US', 'ro-RO', 'de-DE']);
 const DOMAINS = new Set(['com', 'ro', 'de']);
 const CURRENCIES = new Set(['USD', 'RON', 'EUR']);
 const MEASUREMENT_SYSTEMS = new Set(['metric', 'imperial']);
+const PROFILE_ALLOWED_ORIGINS = Object.freeze([
+  'https://360configurator.com',
+  'https://www.360configurator.com',
+  'https://360configurator.ro',
+  'https://www.360configurator.ro',
+  'https://360konfigurator.de',
+  'https://www.360konfigurator.de',
+  'https://aks.360configurator.com',
+  /^https:\/\/[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?\.360configurator\.com$/,
+  /^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/,
+]);
 
 const CALLABLE_OPTIONS = Object.freeze({
   region: FUNCTION_REGION,
   serviceAccount: RUNTIME_SERVICE_ACCOUNT,
+  cors: PROFILE_ALLOWED_ORIGINS,
   enforceAppCheck: false,
   timeoutSeconds: 30,
   memory: '256MiB',

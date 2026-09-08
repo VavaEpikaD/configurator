@@ -10,6 +10,8 @@ const FIREBASE_FUNCTIONS_MODULE_URL = `https://www.gstatic.com/firebasejs/${FIRE
 const FIREBASE_APP_NAME = "360-demo-request";
 const FIREBASE_FUNCTIONS_REGION = "europe-west1";
 const FIREBASE_APP_CHECK_SITE_KEY = "6LcJyo8tAAAAAFCdE_-BVDoggyWLSP9N0BM-T8sr";
+const ATTACH_DEMO_USER_URL = `https://${FIREBASE_FUNCTIONS_REGION}-configurator-360.cloudfunctions.net/attachDemoRequestUser`;
+const SHARED_AUTH_MODULE_URL = "/shared-ui/src/firebaseAuth.js?v=19";
 const FIREBASE_CONFIG = Object.freeze({
   apiKey: "AIzaSyBgS4VLxQYZnqW-YZJPKvuuocf5w_0kRwY",
   authDomain: "configurator-360.firebaseapp.com",
@@ -22,8 +24,14 @@ type ConfiguratorId = (typeof CONFIGURATORS)[number];
 type SubmissionState = "idle" | "submitting" | "success" | "error" | "rate-limited" | "validation";
 type RequiredFieldName = "name" | "email" | "company" | "phone";
 
+type SharedAuthModule = {
+  getFirebaseIdToken: () => Promise<string>;
+  observeGoogleAuth: (callback: (user: { uid?: string } | null) => void) => Promise<() => void>;
+};
+
 type DemoCallableContext = {
   submitContact: (payload: Record<string, string | string[]>) => Promise<{ data?: { success?: boolean; delivered?: boolean; requestId?: string } }>;
+  attachLoggedInUser: (requestId: string) => Promise<boolean>;
 };
 
 let demoCallablePromise: Promise<DemoCallableContext> | null = null;
@@ -36,9 +44,6 @@ const productNames: Record<Locale, Record<ConfiguratorId, string>> = {
 
 const copyByLocale = {
   en: {
-    eyebrow: "360Configurator demo",
-    title: "Book a product demo",
-    intro: "Tell us who you are and what you would like to evaluate. We will prepare the demo around the configurators you are interested in.",
     configurator: "Configurators of interest",
     sourceConfigurator: "Selected automatically from where you opened this page",
     addConfigurator: "Add configurator",
@@ -51,18 +56,7 @@ const copyByLocale = {
     website: "Company website",
     role: "Job title / role",
     rolePlaceholder: "Select a role",
-    roleOptions: {
-      owner: "Owner / founder",
-      executive: "CEO / Managing Director",
-      sales: "Sales / Business Development",
-      design: "Design / Engineering",
-      operations: "Operations / Production",
-      procurement: "Procurement / Purchasing",
-      it: "IT / Software",
-      marketing: "Marketing",
-      other: "Other",
-      private: "Prefer not to say",
-    },
+    roleOptions: { owner: "Owner / founder", executive: "CEO / Managing Director", sales: "Sales / Business Development", design: "Design / Engineering", operations: "Operations / Production", procurement: "Procurement / Purchasing", it: "IT / Software", marketing: "Marketing", other: "Other", private: "Prefer not to say" },
     country: "Country / region",
     timing: "Preferred demo timing",
     timingPlaceholder: "No preference",
@@ -80,9 +74,6 @@ const copyByLocale = {
     missingRequired: "Please complete the required fields highlighted in red.",
   },
   ro: {
-    eyebrow: "Demo 360Configurator",
-    title: "Programează o demonstrație",
-    intro: "Spune-ne cine ești și ce dorești să evaluezi. Vom pregăti demonstrația pentru configuratoarele care te interesează.",
     configurator: "Configuratoare de interes",
     sourceConfigurator: "Selectat automat din pagina de unde ai deschis formularul",
     addConfigurator: "Adaugă configurator",
@@ -95,18 +86,7 @@ const copyByLocale = {
     website: "Website companie",
     role: "Funcție / rol",
     rolePlaceholder: "Alege un rol",
-    roleOptions: {
-      owner: "Proprietar / fondator",
-      executive: "CEO / Director general",
-      sales: "Vânzări / Business Development",
-      design: "Proiectare / Inginerie",
-      operations: "Operațiuni / Producție",
-      procurement: "Achiziții",
-      it: "IT / Software",
-      marketing: "Marketing",
-      other: "Altul",
-      private: "Prefer să nu spun",
-    },
+    roleOptions: { owner: "Proprietar / fondator", executive: "CEO / Director general", sales: "Vânzări / Business Development", design: "Proiectare / Inginerie", operations: "Operațiuni / Producție", procurement: "Achiziții", it: "IT / Software", marketing: "Marketing", other: "Altul", private: "Prefer să nu spun" },
     country: "Țară / regiune",
     timing: "Perioada preferată pentru demo",
     timingPlaceholder: "Fără preferință",
@@ -124,9 +104,6 @@ const copyByLocale = {
     missingRequired: "Completează câmpurile obligatorii evidențiate cu roșu.",
   },
   de: {
-    eyebrow: "360Configurator Demo",
-    title: "Produktdemo anfragen",
-    intro: "Sagen Sie uns, wer Sie sind und was Sie bewerten möchten. Wir bereiten die Demo für die Konfiguratoren vor, die Sie interessieren.",
     configurator: "Interessante Konfiguratoren",
     sourceConfigurator: "Automatisch anhand der Seite ausgewählt, von der Sie dieses Formular geöffnet haben",
     addConfigurator: "Konfigurator hinzufügen",
@@ -139,18 +116,7 @@ const copyByLocale = {
     website: "Unternehmenswebsite",
     role: "Position / Rolle",
     rolePlaceholder: "Rolle auswählen",
-    roleOptions: {
-      owner: "Inhaber / Gründer",
-      executive: "CEO / Geschäftsführer",
-      sales: "Vertrieb / Business Development",
-      design: "Design / Engineering",
-      operations: "Betrieb / Produktion",
-      procurement: "Einkauf / Beschaffung",
-      it: "IT / Software",
-      marketing: "Marketing",
-      other: "Andere",
-      private: "Keine Angabe",
-    },
+    roleOptions: { owner: "Inhaber / Gründer", executive: "CEO / Geschäftsführer", sales: "Vertrieb / Business Development", design: "Design / Engineering", operations: "Betrieb / Produktion", procurement: "Einkauf / Beschaffung", it: "IT / Software", marketing: "Marketing", other: "Andere", private: "Keine Angabe" },
     country: "Land / Region",
     timing: "Bevorzugter Demo-Zeitraum",
     timingPlaceholder: "Keine Präferenz",
@@ -191,6 +157,36 @@ async function importFirebaseModule(url: string) {
   return import(/* @vite-ignore */ url);
 }
 
+async function waitForPersistedAuth(sharedAuth: SharedAuthModule) {
+  let token = await sharedAuth.getFirebaseIdToken();
+  if (token) return token;
+
+  await new Promise<void>((resolve) => {
+    let settled = false;
+    let unsubscribe: (() => void) | null = null;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      try { unsubscribe?.(); } catch { /* best effort */ }
+      resolve();
+    };
+    const timer = window.setTimeout(finish, 5000);
+    sharedAuth.observeGoogleAuth(() => {
+      window.clearTimeout(timer);
+      finish();
+    }).then((stop) => {
+      unsubscribe = stop;
+      if (settled) stop();
+    }).catch(() => {
+      window.clearTimeout(timer);
+      finish();
+    });
+  });
+
+  token = await sharedAuth.getFirebaseIdToken();
+  return token;
+}
+
 async function getDemoCallable(): Promise<DemoCallableContext> {
   if (demoCallablePromise) return demoCallablePromise;
   demoCallablePromise = (async () => {
@@ -198,6 +194,7 @@ async function getDemoCallable(): Promise<DemoCallableContext> {
       const runtime = globalThis as typeof globalThis & { FIREBASE_APPCHECK_DEBUG_TOKEN?: boolean };
       if (typeof runtime.FIREBASE_APPCHECK_DEBUG_TOKEN === "undefined") runtime.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
     }
+
     const [appModule, appCheckModule, functionsModule] = await Promise.all([
       importFirebaseModule(FIREBASE_APP_MODULE_URL),
       importFirebaseModule(FIREBASE_APP_CHECK_MODULE_URL),
@@ -211,7 +208,37 @@ async function getDemoCallable(): Promise<DemoCallableContext> {
     });
     await appCheckModule.getToken(appCheck, false);
     const functions = functionsModule.getFunctions(app, FIREBASE_FUNCTIONS_REGION);
-    return { submitContact: functionsModule.httpsCallable(functions, "submitContact") };
+
+    const attachLoggedInUser = async (requestId: string) => {
+      const id = String(requestId || "").trim();
+      if (!id) return false;
+      const sharedAuth = await importFirebaseModule(SHARED_AUTH_MODULE_URL) as SharedAuthModule;
+      const idToken = await waitForPersistedAuth(sharedAuth);
+      if (!idToken) return false;
+      const appCheckToken = await appCheckModule.getToken(appCheck, false);
+      const response = await fetch(ATTACH_DEMO_USER_URL, {
+        method: "POST",
+        mode: "cors",
+        credentials: "omit",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+          "X-Firebase-AppCheck": String(appCheckToken?.token || ""),
+        },
+        body: JSON.stringify({ data: { requestId: id } }),
+      });
+      let payload: { error?: { message?: string } } | null = null;
+      try { payload = await response.json(); } catch { /* handled below */ }
+      if (!response.ok || payload?.error) {
+        throw new Error(payload?.error?.message || `Could not record the signed-in user (${response.status}).`);
+      }
+      return true;
+    };
+
+    return {
+      submitContact: functionsModule.httpsCallable(functions, "submitContact"),
+      attachLoggedInUser,
+    };
   })().catch((error) => {
     demoCallablePromise = null;
     throw error;
@@ -335,6 +362,17 @@ export function DemoRequestForm({ locale }: { locale: Locale }) {
           website: String(data.get("website") || ""),
         });
         if (!response.data?.success) throw new Error("Demo request was not accepted.");
+
+        const requestId = String(response.data.requestId || "");
+        if (requestId) {
+          // Capture the existing Firebase session in the background. The demo is
+          // already accepted at this point, so login metadata must never delay or
+          // change the successful form result shown to the visitor.
+          void callable.attachLoggedInUser(requestId).catch((attachError) => {
+            console.warn("Demo request was sent, but its signed-in Firebase user could not be recorded.", attachError);
+          });
+        }
+
         setState("success");
         setInvalidFields({});
         form.reset();

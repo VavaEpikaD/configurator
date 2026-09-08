@@ -24,6 +24,7 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -40,16 +41,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+
       - name: Install Firebase function dependencies
         working-directory: firebase-share-backend/functions
         run: npm ci --ignore-scripts
 
       - name: Validate Firebase function source
         working-directory: firebase-share-backend/functions
-        run: node --check index.js && node --check quotation.js && node --check entry.js
+        run: node --check index.js && node --check quotation.js && node --check profile.js && node --check sales-dashboard.js && node --check entry.js
 
       - name: Validate Tier-1 tenant authentication integration
         run: node scripts/validation/validate_tenant_auth_domains.mjs
+
       - name: Validate Tier-1 saved-configuration isolation
         run: node scripts/validation/validate_tenant_saved_configurations.mjs
 
@@ -58,6 +61,7 @@ jobs:
 
       - name: Validate Tier-1 plan and subscription model
         run: node scripts/validation/validate_tenant_subscription_model.mjs
+
       - name: Validate Tier-1 plan-change workflow
         run: node scripts/validation/validate_tenant_plan_changes.mjs
 
@@ -69,19 +73,26 @@ jobs:
 
       - name: Validate Tier-1 customer dashboard
         run: node scripts/validation/validate_tenant_dashboard.mjs
+
       - name: Validate Tier-1 tenant audit log
         run: node scripts/validation/validate_tenant_audit_log.mjs
+
+      - name: Validate internal sales dashboard
+        run: node scripts/validation/validate_sales_dashboard.mjs
+
       - name: Validate expected Firebase exports
         working-directory: firebase-share-backend/functions
         run: >-
-          node -e "const f=require('./entry.js'); const expected=['enforceSharedConfigurationQuota','createSharedConfiguration','getShareProtectionStatus','saveUserConfiguration','listUserConfigurations','getUserConfiguration','deleteUserConfiguration','getUserCart','mutateUserCart','submitContact','createDomainAuthHandoff','redeemDomainAuthHandoff','provisionTenant','listTenants','getTenant','updateTenant','getTenantPlans','getPublicTenantPlans','resolveTenantPlanChange','setTenantSubscriptionState','recordConfiguratorAnalyticsEvent','getPlatformAnalytics','getTenantDashboard','updateTenantDashboard','cancelTenantPlanChange','requestCartQuotation']; const missing=expected.filter((name)=>typeof f[name]!=='function'); if(missing.length){console.error('Missing Firebase exports:', missing.join(', ')); process.exit(1);} console.log('Firebase exports OK:', expected.join(', '));"
+          node -e "const f=require('./entry.js'); const expected=['enforceSharedConfigurationQuota','createSharedConfiguration','getShareProtectionStatus','saveUserConfiguration','listUserConfigurations','getUserConfiguration','deleteUserConfiguration','getUserCart','mutateUserCart','submitContact','createDomainAuthHandoff','redeemDomainAuthHandoff','provisionTenant','listTenants','getTenant','updateTenant','getTenantPlans','getPublicTenantPlans','resolveTenantPlanChange','setTenantSubscriptionState','recordConfiguratorAnalyticsEvent','getPlatformAnalytics','getTenantDashboard','updateTenantDashboard','cancelTenantPlanChange','requestCartQuotation','getUserProfile','updateUserProfile','exportUserProfileData','deleteUserAccount','getSalesDashboardUsers','getSalesDashboardUserDetails','getSalesDashboardDemoRequests','createSalesDashboardConfigurationLink','attachDemoRequestUser']; const missing=expected.filter((name)=>typeof f[name]!=='function'); if(missing.length){console.error('Missing Firebase exports:', missing.join(', ')); process.exit(1);} console.log('Firebase exports OK:', expected.join(', '));"
+
       - name: Deploy share functions
         working-directory: firebase-share-backend
         run: >-
           npx --yes firebase-tools@latest deploy
           --project "${GCP_PROJECT_ID}"
-          --only functions:enforceSharedConfigurationQuota,functions:createSharedConfiguration,functions:getShareProtectionStatus,functions:saveUserConfiguration,functions:listUserConfigurations,functions:getUserConfiguration,functions:deleteUserConfiguration,functions:getUserCart,functions:mutateUserCart,functions:submitContact,functions:createDomainAuthHandoff,functions:redeemDomainAuthHandoff,functions:provisionTenant,functions:listTenants,functions:getTenant,functions:updateTenant,functions:getTenantPlans,functions:getPublicTenantPlans,functions:resolveTenantPlanChange,functions:setTenantSubscriptionState,functions:recordConfiguratorAnalyticsEvent,functions:getPlatformAnalytics,functions:getTenantDashboard,functions:updateTenantDashboard,functions:cancelTenantPlanChange,functions:requestCartQuotation
+          --only functions:enforceSharedConfigurationQuota,functions:createSharedConfiguration,functions:getShareProtectionStatus,functions:saveUserConfiguration,functions:listUserConfigurations,functions:getUserConfiguration,functions:deleteUserConfiguration,functions:getUserCart,functions:mutateUserCart,functions:submitContact,functions:createDomainAuthHandoff,functions:redeemDomainAuthHandoff,functions:provisionTenant,functions:listTenants,functions:getTenant,functions:updateTenant,functions:getTenantPlans,functions:getPublicTenantPlans,functions:resolveTenantPlanChange,functions:setTenantSubscriptionState,functions:recordConfiguratorAnalyticsEvent,functions:getPlatformAnalytics,functions:getTenantDashboard,functions:updateTenantDashboard,functions:cancelTenantPlanChange,functions:requestCartQuotation,functions:getUserProfile,functions:updateUserProfile,functions:exportUserProfileData,functions:deleteUserAccount,functions:getSalesDashboardUsers,functions:getSalesDashboardUserDetails,functions:getSalesDashboardDemoRequests,functions:createSalesDashboardConfigurationLink,functions:attachDemoRequestUser
           --non-interactive
+
       - name: Deploy Firestore rules, TTL and index exemptions
         working-directory: firebase-share-backend
         run: >-
@@ -89,6 +100,7 @@ jobs:
           --project "${GCP_PROJECT_ID}"
           --only firestore:rules,firestore:indexes
           --non-interactive
+
       - name: Deployment summary
         if: success()
         run: |
@@ -99,6 +111,8 @@ jobs:
           echo "- Saved configurations: private Firebase-authenticated storage with Tier-1 tenant isolation; no App Check assessment" >> "$GITHUB_STEP_SUMMARY"
           echo "- Cart: Firebase-authenticated account cart synchronized across public country domains with tenant isolation" >> "$GITHUB_STEP_SUMMARY"
           echo "- Quotation: authenticated cart quotation email with guest-safe configuration links and selected locale/currency" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Profile: authenticated profile read/update/export/delete functions deployed with production, tenant and local-development CORS" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Internal sales dashboard: allowlisted user, quotation, demo and shopping-cart review with server-generated configuration links" >> "$GITHUB_STEP_SUMMARY"
           echo "- Contact form: App Check-protected server-side email delivery through Google Workspace Gmail API" >> "$GITHUB_STEP_SUMMARY"
           echo "- Contact spam protection: honeypot + hashed-IP Firestore rate limit" >> "$GITHUB_STEP_SUMMARY"
           echo "- Domain switching: short-lived one-time authentication handoff functions deployed" >> "$GITHUB_STEP_SUMMARY"

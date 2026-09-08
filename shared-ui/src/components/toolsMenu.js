@@ -24,6 +24,8 @@ const TOOL_LABEL_KEYS = Object.freeze({
  * enabled there until that configurator's developer opts in.
  */
 export function renderToolsMenu(open, { items = DEFAULT_TOOL_ITEMS, placement = {}, locale = 'en-US' } = {}) {
+  if (!Array.isArray(items) || items.length === 0) return '';
+
   const resolvedPlacement = normalizeToolsPlacement(placement);
   const style = [
     `--shared-tools-offset-x:${Number(resolvedPlacement.offsetX) || 0}px`,

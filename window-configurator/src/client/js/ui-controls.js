@@ -1,7 +1,7 @@
 import { getWindowLocale, windowT } from './i18n.js';
 import { WINDOW_WIDTH_MAX_M } from './config.js';
 
-const SIZE_REBUILD_INTERVAL_MS = 70;
+const SIZE_REBUILD_INTERVAL_MS = 80;
 
 function setSidebarCollapsed(collapsed) {
     const controlsPanel = document.getElementById('controls');
@@ -46,6 +46,7 @@ export function initializeUIControls({
     componentSelection,
     buildWindow,
     onWindowSizeChange = null,
+    onWindowSizePreview = null,
     syncModeButtons,
     setExploded,
     setSelectedHandleSide,
@@ -71,6 +72,9 @@ export function initializeUIControls({
 
     let pendingWindowRebuildTimer = null;
     let lastSizeRebuildAt = 0;
+    let sizeChangeInFlight = false;
+    let flushSizeChangeAfterFlight = false;
+    let pendingSizePreviewFrame = null;
     const pendingSizeAxes = new Set();
 
     const widthValueInput = document.getElementById('valWidth');
@@ -133,16 +137,66 @@ export function initializeUIControls({
         if (axis === 'width' || axis === 'height') pendingSizeAxes.add(axis);
     }
 
-    function emitPendingWindowSizeChange() {
+    function getSizeAxisValue(axis) {
+        return axis === 'width'
+            ? Number.parseFloat(widthInput.value)
+            : Number.parseFloat(heightInput.value);
+    }
+
+    function emitWindowSizePreview(axis) {
+        queueSizeAxis(axis);
+        updateSizeLabelsOnly();
+        if (typeof onWindowSizePreview !== 'function') return;
+        if (pendingSizePreviewFrame !== null) return;
+
+        pendingSizePreviewFrame = requestAnimationFrame(() => {
+            pendingSizePreviewFrame = null;
+            const payload = {};
+            pendingSizeAxes.forEach(pendingAxis => {
+                const value = getSizeAxisValue(pendingAxis);
+                if (!Number.isFinite(value)) return;
+                payload[pendingAxis === 'width' ? 'widthM' : 'heightM'] = value;
+            });
+            // Preview does not consume the axes; the final change event still
+            // commits the latest values through the exact sizing path.
+            if (Object.keys(payload).length) onWindowSizePreview(payload);
+        });
+    }
+
+    async function emitPendingWindowSizeChange() {
+        if (sizeChangeInFlight) {
+            flushSizeChangeAfterFlight = true;
+            return;
+        }
+
         const payload = {};
-        if (pendingSizeAxes.has('width')) payload.widthM = Number.parseFloat(widthInput.value);
-        if (pendingSizeAxes.has('height')) payload.heightM = Number.parseFloat(heightInput.value);
+        pendingSizeAxes.forEach(axis => {
+            const value = getSizeAxisValue(axis);
+            if (!Number.isFinite(value)) return;
+            payload[axis === 'width' ? 'widthM' : 'heightM'] = value;
+        });
         pendingSizeAxes.clear();
 
-        if (typeof onWindowSizeChange === 'function') {
-            onWindowSizeChange(payload);
-        } else {
+        if (!Object.keys(payload).length) return;
+
+        if (typeof onWindowSizeChange !== 'function') {
             buildWindow();
+            return;
+        }
+
+        sizeChangeInFlight = true;
+        try {
+            await onWindowSizeChange(payload);
+        } catch (error) {
+            console.error('Unable to resize selected window:', error);
+        } finally {
+            sizeChangeInFlight = false;
+            if (pendingSizeAxes.size || flushSizeChangeAfterFlight) {
+                flushSizeChangeAfterFlight = false;
+                requestAnimationFrame(() => {
+                    void emitPendingWindowSizeChange();
+                });
+            }
         }
     }
 
@@ -153,31 +207,20 @@ export function initializeUIControls({
             pendingWindowRebuildTimer = null;
         }
 
+        if (pendingSizePreviewFrame !== null) {
+            cancelAnimationFrame(pendingSizePreviewFrame);
+            pendingSizePreviewFrame = null;
+        }
         lastSizeRebuildAt = performance.now();
-        emitPendingWindowSizeChange();
+        void emitPendingWindowSizeChange();
     }
 
-    function triggerWindowRebuild(axis) {
-        queueSizeAxis(axis);
-        updateSizeLabelsOnly();
-
-        const elapsed = performance.now() - lastSizeRebuildAt;
-        if (elapsed >= SIZE_REBUILD_INTERVAL_MS && pendingWindowRebuildTimer === null) {
-            flushWindowSizeRebuild();
-            return;
-        }
-
-        if (pendingWindowRebuildTimer === null) {
-            pendingWindowRebuildTimer = setTimeout(() => {
-                pendingWindowRebuildTimer = null;
-                lastSizeRebuildAt = performance.now();
-                emitPendingWindowSizeChange();
-            }, Math.max(0, SIZE_REBUILD_INTERVAL_MS - elapsed));
-        }
+    function triggerWindowPreview(axis) {
+        emitWindowSizePreview(axis);
     }
 
-    widthInput.addEventListener('input', () => triggerWindowRebuild('width'));
-    heightInput.addEventListener('input', () => triggerWindowRebuild('height'));
+    widthInput.addEventListener('input', () => triggerWindowPreview('width'));
+    heightInput.addEventListener('input', () => triggerWindowPreview('height'));
     widthInput.addEventListener('change', () => flushWindowSizeRebuild('width'));
     heightInput.addEventListener('change', () => flushWindowSizeRebuild('height'));
 
@@ -328,9 +371,14 @@ export function initializeUIControls({
 
     document.getElementById('ar-start-button').addEventListener('click', startAR);
 
+    let pendingViewportResizeFrame = null;
     window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        if (pendingViewportResizeFrame !== null) return;
+        pendingViewportResizeFrame = requestAnimationFrame(() => {
+            pendingViewportResizeFrame = null;
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     });
 }

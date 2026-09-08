@@ -1,6 +1,57 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
+function createWindowCameraViewController({ camera, controls }) {
+    let lastReportedSide = null;
+
+    function getViewSide() {
+        const depth = camera.position.z - controls.target.z;
+        if (Math.abs(depth) < 0.02 && lastReportedSide) return lastReportedSide;
+        return depth >= 0 ? 'inside' : 'outside';
+    }
+
+    function reportViewSide({ force = false } = {}) {
+        const side = getViewSide();
+        if (!force && side === lastReportedSide) return side;
+        lastReportedSide = side;
+        window.dispatchEvent(new CustomEvent('window-camera-view-changed', {
+            detail: { side },
+        }));
+        return side;
+    }
+
+    function setViewSide(side) {
+        if (side !== 'outside' && side !== 'inside') return getViewSide();
+        const currentSide = getViewSide();
+        if (currentSide === side) {
+            reportViewSide({ force: true });
+            return currentSide;
+        }
+
+        // Move the camera to the opposite side of its current OrbitControls
+        // target. The configured window itself never rotates, and the camera
+        // keeps its current distance, panning target and vertical angle.
+        const offset = camera.position.clone().sub(controls.target);
+        if (offset.lengthSq() < 0.000001) {
+            offset.set(0, 0, side === 'inside' ? 1 : -1);
+        } else {
+            offset.x *= -1;
+            offset.z *= -1;
+        }
+        camera.position.copy(controls.target).add(offset);
+        controls.update();
+        return reportViewSide({ force: true });
+    }
+
+    controls.addEventListener('change', () => reportViewSide());
+    reportViewSide({ force: true });
+
+    return {
+        getViewSide,
+        setViewSide,
+    };
+}
+
 export function createSceneContext({
     container,
     isARMode = false,
@@ -43,6 +94,12 @@ export function createSceneContext({
     controls.dampingFactor = 0.05;
     controls.target.set(0, 0, 0);
     controls.enabled = !isARMode;
+
+    const cameraViewController = createWindowCameraViewController({ camera, controls });
+    window.WINDOW_CAMERA_VIEW_API = cameraViewController;
+    window.dispatchEvent(new CustomEvent('window-camera-view-api-ready', {
+        detail: { side: cameraViewController.getViewSide() },
+    }));
 
     const groundGeometry = new THREE.PlaneGeometry(100, 100);
     const groundMaterial = new THREE.MeshStandardMaterial({

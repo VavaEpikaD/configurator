@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Cross-configurator validation, SEO, and website release checks.",
   "scripts": {
-    "check": "npm run check:website-hydration && npm run check:website-route-isolation && npm run check:configurator-notfound && npm run check:tenant && npm run check:tenant-provisioning && npm run check:tenant-auth && npm run check:tenant-saves && npm run check:tenant-lifecycle && npm run check:tenant-subscription && npm run check:tenant-plan-changes && npm run check:tenant-usage && npm run check:analytics && npm run check:tenant-dashboard && npm run check:tenant-audit && node --check shared-ui/src/standaloneShell.js && node --check shared-ui/src/components/topBar.js && node --check roof-configurator/js/sharedShell.js",
+    "check": "npm run check:website-hydration && npm run check:website-route-isolation && npm run check:configurator-notfound && npm run check:tenant && npm run check:tenant-provisioning && npm run check:tenant-auth && npm run check:tenant-saves && npm run check:tenant-lifecycle && npm run check:tenant-subscription && npm run check:tenant-plan-changes && npm run check:tenant-usage && npm run check:analytics && npm run check:tenant-dashboard && npm run check:tenant-audit && npm run check:gas && node --check shared-ui/src/standaloneShell.js && node --check shared-ui/src/components/topBar.js && node --check roof-configurator/js/sharedShell.js",
+    "check:gas": "npm run check --prefix gas-configurator && npm run build --prefix gas-configurator",
     "check:website-hydration": "node scripts/validation/validate_website_release_hydration.mjs",
     "check:website-route-isolation": "node scripts/validation/validate_website_route_isolation.mjs",
     "check:configurator-notfound": "node scripts/validation/validate_configurator_no_notfound.mjs",

@@ -283,7 +283,7 @@ service cloud.firestore {
       // reading exactly at expiresAt even if TTL deletion has not run yet.
       allow get: if shareId.matches('[A-Za-z0-9_-]{16}')
           && resource.data.v == 1
-          && resource.data.p in ['window', 'roof', 'pergola', 'hall', 'solar', 'fence', 'cardbox']
+          && resource.data.p in ['window', 'roof', 'pergola', 'hall', 'solar', 'fence', 'cardbox', 'bookshelf']
           && resource.data.s is string
           && (
             !('expiresAt' in resource.data)
@@ -301,7 +301,7 @@ service cloud.firestore {
           && request.resource.data.keys().hasAll(['v', 'p', 's'])
           && request.resource.data.keys().hasOnly(['v', 'p', 's'])
           && request.resource.data.v == 1
-          && request.resource.data.p in ['window', 'roof', 'pergola', 'hall', 'solar', 'fence', 'cardbox']
+          && request.resource.data.p in ['window', 'roof', 'pergola', 'hall', 'solar', 'fence', 'cardbox', 'bookshelf']
           && request.resource.data.s is string
           && request.resource.data.s.size() > 0
           && request.resource.data.s.size() <= 850000;

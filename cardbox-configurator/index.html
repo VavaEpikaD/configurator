@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="description" content="Configure custom cardboard boxes online in 3D. Start from a rectangular box, attach new box volumes to exposed faces, and place custom text on inner or outer surfaces." />
+  <meta name="description" content="Configure nine practical corrugated-box styles online in 3D, choose closures, cut-outs and board construction, colour individual surfaces, and place custom text, logos and images on the box." />
   <meta name="robots" content="index, follow" />
   <title>3D Cardboard Box Configurator | 360Configurator</title>
   <link rel="icon" href="data:," />
   <link rel="stylesheet" href="../shared-ui/styles/standalone.css?v=25" />
-  <link rel="stylesheet" href="./styles.css?v=3" />
+  <link rel="stylesheet" href="./styles.css?v=13" />
   <script type="importmap">
     {
       "imports": {
@@ -28,40 +28,148 @@
       <div class="viewer-stage">
         <div id="canvasHost" aria-label="Interactive 3D cardboard box model"></div>
         <div id="dimensionLayer" class="dimension-layer" aria-hidden="true"></div>
+        <div id="textGuideLayer" class="text-guide-layer" aria-hidden="true"></div>
+
+        <div id="textSelectionHud" class="text-selection-hud" hidden aria-label="Selected text actions">
+          <div class="text-selection-arc">
+            <button id="textHorizontalLockButton" class="text-selection-tool text-selection-tool--horizontal" type="button" aria-label="Lock to horizontal center line" title="Lock to horizontal center line" data-cardbox-i18n-title="text.lockHorizontal">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16M7 9l-3 3 3 3M17 9l3 3-3 3"/><path class="center-line" d="M12 5v14"/></svg>
+            </button>
+            <button id="textVerticalLockButton" class="text-selection-tool text-selection-tool--vertical" type="button" aria-label="Lock to vertical center line" title="Lock to vertical center line" data-cardbox-i18n-title="text.lockVertical">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M9 7l3-3 3 3M9 17l3 3 3-3"/><path class="center-line" d="M5 12h14"/></svg>
+            </button>
+            <button id="textLiftTopButton" class="text-selection-tool text-selection-tool--lift" type="button" aria-label="Lift the top by 300 mm" title="Lift the top by 300 mm" data-cardbox-i18n-title="text.liftTop">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17h14M7 14h10M12 12V4M9 7l3-3 3 3"/></svg>
+            </button>
+            <button id="textDeleteButton" class="text-selection-tool text-selection-tool--danger text-selection-tool--delete" type="button" aria-label="Delete text" title="Delete text" data-cardbox-i18n-title="text.delete">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg>
+            </button>
+            <button id="textEditButton" class="text-selection-tool text-selection-tool--edit" type="button" aria-label="Edit text" title="Edit text" data-cardbox-i18n-title="text.edit">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4.3-1 10-10a2.1 2.1 0 0 0-3-3l-10 10L4 20Z"/><path d="m14 7 3 3"/></svg>
+            </button>
+            <button id="textDismissButton" class="text-selection-tool text-selection-tool--dismiss" type="button" aria-label="Deselect text" title="Deselect text" data-cardbox-i18n-title="text.deselect">×</button>
+          </div>
+        </div>
+
+
+        <div id="imageSelectionHud" class="image-selection-hud" hidden aria-label="Selected image actions">
+          <div class="image-selection-arc">
+            <button id="imageResizeButton" class="image-selection-tool image-selection-tool--resize" type="button" aria-label="Resize image" title="Resize image" data-decoration-title="image.resize">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4H4v4M16 20h4v-4M4 8l5-5M20 16l-5 5"/><path d="M14 4h6v6M10 20H4v-6M20 10l-6-6M4 14l6 6"/></svg>
+            </button>
+            <button id="imageLiftTopButton" class="image-selection-tool image-selection-tool--lift" type="button" aria-label="Lift the top by 300 mm" title="Lift the top by 300 mm" data-decoration-title="image.liftTop">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17h14M7 14h10M12 12V4M9 7l3-3 3 3"/></svg>
+            </button>
+            <button id="imageDeleteButton" class="image-selection-tool image-selection-tool--danger image-selection-tool--delete" type="button" aria-label="Delete image" title="Delete image" data-decoration-title="image.delete">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg>
+            </button>
+            <button id="imageDismissButton" class="image-selection-tool image-selection-tool--dismiss" type="button" aria-label="Deselect image" title="Deselect image" data-decoration-title="image.deselect">×</button>
+          </div>
+        </div>
 
         <div id="faceActionPopup" class="face-action-popup" hidden>
-          <div id="faceMainActions" class="face-main-actions">
-            <button id="faceAddButton" class="face-action-button face-action-button--plus" type="button" aria-label="Add box piece">+</button>
-            <button id="faceTextButton" class="face-action-button" type="button">
-              <span class="face-action-button__icon" aria-hidden="true">T</span>
-              <span data-cardbox-i18n="face.addText">Add text</span>
+          <div class="face-action-arc" aria-label="Face actions">
+            <button id="faceAddButton" class="face-arc-button face-arc-button--add" type="button" aria-label="Add box piece" title="Add box piece" hidden aria-hidden="true" tabindex="-1">+</button>
+            <button id="faceColorButton" class="face-arc-button face-arc-button--color" type="button" aria-label="Colour surface" title="Colour surface" data-decoration-title="face.color">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 14 8-8 5 5-8 8H5v-5Z"/><path d="m13 6 2-2 5 5-2 2M6 19h14"/></svg>
             </button>
+            <button id="faceTextButton" class="face-arc-button face-arc-button--text" type="button" aria-label="Add text" title="Add text">T</button>
+            <button id="faceImageButton" class="face-arc-button face-arc-button--image" type="button" aria-label="Add image" title="Add image" data-decoration-title="face.image">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m5 18 5-5 3 3 2-2 4 4"/></svg>
+            </button>
+            <button id="faceDismissButton" class="face-arc-button face-arc-button--dismiss" type="button" aria-label="Deselect face" title="Deselect face">×</button>
           </div>
+        </div>
 
-          <div id="faceTextEditor" class="face-text-editor" hidden>
-            <div class="popup-heading">
-              <b data-cardbox-i18n="text.title">Add text</b>
-              <small data-cardbox-i18n="text.help">Style the text, then place it on any inner or outer surface.</small>
+
+        <div id="faceColorPanel" class="face-color-panel decoration-side-panel" hidden>
+          <div class="decoration-panel-heading">
+            <b data-decoration-copy="face.colorTitle">Surface colour</b>
+            <small id="faceColorSideLabel">Outside surface</small>
+          </div>
+          <div id="faceColorPalette" class="surface-color-palette" role="group" aria-label="Surface colour palette">
+            <button id="faceCurrentColorSwatch" type="button" class="surface-color-swatch is-active" data-face-color="#b88959" style="--swatch:#b88959" data-decoration-title="face.currentColor"></button>
+            <button type="button" class="surface-color-swatch" data-face-color="#ffffff" style="--swatch:#ffffff"></button>
+            <button type="button" class="surface-color-swatch" data-face-color="#f4e1c8" style="--swatch:#f4e1c8"></button>
+            <button type="button" class="surface-color-swatch" data-face-color="#d6b07a" style="--swatch:#d6b07a"></button>
+            <button type="button" class="surface-color-swatch" data-face-color="#3d2b1f" style="--swatch:#3d2b1f"></button>
+            <button type="button" class="surface-color-swatch" data-face-color="#1f2d36" style="--swatch:#1f2d36"></button>
+            <button type="button" class="surface-color-swatch" data-face-color="#0e82d8" style="--swatch:#0e82d8"></button>
+            <button type="button" class="surface-color-swatch" data-face-color="#63b7e6" style="--swatch:#63b7e6"></button>
+            <button type="button" class="surface-color-swatch" data-face-color="#1f8b5d" style="--swatch:#1f8b5d"></button>
+            <button type="button" class="surface-color-swatch" data-face-color="#6f42c1" style="--swatch:#6f42c1"></button>
+            <button type="button" class="surface-color-swatch" data-face-color="#d43b3b" style="--swatch:#d43b3b"></button>
+            <button type="button" class="surface-color-swatch" data-face-color="#f5a623" style="--swatch:#f5a623"></button>
+          </div>
+          <div class="surface-color-actions">
+            <button id="applyOuterColorButton" type="button" data-decoration-copy="face.applyOuter">All outside surfaces</button>
+            <button id="applyInnerColorButton" type="button" data-decoration-copy="face.applyInner">All inside surfaces</button>
+            <button id="applyBothColorButton" type="button" data-decoration-copy="face.applyBoth">All outside & inside</button>
+          </div>
+          <button id="backFromColorButton" class="decoration-panel-back" type="button" data-cardbox-i18n="common.back">Back</button>
+        </div>
+
+        <div id="imageResizePanel" class="image-resize-panel decoration-side-panel" hidden>
+          <div class="decoration-panel-heading">
+            <b data-decoration-copy="image.resizeTitle">Resize image</b>
+            <small data-decoration-copy="image.resizeHelp">The aspect ratio is preserved automatically.</small>
+          </div>
+          <div class="popup-grid">
+            <label class="popup-field"><span data-decoration-copy="image.width">Width</span><div class="image-size-field"><input id="imageWidthInput" type="number" min="10" max="3000" step="1" /><em data-unit-label>mm</em></div></label>
+            <label class="popup-field"><span data-decoration-copy="image.height">Height</span><div class="image-size-field"><input id="imageHeightInput" type="number" min="10" max="3000" step="1" /><em data-unit-label>mm</em></div></label>
+          </div>
+          <label class="image-scale-row"><span data-decoration-copy="image.scale">Scale</span><input id="imageScaleInput" type="range" min="10" max="250" step="1" value="100" /><strong id="imageScaleValue">100%</strong></label>
+          <div class="popup-action-row">
+            <button id="confirmImageResizeButton" class="popup-primary" type="button" data-cardbox-i18n="common.done">Done</button>
+            <button id="cancelImageResizeButton" class="popup-secondary" type="button" data-cardbox-i18n="common.cancel">Cancel</button>
+          </div>
+        </div>
+
+        <input id="faceImageInput" type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" hidden />
+
+        <div id="textEditorPanel" class="text-editor-panel" hidden>
+          <div class="text-editor-panel__heading">
+            <b data-cardbox-i18n="text.title">Add text</b>
+            <small data-cardbox-i18n="text.help">Style the text, then place it on any inner or outer surface.</small>
+          </div>
+          <label class="popup-field"><span data-cardbox-i18n="text.content">Text</span><input id="textContentInput" type="text" value="FRAGILE" maxlength="120" /></label>
+          <div class="popup-grid">
+            <label class="popup-field"><span data-cardbox-i18n="text.size">Size</span><input id="textSizeInput" type="number" min="12" max="180" step="1" value="54" /></label>
+            <label class="popup-field"><span data-cardbox-i18n="text.font">Font</span><select id="textFontSelect"><option value="Arial, sans-serif">Arial</option><option value="Inter, sans-serif">Inter</option><option value="Georgia, serif">Georgia</option><option value="Times New Roman, serif">Times New Roman</option><option value="Courier New, monospace">Courier New</option><option value="Verdana, sans-serif">Verdana</option></select></label>
+          </div>
+          <label class="popup-field"><span data-cardbox-i18n="text.color">Text</span>
+            <div id="textColorPalette" class="color-palette" role="group" aria-label="Text color palette">
+              <button type="button" class="color-swatch is-active" data-color="#1f2d36" style="--swatch:#1f2d36"></button>
+              <button type="button" class="color-swatch" data-color="#0e82d8" style="--swatch:#0e82d8"></button>
+              <button type="button" class="color-swatch" data-color="#ffffff" style="--swatch:#ffffff"></button>
+              <button type="button" class="color-swatch" data-color="#d43b3b" style="--swatch:#d43b3b"></button>
+              <button type="button" class="color-swatch" data-color="#1f8b5d" style="--swatch:#1f8b5d"></button>
+              <button type="button" class="color-swatch" data-color="#f5a623" style="--swatch:#f5a623"></button>
+              <button type="button" class="color-swatch" data-color="#6f42c1" style="--swatch:#6f42c1"></button>
+              <button type="button" class="color-swatch" data-color="#3d2b1f" style="--swatch:#3d2b1f"></button>
             </div>
-            <label class="popup-field"><span data-cardbox-i18n="text.content">Text</span><input id="textContentInput" type="text" value="FRAGILE" maxlength="120" /></label>
-            <div class="popup-grid">
-              <label class="popup-field"><span data-cardbox-i18n="text.size">Size</span><input id="textSizeInput" type="number" min="12" max="180" step="1" value="54" /></label>
-              <label class="popup-field"><span data-cardbox-i18n="text.font">Font</span><select id="textFontSelect"><option value="Arial, sans-serif">Arial</option><option value="Inter, sans-serif">Inter</option><option value="Georgia, serif">Georgia</option><option value="Times New Roman, serif">Times New Roman</option><option value="Courier New, monospace">Courier New</option><option value="Verdana, sans-serif">Verdana</option></select></label>
+          </label>
+          <label class="popup-field"><span data-cardbox-i18n="text.background">Background</span>
+            <div id="textBackgroundPalette" class="color-palette" role="group" aria-label="Background color palette">
+              <button type="button" class="color-swatch color-swatch--transparent is-active" data-color="transparent" data-cardbox-i18n-title="text.transparentBackground" title="Transparent background"></button>
+              <button type="button" class="color-swatch" data-color="#ffffff" style="--swatch:#ffffff"></button>
+              <button type="button" class="color-swatch" data-color="#f4e1c8" style="--swatch:#f4e1c8"></button>
+              <button type="button" class="color-swatch" data-color="#dceeff" style="--swatch:#dceeff"></button>
+              <button type="button" class="color-swatch" data-color="#ffdcdc" style="--swatch:#ffdcdc"></button>
+              <button type="button" class="color-swatch" data-color="#e7f7e1" style="--swatch:#e7f7e1"></button>
+              <button type="button" class="color-swatch" data-color="#222b33" style="--swatch:#222b33"></button>
+              <button type="button" class="color-swatch" data-color="#000000" style="--swatch:#000000"></button>
             </div>
-            <div class="popup-grid">
-              <label class="popup-field"><span data-cardbox-i18n="text.color">Text</span><input id="textColorInput" type="color" value="#1f2d36" /></label>
-              <label class="popup-field"><span data-cardbox-i18n="text.background">Background</span><input id="textBackgroundInput" type="color" value="#ffffff" /></label>
-            </div>
-            <div class="text-style-buttons">
-              <label><input id="textBoldToggle" type="checkbox" /><span><b>B</b></span></label>
-              <label><input id="textItalicToggle" type="checkbox" /><span><i>I</i></span></label>
-              <label><input id="textUnderlineToggle" type="checkbox" /><span><u>U</u></span></label>
-            </div>
-            <label class="popup-field"><span data-cardbox-i18n="text.underlineStyle">Underline style</span><select id="textUnderlineStyle"><option value="solid" data-cardbox-i18n="text.lineSolid">Solid</option><option value="dashed" data-cardbox-i18n="text.lineDashed">Dashed</option><option value="dotted" data-cardbox-i18n="text.lineDotted">Dotted</option><option value="double" data-cardbox-i18n="text.lineDouble">Double</option></select></label>
-            <div class="popup-action-row">
-              <button id="startTextPlacementButton" class="popup-primary" type="button" data-cardbox-i18n="text.done">Done</button>
-              <button id="backFromTextButton" class="popup-secondary" type="button" data-cardbox-i18n="common.back">Back</button>
-            </div>
+          </label>
+          <div class="text-style-buttons">
+            <label><input id="textBoldToggle" type="checkbox" /><span><b>B</b></span></label>
+            <label><input id="textItalicToggle" type="checkbox" /><span><i>I</i></span></label>
+            <label><input id="textUnderlineToggle" type="checkbox" /><span><u>U</u></span></label>
+          </div>
+          <label class="popup-field"><span data-cardbox-i18n="text.underlineStyle">Underline style</span><select id="textUnderlineStyle"><option value="solid" data-cardbox-i18n="text.lineSolid">Solid</option><option value="dashed" data-cardbox-i18n="text.lineDashed">Dashed</option><option value="dotted" data-cardbox-i18n="text.lineDotted">Dotted</option><option value="double" data-cardbox-i18n="text.lineDouble">Double</option></select></label>
+          <div class="popup-action-row">
+            <button id="startTextPlacementButton" class="popup-primary" type="button" data-cardbox-i18n="text.done">Done</button>
+            <button id="backFromTextButton" class="popup-secondary" type="button" data-cardbox-i18n="common.back">Back</button>
           </div>
         </div>
 
@@ -79,51 +187,192 @@
         </div>
 
         <button id="cancelTextPlacementButton" class="placement-cancel" type="button" hidden data-cardbox-i18n="text.cancel">Cancel text placement</button>
+        <button id="cancelImagePlacementButton" class="placement-cancel image-placement-cancel" type="button" hidden data-decoration-copy="image.cancelPlacement">Cancel image placement</button>
+
+        <div id="boxClosureToolPanel" class="cardbox-tool-popover" hidden aria-label="Open or close box closures">
+          <div class="cardbox-tool-popover__heading">
+            <span class="cardbox-tool-popover__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 8.5 12 4l8 4.5v8L12 21l-8-4.5v-8Z"/><path d="m4 8.5 8 4.5 8-4.5M12 13v8M7 6.8l5 2.8 5-2.8"/></svg>
+            </span>
+            <div><b id="closureToolTitle">Open / close</b><small id="closureToolHelp">Inspect the upper and lower closures independently.</small></div>
+          </div>
+          <button id="toggleTopClosureButton" class="cardbox-closure-toggle" type="button">
+            <span><b id="topClosureToolLabel">Upper closure</b><small id="topClosureToolDescription">Top lid or flaps</small></span>
+            <strong id="topClosureToolState">Open</strong>
+          </button>
+          <button id="toggleBottomClosureButton" class="cardbox-closure-toggle" type="button">
+            <span><b id="bottomClosureToolLabel">Lower closure</b><small id="bottomClosureToolDescription">Bottom lid or flaps</small></span>
+            <strong id="bottomClosureToolState">Open</strong>
+          </button>
+          <button id="closeClosureToolPanelButton" class="cardbox-tool-popover__close" type="button">Close</button>
+        </div>
+
         <div class="viewer-hint" id="viewerHint">Double-click a face to select it</div>
       </div>
     </section>
 
     <aside class="sidebar shared-settings-panel shared-settings-panel--light" aria-label="Cardboard box settings">
       <section class="panel-section intro-section">
-        <p class="eyebrow" data-cardbox-i18n="intro.eyebrow">Packaging geometry</p>
-        <h1 data-cardbox-i18n="intro.title">Cardboard box settings</h1>
-        <p class="section-copy" data-cardbox-i18n="intro.copy">Start from a rectangular box, then build custom shapes by attaching additional box volumes to exposed faces.</p>
+        <p class="eyebrow" data-pack-copy="intro.eyebrow">Corrugated packaging</p>
+        <h1 data-pack-copy="intro.title">Cardboard box settings</h1>
+        <p class="section-copy" data-pack-copy="intro.copy">Choose a practical FEFCO-based box style, then configure its closures, features and board construction.</p>
       </section>
 
-      <section class="accordion-section is-open" data-accordion="geometry">
+      <section class="accordion-section is-open" data-accordion="structure">
         <button class="accordion-toggle" type="button" aria-expanded="true">
-          <span data-cardbox-i18n="section.geometry">Base box</span>
+          <span data-pack-copy="section.structure">1. Box structure</span>
           <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </button>
         <div class="accordion-panel">
+          <div class="section-lead">
+            <b data-pack-copy="structure.type">Box type</b>
+            <small data-pack-copy="structure.typeHelp">Approachable names are shown first; the corresponding FEFCO style or family remains visible underneath.</small>
+          </div>
+          <div id="boxTypeGrid" class="box-type-grid">
+            <button type="button" class="box-type-card is-selected" data-box-type="standard">
+              <svg viewBox="0 0 64 48" aria-hidden="true"><path d="M10 16 32 7l22 9v22l-22 8-22-8Z"/><path d="m10 16 22 8 22-8M32 24v22"/></svg>
+              <span><b data-pack-copy="type.standard">Standard shipping box</b><small>FEFCO 0201</small></span>
+            </button>
+            <button type="button" class="box-type-card" data-box-type="full-overlap">
+              <svg viewBox="0 0 64 48" aria-hidden="true"><path d="M9 17 32 8l23 9v21l-23 8-23-8Z"/><path d="m9 17 23 8 23-8M32 25v21M15 13l34 8"/></svg>
+              <span><b data-pack-copy="type.fullOverlap">Full-overlap box</b><small>FEFCO 0203</small></span>
+            </button>
+            <button type="button" class="box-type-card" data-box-type="telescope">
+              <svg viewBox="0 0 64 48" aria-hidden="true"><path d="M12 19h40v23H12z"/><path d="M8 12h48v10H8zM15 9h34"/></svg>
+              <span><b data-pack-copy="type.telescope">Telescope lid box</b><small>FEFCO 03xx</small></span>
+            </button>
+            <button type="button" class="box-type-card" data-box-type="archive">
+              <svg viewBox="0 0 64 48" aria-hidden="true"><path d="M10 16h44v27H10z"/><path d="M7 12h50v8H7zM25 26h14v5H25z"/></svg>
+              <span><b data-pack-copy="type.archive">Archive box</b><small>FEFCO 04xx</small></span>
+            </button>
+            <button type="button" class="box-type-card" data-box-type="pizza">
+              <svg viewBox="0 0 64 48" aria-hidden="true"><path d="M8 20 32 9l24 11-5 20H13Z"/><path d="m8 20 24 9 24-9M32 29v11"/></svg>
+              <span><b data-pack-copy="type.pizza">Pizza box</b><small>FEFCO 0426</small></span>
+            </button>
+            <button type="button" class="box-type-card" data-box-type="mailer">
+              <svg viewBox="0 0 64 48" aria-hidden="true"><path d="M9 18h46v25H9z"/><path d="m9 18 9-9h28l9 9M18 9v9m28-9v9"/></svg>
+              <span><b data-pack-copy="type.mailer">Postal mailer</b><small>FEFCO 0427</small></span>
+            </button>
+            <button type="button" class="box-type-card" data-box-type="auto-bottom">
+              <svg viewBox="0 0 64 48" aria-hidden="true"><path d="M11 11h42v31H11z"/><path d="m11 34 12-8 9 8 9-8 12 8M32 11v15"/></svg>
+              <span><b data-pack-copy="type.autoBottom">Self-erecting box</b><small>FEFCO 07xx</small></span>
+            </button>
+            <button type="button" class="box-type-card" data-box-type="two-point-glued">
+              <svg viewBox="0 0 64 48" aria-hidden="true"><path d="M10 13h44v29H10z"/><path d="M10 34h44M19 34l5 8m21-8-5 8"/><circle cx="19" cy="36" r="2"/><circle cx="45" cy="36" r="2"/></svg>
+              <span><b data-pack-copy="type.twoPoint">Two-point glued box</b><small>FEFCO 07xx</small></span>
+            </button>
+            <button type="button" class="box-type-card" data-box-type="sleeve-drawer">
+              <svg viewBox="0 0 64 48" aria-hidden="true"><path d="M8 13h43v29H8z"/><path d="M15 18h41v25H15zM48 30h8"/></svg>
+              <span><b data-pack-copy="type.sleeve">Sleeve & drawer box</b><small>FEFCO 05xx</small></span>
+            </button>
+          </div>
+          <div id="boxTypeDescription" class="type-description-card"></div>
           <div class="two-column-controls top-gap">
-            <label class="field-control"><span data-cardbox-i18n="dimension.width">Base width</span><div><input id="widthInput" type="number" min="100" max="3000" step="10" value="600" /><em data-unit-label>mm</em></div></label>
-            <label class="field-control"><span data-cardbox-i18n="dimension.depth">Base depth</span><div><input id="depthInput" type="number" min="100" max="3000" step="10" value="400" /><em data-unit-label>mm</em></div></label>
-            <label class="field-control"><span data-cardbox-i18n="dimension.height">Base height</span><div><input id="heightInput" type="number" min="50" max="2000" step="10" value="300" /><em data-unit-label>mm</em></div></label>
-            <label class="field-control"><span data-cardbox-i18n="dimension.floor">Board thickness</span><div><input id="floorThicknessInput" type="number" min="1" max="20" step="0.5" value="3" /><em data-unit-label>mm</em></div></label>
+            <label class="field-control"><span data-pack-copy="dimension.width">Width</span><div><input id="widthInput" type="number" min="100" max="3000" step="10" value="600" /><em data-unit-label>mm</em></div></label>
+            <label class="field-control"><span data-pack-copy="dimension.depth">Depth</span><div><input id="depthInput" type="number" min="100" max="3000" step="10" value="400" /><em data-unit-label>mm</em></div></label>
+            <label class="field-control"><span data-pack-copy="dimension.height">Height</span><div><input id="heightInput" type="number" min="30" max="2000" step="10" value="300" /><em data-unit-label>mm</em></div></label>
+            <label class="field-control"><span data-pack-copy="dimension.thickness">Nominal board thickness</span><div class="readonly-value"><strong id="nominalThicknessDisplay">≈ 3.0 mm</strong></div></label>
           </div>
-          <div class="info-card top-gap">
-            <b data-cardbox-i18n="geometry.helpTitle">Build the shape directly in 3D</b>
-            <small data-cardbox-i18n="geometry.helpCopy">Double-click any exposed vertical face to select it. Use the plus button to attach another box volume. Joined areas become one continuous cavity with no internal wall.</small>
+          <input id="floorThicknessInput" type="hidden" value="3" />
+        </div>
+      </section>
+
+      <section class="accordion-section is-open" data-accordion="closures">
+        <button class="accordion-toggle" type="button" aria-expanded="true">
+          <span data-pack-copy="section.closures">2. Closures</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div class="accordion-panel">
+          <div class="closure-grid">
+            <label class="select-control"><span data-pack-copy="closure.top">Top closure</span><select id="topClosureSelect"></select></label>
+            <label class="select-control"><span data-pack-copy="closure.bottom">Bottom closure</span><select id="bottomClosureSelect"></select></label>
           </div>
+          <div id="closureCompatibilityNote" class="compatibility-note"></div>
+          <div class="closure-preview-card" aria-hidden="true">
+            <svg id="closurePreview" viewBox="0 0 260 104"></svg>
+          </div>
+        </div>
+      </section>
+
+      <section class="accordion-section" data-accordion="features">
+        <button class="accordion-toggle" type="button" aria-expanded="false">
+          <span data-pack-copy="section.features">3. Cut-outs & features</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div class="accordion-panel" hidden>
+          <div class="feature-card">
+            <div class="feature-card__title"><span class="feature-symbol">⌒</span><div><b data-pack-copy="feature.handles">Handles</b><small data-pack-copy="feature.handlesHelp">Add a real die-cut opening to the selected box faces.</small></div></div>
+            <div class="closure-grid">
+              <label class="select-control"><span data-pack-copy="feature.type">Type</span><select id="handleTypeSelect"><option value="none"></option><option value="die-cut"></option><option value="reinforced"></option></select></label>
+              <label class="select-control"><span data-pack-copy="feature.position">Position</span><select id="handlePlacementSelect"><option value="front"></option><option value="sides"></option><option value="all-sides"></option><option value="lid"></option></select></label>
+            </div>
+            <div id="handleSizeControls" class="two-column-controls top-gap">
+              <label class="field-control"><span data-pack-copy="feature.width">Width</span><div><input id="handleWidthInput" type="number" min="30" max="300" step="5" value="120" /><em data-unit-label>mm</em></div></label>
+              <label class="field-control"><span data-pack-copy="feature.height">Height</span><div><input id="handleHeightInput" type="number" min="15" max="120" step="5" value="35" /><em data-unit-label>mm</em></div></label>
+            </div>
+          </div>
+          <div class="feature-card top-gap">
+            <div class="feature-card__title"><span class="feature-symbol">◌</span><div><b data-pack-copy="feature.holes">Holes & ventilation</b><small data-pack-copy="feature.holesHelp">Circular, oval or slotted openings are cut through the board.</small></div></div>
+            <div class="closure-grid">
+              <label class="select-control"><span data-pack-copy="feature.type">Type</span><select id="holeTypeSelect"><option value="none"></option><option value="round"></option><option value="oval"></option><option value="vents"></option></select></label>
+              <label class="select-control"><span data-pack-copy="feature.position">Position</span><select id="holePlacementSelect"><option value="front"></option><option value="sides"></option><option value="all-sides"></option><option value="lid"></option></select></label>
+            </div>
+            <div id="holeSizeControls" class="feature-dimensions top-gap">
+              <label class="field-control"><span data-pack-copy="feature.quantity">Quantity / face</span><div><input id="holeCountInput" type="number" min="1" max="12" step="1" value="2" /></div></label>
+              <label class="field-control"><span data-pack-copy="feature.width">Width</span><div><input id="holeWidthInput" type="number" min="8" max="180" step="2" value="30" /><em data-unit-label>mm</em></div></label>
+              <label class="field-control"><span data-pack-copy="feature.height">Height</span><div><input id="holeHeightInput" type="number" min="8" max="120" step="2" value="20" /><em data-unit-label>mm</em></div></label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="accordion-section is-open" data-accordion="board">
+        <button class="accordion-toggle" type="button" aria-expanded="true">
+          <span data-pack-copy="section.board">4. Cardboard</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div class="accordion-panel">
+          <label class="select-control"><span data-pack-copy="board.construction">Construction</span><select id="boardConstructionSelect"><option value="CO3">CO3 · 3 layers / single wall</option><option value="CO5">CO5 · 5 layers / double wall</option></select></label>
+          <div class="section-lead top-gap"><b data-pack-copy="board.flute">Flute profile</b><small data-pack-copy="board.fluteHelp">The available profiles depend on the selected single- or double-wall construction.</small></div>
+          <div id="fluteChoiceGrid" class="flute-choice-grid"></div>
+          <div class="section-lead top-gap"><b data-pack-copy="board.paperPreset">Paper preset</b><small data-pack-copy="board.paperPresetHelp">T / A / F describe the outer liner, fluting medium and inner liner sequence used by the supplier.</small></div>
+          <div id="paperPresetGrid" class="paper-preset-grid">
+            <button type="button" data-paper-preset="TFT"><b>TFT</b><span data-pack-copy="board.tft">Natural outside / natural inside</span></button>
+            <button type="button" data-paper-preset="AFT"><b>AFT</b><span data-pack-copy="board.aft">White outside / natural inside</span></button>
+            <button type="button" data-paper-preset="AFA"><b>AFA</b><span data-pack-copy="board.afa">White outside / white inside</span></button>
+          </div>
+          <div class="board-summary-card top-gap">
+            <div><span data-pack-copy="board.stack">Layer stack</span><strong id="boardStackDisplay">TFT</strong></div>
+            <div><span data-pack-copy="board.estimatedGsm">Estimated board weight</span><strong id="boardGsmDisplay">≈ 576 g/m²</strong></div>
+            <div class="paper-side-preview"><i id="outerPaperSwatch"></i><span data-pack-copy="board.outside">Outside</span><i id="innerPaperSwatch"></i><span data-pack-copy="board.inside">Inside</span></div>
+          </div>
+          <details class="advanced-board-details top-gap">
+            <summary data-pack-copy="board.advanced">Advanced paper composition</summary>
+            <p data-pack-copy="board.advancedHelp">Edit the paper grade and grammage of every liner and fluting layer. Changing a row creates a custom paper recipe.</p>
+            <div id="paperLayerEditor" class="paper-layer-editor"></div>
+          </details>
         </div>
       </section>
 
       <section class="accordion-section" data-accordion="summary">
         <button class="accordion-toggle" type="button" aria-expanded="false">
-          <span data-cardbox-i18n="section.summary">Summary & pricing</span>
+          <span data-pack-copy="section.summary">5. Summary & BOM</span>
           <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </button>
         <div class="accordion-panel" hidden>
           <div class="summary-grid">
-            <div><span data-cardbox-i18n="summary.pieces">Box pieces</span><strong id="summaryPieces">1</strong></div>
-            <div><span data-cardbox-i18n="summary.faces">Exterior faces</span><strong id="summarySides">6</strong></div>
-            <div><span data-cardbox-i18n="summary.boardArea">Board area</span><strong id="summaryBoardArea">0.00 m²</strong></div>
-            <div><span data-cardbox-i18n="summary.volume">Internal volume</span><strong id="summaryVolume">0.00 m³</strong></div>
+            <div><span data-pack-copy="summary.type">Box type</span><strong id="summaryPieces">Standard</strong></div>
+            <div><span>FEFCO</span><strong id="summarySides">0201</strong></div>
+            <div><span data-pack-copy="summary.boardArea">Estimated blank area</span><strong id="summaryBoardArea">0.00 m²</strong></div>
+            <div><span data-pack-copy="summary.mass">Estimated mass</span><strong id="summaryMass">0.00 kg</strong></div>
+            <div><span data-pack-copy="summary.volume">Internal volume</span><strong id="summaryVolume">0.00 m³</strong></div>
+            <div><span data-pack-copy="summary.texts">Text objects</span><strong id="summaryTextCount">0</strong></div>
+            <div><span data-decoration-copy="summary.images">Image objects</span><strong id="summaryImageCount">0</strong></div>
           </div>
+          <div id="bomList" class="bom-list"></div>
           <div class="price-breakdown" id="priceBreakdown"></div>
-          <div class="summary-total"><span data-cardbox-i18n="summary.total">Estimated total</span><strong id="summaryTotal">€0.00</strong></div>
-          <small class="pricing-note" data-cardbox-i18n="summary.note">Indicative material and personalization estimate for one configured box.</small>
+          <div class="summary-total"><span data-pack-copy="summary.total">Estimated total</span><strong id="summaryTotal">€0.00</strong></div>
+          <small class="pricing-note" data-pack-copy="summary.note">Indicative material, conversion and personalization estimate for one configured box.</small>
         </div>
       </section>
     </aside>
@@ -131,7 +380,17 @@
     <button id="cardboxSidebarToggle" class="shared-settings-toggle shared-settings-toggle--light" type="button" aria-label="Hide cardboard box settings" aria-expanded="true" title="Hide cardboard box settings"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
   </main>
 
-  <script type="module" src="./js/app.js?v=3"></script>
-  <script type="module" src="./js/sharedShell.js?v=1"></script>
+  <div id="foldAnimationOverlay" class="fold-animation-overlay" hidden role="status" aria-live="assertive" aria-busy="true">
+    <div class="fold-animation-overlay__card">
+      <span class="fold-animation-overlay__mark" aria-hidden="true">
+        <i></i><i></i><i></i>
+      </span>
+      <b id="foldAnimationOverlayTitle">Fold animation in progress</b>
+      <small id="foldAnimationOverlayDetail">The configurator is temporarily locked.</small>
+    </div>
+  </div>
+
+  <script type="module" src="./js/app.js?v=13"></script>
+  <script type="module" src="./js/sharedShell.js?v=4"></script>
 </body>
 </html>

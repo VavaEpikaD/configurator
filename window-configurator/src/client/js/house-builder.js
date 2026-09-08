@@ -1,9 +1,28 @@
 import * as THREE from 'three';
-import { getHouseDimensions, usesSmallHouse } from './house-config.js';
+import { getHouseDimensions } from './house-config.js';
+import { getWindowLocale } from './i18n.js';
+
+// Resolve the tree relative to this module instead of the website root.
+// Local dev loads this module from /js/, while production mounts the
+// configurator below /window-configurator/ (and localized aliases).
+const TREE_MODEL_URLS = Object.freeze([
+    new URL('../assets/models/environment/tree.glb', import.meta.url).href,
+]);
+const TREE_TARGET_HEIGHTS_M = Object.freeze([2.45, 2.8]);
+const ENVIRONMENT_LABELS = Object.freeze({
+    'en-US': 'Environment',
+    'ro-RO': 'Mediu',
+    'de-DE': 'Umgebung',
+});
 
 /**
- * Creates and owns the optional fixed-house scene objects.
- * House geometry and visibility state remain private to this module.
+ * Creates the optional contextual environment around the configured window.
+ *
+ * The previous implementation built a complete house and rotated the complete
+ * window assembly by 180 degrees whenever the environment was enabled. The
+ * environment is now deliberately lightweight: one front wall containing the
+ * configured window opening, plus two shared background trees. The window keeps
+ * its authored orientation at all times.
  */
 export function createHouseBuilder({
     scene,
@@ -13,298 +32,241 @@ export function createHouseBuilder({
     captureMode = false,
 }) {
     const houseGroup = new THREE.Group();
-    const houseStaticGroup = new THREE.Group();
-    const houseFrontGroup = new THREE.Group();
-    houseGroup.add(houseStaticGroup, houseFrontGroup);
+    houseGroup.name = 'windowEnvironmentRoot';
+
+    const wallGroup = new THREE.Group();
+    wallGroup.name = 'windowEnvironmentWall';
+
+    const treesGroup = new THREE.Group();
+    treesGroup.name = 'windowEnvironmentTrees';
+
+    houseGroup.add(wallGroup, treesGroup);
     scene.add(houseGroup);
 
-    let activeHousePresetKey = null;
-    let houseWasVisible = false;
-
-    const sharedBoxGeo = new THREE.BoxGeometry(1, 1, 1);
-    const sharedBoxEdges = new THREE.EdgesGeometry(sharedBoxGeo);
-
-    const sharedGableShape = new THREE.Shape();
-    sharedGableShape.moveTo(-0.5, 0);
-    sharedGableShape.lineTo(0.5, 0);
-    sharedGableShape.lineTo(0, 1.0);
-    sharedGableShape.closePath();
-
-    const sharedGableGeo = new THREE.ExtrudeGeometry(sharedGableShape, {
-        depth: 1.0,
-        bevelEnabled: false,
-    });
-    sharedGableGeo.center();
-    const sharedGableEdges = new THREE.EdgesGeometry(sharedGableGeo);
-
-    const wallMat = new THREE.MeshStandardMaterial({
+    const wallMaterial = new THREE.MeshStandardMaterial({
         color: 0xf2f2f0,
-        roughness: 0.9,
+        roughness: 0.92,
         metalness: 0,
         side: THREE.DoubleSide,
     });
-    const roofMat = new THREE.MeshStandardMaterial({
-        color: 0xc7cbd0,
-        roughness: 0.85,
-        metalness: 0,
-        side: THREE.DoubleSide,
-    });
-    const outlineMat = new THREE.LineBasicMaterial({
-        color: 0x9aa0a6,
+    const outlineMaterial = new THREE.LineBasicMaterial({
+        color: 0xa8adb3,
     });
 
-    const sharedHouseGeometries = new Set([
-        sharedBoxGeo,
-        sharedBoxEdges,
-        sharedGableGeo,
-        sharedGableEdges,
-    ]);
+    let currentWallGeometry = null;
+    let currentWallEdges = null;
+    let treeSource = null;
+    let treeLoadStarted = false;
+    let treeInstances = [];
+    let lastEnvironmentLayout = null;
 
-    function clearGeneratedGroup(group) {
-        group.traverse(child => {
-            if (child.geometry && !sharedHouseGeometries.has(child.geometry)) {
-                child.geometry.dispose();
-            }
+    function syncEnvironmentToggleLabel() {
+        const toggle = document.getElementById('cShowHouse');
+        const label = toggle?.closest('.action-box')?.querySelector(':scope > label:first-child');
+        if (!label) return;
+        label.textContent = ENVIRONMENT_LABELS[getWindowLocale()] || ENVIRONMENT_LABELS['en-US'];
+    }
 
-            if (child.isSprite && child.material) {
-                child.material.map?.dispose();
-                child.material.dispose();
-            }
+    syncEnvironmentToggleLabel();
+    globalThis.window?.addEventListener('window-locale-applied', () => {
+        // Locale application rewrites the legacy "Show house" text first.
+        // Apply the environment name immediately afterwards.
+        queueMicrotask(syncEnvironmentToggleLabel);
+    });
+
+    function disposeWallGeometry() {
+        currentWallEdges?.dispose?.();
+        currentWallGeometry?.dispose?.();
+        currentWallEdges = null;
+        currentWallGeometry = null;
+        wallGroup.clear();
+    }
+
+    function cloneTreeSource() {
+        if (!treeSource) return null;
+        const clone = treeSource.clone(true);
+        clone.traverse(child => {
+            if (!child?.isMesh) return;
+            child.castShadow = !captureMode;
+            child.receiveShadow = !captureMode;
         });
+        return clone;
+    }
 
-        group.clear();
+    function fitTreeToHeight(tree, targetHeight) {
+        tree.updateMatrixWorld(true);
+        const initialBox = new THREE.Box3().setFromObject(tree);
+        const initialHeight = Math.max(0.0001, initialBox.max.y - initialBox.min.y);
+        tree.scale.multiplyScalar(targetHeight / initialHeight);
+        tree.updateMatrixWorld(true);
+
+        const fittedBox = new THREE.Box3().setFromObject(tree);
+        const center = fittedBox.getCenter(new THREE.Vector3());
+        tree.position.x -= center.x;
+        tree.position.z -= center.z;
+        tree.position.y -= fittedBox.min.y;
+        tree.updateMatrixWorld(true);
+    }
+
+    function rebuildTrees() {
+        treesGroup.clear();
+        treeInstances = [];
+        if (!treeSource || !lastEnvironmentLayout) return;
+
+        const { wallWidth, floorY } = lastEnvironmentLayout;
+        const placements = [
+            {
+                x: -wallWidth / 2 - 1.15,
+                y: floorY,
+                z: -2.8,
+                rotationY: 0.42,
+                height: TREE_TARGET_HEIGHTS_M[0],
+            },
+            {
+                x: wallWidth / 2 + 1.25,
+                y: floorY,
+                z: -3.15,
+                rotationY: -0.58,
+                height: TREE_TARGET_HEIGHTS_M[1],
+            },
+        ];
+
+        placements.forEach((placement, index) => {
+            const tree = cloneTreeSource();
+            if (!tree) return;
+            tree.name = `windowEnvironmentTree${index + 1}`;
+            fitTreeToHeight(tree, placement.height);
+            tree.position.add(new THREE.Vector3(placement.x, placement.y, placement.z));
+            tree.rotation.y = placement.rotationY;
+            tree.updateMatrixWorld(true);
+            treesGroup.add(tree);
+            treeInstances.push(tree);
+        });
+    }
+
+    async function ensureTreesLoaded() {
+        if (treeLoadStarted || treeSource) return;
+        treeLoadStarted = true;
+        let lastError = null;
+        let GLTFLoader = null;
+
+        try {
+            // The window runtime vendors only the Three.js addons it already
+            // needs, so there is no local lib/loaders/GLTFLoader.js to resolve.
+            // Reuse the same pinned loader source already used by ar-export.js
+            // instead of making the whole configurator fail at module load time.
+            ({ GLTFLoader } = await import(
+                'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js'
+            ));
+        } catch (error) {
+            console.warn('Environment tree loader could not be loaded.', error);
+            return;
+        }
+
+        const loader = new GLTFLoader();
+
+        for (const url of TREE_MODEL_URLS) {
+            try {
+                const gltf = await loader.loadAsync(url);
+                treeSource = gltf?.scene || null;
+                if (treeSource) {
+                    rebuildTrees();
+                    return;
+                }
+            } catch (error) {
+                lastError = error;
+            }
+        }
+
+        console.warn('Environment trees could not be loaded from the shared tree asset.', lastError);
+    }
+
+    function buildWall(windowWidth, windowHeight, wallWidth, wallHeight, wallThickness) {
+        disposeWallGeometry();
+
+        const floorY = -wallHeight / 2;
+        const wallTopY = floorY + wallHeight;
+        const wallMinX = -wallWidth / 2;
+        const wallMaxX = wallWidth / 2;
+
+        const wallShape = new THREE.Shape();
+        wallShape.moveTo(wallMinX, floorY);
+        wallShape.lineTo(wallMaxX, floorY);
+        wallShape.lineTo(wallMaxX, wallTopY);
+        wallShape.lineTo(wallMinX, wallTopY);
+        wallShape.closePath();
+
+        const opening = new THREE.Path();
+        opening.moveTo(-windowWidth / 2, -windowHeight / 2);
+        opening.lineTo(windowWidth / 2, -windowHeight / 2);
+        opening.lineTo(windowWidth / 2, windowHeight / 2);
+        opening.lineTo(-windowWidth / 2, windowHeight / 2);
+        opening.closePath();
+        wallShape.holes.push(opening);
+
+        currentWallGeometry = new THREE.ExtrudeGeometry(wallShape, {
+            depth: wallThickness,
+            bevelEnabled: false,
+            curveSegments: 1,
+            steps: 1,
+        });
+        currentWallEdges = new THREE.EdgesGeometry(currentWallGeometry);
+
+        const wall = new THREE.Mesh(currentWallGeometry, wallMaterial);
+        wall.name = 'windowEnvironmentSingleWall';
+        wall.position.z = -wallThickness / 2;
+        wall.castShadow = !captureMode;
+        wall.receiveShadow = !captureMode;
+
+        const outline = new THREE.LineSegments(currentWallEdges, outlineMaterial);
+        outline.name = 'windowEnvironmentWallOutline';
+        wall.add(outline);
+        wallGroup.add(wall);
+
+        return floorY;
     }
 
     function buildHouse(A, B) {
-        const showHouse = document.getElementById('cShowHouse')?.checked === true;
+        syncEnvironmentToggleLabel();
 
-        if (isARMode || !showHouse) {
-            if (houseWasVisible) {
-                clearGeneratedGroup(houseFrontGroup);
-                clearGeneratedGroup(houseStaticGroup);
-                activeHousePresetKey = null;
-            }
+        const showEnvironment = document.getElementById('cShowHouse')?.checked === true;
 
-            houseWasVisible = false;
+        // Environment mode no longer changes placementRoot.rotation. Keeping the
+        // window at its normal rotation removes the old 180° spin/flip entirely.
+        if (isARMode || !showEnvironment) {
             houseGroup.visible = false;
             ground.position.y = -1.2;
             gridHelper.position.y = -1.19;
             return;
         }
 
-        houseWasVisible = true;
         houseGroup.visible = true;
 
-        const isSmallHouse = usesSmallHouse(A, B);
-        const housePresetKey = isSmallHouse ? 'small' : 'large';
-        const houseDimensions = getHouseDimensions(A, B);
+        const windowWidth = Math.max(0.1, Number(A) || 0.1);
+        const windowHeight = Math.max(0.1, Number(B) || 0.1);
+        const baseDimensions = getHouseDimensions(windowWidth, windowHeight);
 
-        const W_wall = houseDimensions.width;
-        const H_wall = houseDimensions.wallHeight;
-        const houseDepth = houseDimensions.depth;
-        const wallThickness = houseDimensions.wallThickness;
-        const gableHeight = houseDimensions.gableHeight;
-        const Y_floor = -H_wall / 2;
-        const Y_wall_top = Y_floor + H_wall;
-        const X_wall_min = -W_wall / 2;
-        const X_wall_max = W_wall / 2;
-
-        // The side walls and floor fit exactly between the inner faces
-        // of the surrounding walls, so the corners meet without overlap.
-        const innerShellCenterZ = -houseDepth / 2 + wallThickness / 4;
-        const innerShellDepth = Math.max(
-            wallThickness,
-            houseDepth - wallThickness * 1.5
-        );
-        const innerFloorWidth = Math.max(
-            wallThickness,
-            W_wall - wallThickness * 2
+        // Keep a useful amount of visible wall around even the largest layouts.
+        const wallWidth = Math.max(baseDimensions.width, windowWidth + 1.2);
+        const wallHeight = Math.max(baseDimensions.wallHeight, windowHeight + 1.0);
+        const wallThickness = baseDimensions.wallThickness;
+        const floorY = buildWall(
+            windowWidth,
+            windowHeight,
+            wallWidth,
+            wallHeight,
+            wallThickness
         );
 
-        ground.position.y = Y_floor;
-        gridHelper.position.y = Y_floor + 0.005;
+        ground.position.y = floorY;
+        gridHelper.position.y = floorY + 0.005;
 
-        function addMeshWithOutline(targetGroup, geometry, material, pos = null, rot = null) {
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.castShadow = !captureMode;
-            mesh.receiveShadow = !captureMode;
-
-            if (pos) mesh.position.set(pos.x, pos.y, pos.z);
-            if (rot) mesh.rotation.set(rot.x, rot.y, rot.z);
-
-            const edges = new THREE.EdgesGeometry(geometry);
-            mesh.add(new THREE.LineSegments(edges, outlineMat));
-            targetGroup.add(mesh);
-            return mesh;
+        lastEnvironmentLayout = { wallWidth, wallHeight, floorY };
+        if (treeSource) {
+            rebuildTrees();
+        } else {
+            ensureTreesLoaded();
         }
-
-        function addSharedMeshWithOutline(
-            targetGroup,
-            geometry,
-            edgesGeometry,
-            material,
-            pos,
-            scale = null,
-            rot = null
-        ) {
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.castShadow = !captureMode;
-            mesh.receiveShadow = !captureMode;
-
-            if (pos) mesh.position.set(pos.x, pos.y, pos.z);
-            if (scale) mesh.scale.set(scale.x, scale.y, scale.z);
-            if (rot) mesh.rotation.set(rot.x, rot.y, rot.z);
-
-            mesh.add(new THREE.LineSegments(edgesGeometry, outlineMat));
-            targetGroup.add(mesh);
-            return mesh;
-        }
-
-        // Only the front wall and its hole depend on the current window size.
-        clearGeneratedGroup(houseFrontGroup);
-
-        const frontShape = new THREE.Shape();
-        frontShape.moveTo(X_wall_min, Y_floor);
-        frontShape.lineTo(X_wall_max, Y_floor);
-        frontShape.lineTo(X_wall_max, Y_wall_top);
-        frontShape.lineTo(X_wall_min, Y_wall_top);
-        frontShape.closePath();
-
-        const holePath = new THREE.Path();
-        holePath.moveTo(-A / 2, -B / 2);
-        holePath.lineTo(A / 2, -B / 2);
-        holePath.lineTo(A / 2, B / 2);
-        holePath.lineTo(-A / 2, B / 2);
-        holePath.closePath();
-        frontShape.holes.push(holePath);
-
-        const frontGeo = new THREE.ExtrudeGeometry(frontShape, {
-            depth: wallThickness,
-            bevelEnabled: false,
-            curveSegments: 1,
-            steps: 1,
-        });
-        addMeshWithOutline(
-            houseFrontGroup,
-            frontGeo,
-            wallMat,
-            { x: 0, y: 0, z: -wallThickness / 2 }
-        );
-
-        // Everything else is static for the selected house preset.
-        if (activeHousePresetKey === housePresetKey) {
-            return;
-        }
-
-        clearGeneratedGroup(houseStaticGroup);
-        activeHousePresetKey = housePresetKey;
-
-        addSharedMeshWithOutline(
-            houseStaticGroup,
-            sharedBoxGeo,
-            sharedBoxEdges,
-            wallMat,
-            { x: 0, y: Y_floor + H_wall / 2, z: -houseDepth + wallThickness / 2 },
-            { x: W_wall, y: H_wall, z: wallThickness }
-        );
-
-        addSharedMeshWithOutline(
-            houseStaticGroup,
-            sharedBoxGeo,
-            sharedBoxEdges,
-            wallMat,
-            { x: X_wall_min + wallThickness / 2, y: Y_floor + H_wall / 2, z: innerShellCenterZ },
-            { x: wallThickness, y: H_wall, z: innerShellDepth }
-        );
-
-        addSharedMeshWithOutline(
-            houseStaticGroup,
-            sharedBoxGeo,
-            sharedBoxEdges,
-            wallMat,
-            { x: X_wall_max - wallThickness / 2, y: Y_floor + H_wall / 2, z: innerShellCenterZ },
-            { x: wallThickness, y: H_wall, z: innerShellDepth }
-        );
-
-        addSharedMeshWithOutline(
-            houseStaticGroup,
-            sharedBoxGeo,
-            sharedBoxEdges,
-            wallMat,
-            { x: 0, y: Y_floor + 0.01, z: innerShellCenterZ },
-            { x: innerFloorWidth, y: 0.02, z: innerShellDepth }
-        );
-
-        addSharedMeshWithOutline(
-            houseStaticGroup,
-            sharedGableGeo,
-            sharedGableEdges,
-            wallMat,
-            { x: 0, y: Y_wall_top + gableHeight / 2, z: 0 },
-            { x: W_wall, y: gableHeight, z: wallThickness }
-        );
-
-        addSharedMeshWithOutline(
-            houseStaticGroup,
-            sharedGableGeo,
-            sharedGableEdges,
-            wallMat,
-            { x: 0, y: Y_wall_top + gableHeight / 2, z: -houseDepth + wallThickness / 2 },
-            { x: W_wall, y: gableHeight, z: wallThickness }
-        );
-
-        const theta = Math.atan2(gableHeight, W_wall / 2);
-        const roofDepthExact = houseDepth + 0.15;
-        const roofThickness = 0.05;
-        const verticalRoofThickness = roofThickness / Math.cos(theta);
-        const overhangX = 0.05;
-        const X_roof_min = X_wall_min - overhangX;
-        const X_roof_max = X_wall_max + overhangX;
-        const Y_roof_min = Y_wall_top - overhangX * Math.tan(theta);
-
-        const leftRoofShape = new THREE.Shape();
-        leftRoofShape.moveTo(X_roof_min, Y_roof_min);
-        leftRoofShape.lineTo(0, Y_wall_top + gableHeight);
-        leftRoofShape.lineTo(0, Y_wall_top + gableHeight + verticalRoofThickness);
-        leftRoofShape.lineTo(X_roof_min, Y_roof_min + verticalRoofThickness);
-        leftRoofShape.closePath();
-
-        const leftRoofGeo = new THREE.ExtrudeGeometry(leftRoofShape, {
-            depth: roofDepthExact,
-            bevelEnabled: false,
-            curveSegments: 1,
-            steps: 1,
-        });
-        addMeshWithOutline(
-            houseStaticGroup,
-            leftRoofGeo,
-            roofMat,
-            { x: 0, y: 0, z: -houseDepth - 0.05 }
-        );
-
-        const rightRoofShape = new THREE.Shape();
-        rightRoofShape.moveTo(0, Y_wall_top + gableHeight);
-        rightRoofShape.lineTo(X_roof_max, Y_roof_min);
-        rightRoofShape.lineTo(X_roof_max, Y_roof_min + verticalRoofThickness);
-        rightRoofShape.lineTo(0, Y_wall_top + gableHeight + verticalRoofThickness);
-        rightRoofShape.closePath();
-
-        const rightRoofGeo = new THREE.ExtrudeGeometry(rightRoofShape, {
-            depth: roofDepthExact,
-            bevelEnabled: false,
-            curveSegments: 1,
-            steps: 1,
-        });
-        addMeshWithOutline(
-            houseStaticGroup,
-            rightRoofGeo,
-            roofMat,
-            { x: 0, y: 0, z: -houseDepth - 0.05 }
-        );
-
-        const interiorLight = new THREE.PointLight(0xffaa44, 1.5, 10);
-        interiorLight.position.set(0, Y_floor + 1.2, -houseDepth / 2);
-        houseStaticGroup.add(interiorLight);
     }
 
     return {

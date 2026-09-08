@@ -67,6 +67,23 @@ jobs:
         run: npm run build --prefix pergola-configurator
 
       # ------------------------------------------------------------
+      # Build gas route configurator prototype
+      # ------------------------------------------------------------
+
+      - name: Configure Node.js for gas configurator
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: gas-configurator/package-lock.json
+
+      - name: Install gas configurator dependencies
+        run: npm ci --prefix gas-configurator
+
+      - name: Build gas configurator
+        run: npm run build --prefix gas-configurator
+
+      # ------------------------------------------------------------
       # Build main website
       # ------------------------------------------------------------
 
@@ -106,6 +123,9 @@ jobs:
           mkdir -p dist/site/pergola-configurator
           cp -R pergola-configurator/dist/. dist/site/pergola-configurator/
 
+          mkdir -p dist/site/gas-configurator
+          cp -R gas-configurator/dist/. dist/site/gas-configurator/
+
           if [ -d roof-configurator ]; then
             mkdir -p dist/site/roof-configurator
             cp -R roof-configurator/. dist/site/roof-configurator/
@@ -125,6 +145,9 @@ jobs:
           mkdir -p dist/site/cardbox-configurator
           cp -R cardbox-configurator/. dist/site/cardbox-configurator/
 
+          mkdir -p dist/site/bookshelf-configurator
+          cp -R bookshelf-configurator/. dist/site/bookshelf-configurator/
+
       - name: Verify static site
         shell: bash
         run: |
@@ -133,11 +156,13 @@ jobs:
           test -f dist/site/index.html
           test -f dist/site/window-configurator/index.html
           test -f dist/site/pergola-configurator/index.html
+          test -f dist/site/gas-configurator/index.html
           test -f dist/site/roof-configurator/index.html
           test -f dist/site/solar-configurator/index.html
           test -f dist/site/hall-configurator/index.html
           test -f dist/site/fence-configurator/index.html
           test -f dist/site/cardbox-configurator/index.html
+          test -f dist/site/bookshelf-configurator/index.html
           test -d dist/site/shared-ui
           test -f dist/site/shared-ui/admin/tenant-provisioning/index.html
 
@@ -223,12 +248,13 @@ jobs:
           curl -fsSL --retry 10 --retry-delay 3 "${SERVICE_URL}/" > /dev/null
           curl -fsSL --retry 5 "${SERVICE_URL}/window-configurator/" > /dev/null
           curl -fsSL --retry 5 "${SERVICE_URL}/pergola-configurator/" > /dev/null
+          curl -fsSL --retry 5 "${SERVICE_URL}/gas-configurator/" > /dev/null
           curl -fsSL --retry 5 "${SERVICE_URL}/roof-configurator/" > /dev/null
           curl -fsSL --retry 5 "${SERVICE_URL}/solar-configurator/" > /dev/null
           curl -fsSL --retry 5 "${SERVICE_URL}/hall-configurator/" > /dev/null
           curl -fsSL --retry 5 "${SERVICE_URL}/fence-configurator/" > /dev/null
           curl -fsSL --retry 5 "${SERVICE_URL}/cardbox-configurator/" > /dev/null
+          curl -fsSL --retry 5 "${SERVICE_URL}/bookshelf-configurator/" > /dev/null
           curl -fsSL --retry 5 "${SERVICE_URL}/internal/tenant-provisioning/" > /dev/null
       
           echo "All production routes responded successfully."
-
