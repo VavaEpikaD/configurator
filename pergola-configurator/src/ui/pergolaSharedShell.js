@@ -77,8 +77,9 @@ export function mountPergolaSharedShell({ store, ui, tenantContext = null }) {
         ui.setSidebarHidden(collapsed, { fromSharedShell: true });
       },
       onAccountAction(action) {
-        if (action === 'profile') ui.showModal(t('modal.profileTitle'), `<p>${escapeHtml(t('modal.profileBody'))}</p>`);
-        else if (action === 'help') ui.showModal(t('modal.helpTitle'), `<p>${escapeHtml(t('modal.helpBody'))}</p>`);
+        // Profile is now fully owned by the Common UI. Do not open the legacy
+        // Pergola placeholder modal behind it.
+        if (action === 'help') ui.showModal(t('modal.helpTitle'), `<p>${escapeHtml(t('modal.helpBody'))}</p>`);
         else if (action === 'cookies') ui.showToast(t('feedback.cookiesUnavailable'));
       },
       onToolAction({ toolId }) {
