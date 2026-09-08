@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GeometryLibrary, disposeObjectResources } from '../shared-3d/src/index.js?v=2';
+import { GeometryLibrary, disposeObjectResources, getEdgeFinish } from '../shared-3d/src/index.js?v=3';
 
 /** Window owns CAD transforms, profile choice, join rules and assembly placement. */
 export function createWindowGeometry(library = null, { captureMode = false } = {}) {
@@ -14,13 +14,17 @@ export function createWindowGeometry(library = null, { captureMode = false } = {
         profile(shape, settings) {
             return geometry.create('profile.extrusion', { shape, settings }, { units: 'source' });
         },
-        solidProfile(shape, settings) {
-            return geometry.create('profile.extrusion', { shape, settings });
+        solidProfile(shape, settings, { edgeFinish = null } = {}) {
+            // Only generated convex handle solids opt in. CAD templates, sockets,
+            // gaskets and manufactured profiles retain their original contour.
+            return edgeFinish
+                ? geometry.create('profile.beveledSolid', { shape, settings, ...getEdgeFinish(edgeFinish) })
+                : geometry.create('profile.extrusion', { shape, settings });
         },
         clone: source => geometry.clone(source),
         mesh(source, material, options = {}) {
             return geometry.mesh(source, material, {
-                uv: surfaceUV(material), castShadow: shadows, receiveShadow: shadows, ...options,
+                uv: source.userData.surfaceUV?.preserve ? false : surfaceUV(material), castShadow: shadows, receiveShadow: shadows, ...options,
             });
         },
         panel(width, height, thickness, material) {
@@ -29,7 +33,7 @@ export function createWindowGeometry(library = null, { captureMode = false } = {
             });
         },
         prepare(source, material, options = {}) {
-            return geometry.prepare(source, { uv: surfaceUV(material), ...options });
+            return geometry.prepare(source, { uv: source.userData.surfaceUV?.preserve ? false : surfaceUV(material), ...options });
         },
         split: (source, resolver) => geometry.splitAtScalarZero(source, resolver),
         clip: (source, resolver) => geometry.clipToScalarHalfspace(source, resolver),

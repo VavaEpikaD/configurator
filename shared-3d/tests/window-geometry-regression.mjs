@@ -6,8 +6,8 @@ import { WINDOW_CASES, applyWindowCase } from './helpers/windowCases.mjs';
 import { productGeometrySnapshot } from './helpers/geometrySnapshot.mjs';
 const baseline = JSON.parse(fs.readFileSync(new URL('./fixtures/window-geometry-v1.json', import.meta.url)));
 
-for (const item of WINDOW_CASES) test(`Window full-builder geometry regression: ${item.name}`, async () => {
-  const fixture = await createWindowFixture({ layout: item.layout, builderOptions: { getSelectedHandleSide: () => item.handle ?? 'right' } });
+for (const item of WINDOW_CASES) test(`Window exact/no-edge full-builder regression: ${item.name}`, async () => {
+  const fixture = await createWindowFixture({ edgeDetails: false, layout: item.layout, builderOptions: { getSelectedHandleSide: () => item.handle ?? 'right' } });
   for (const id of ['widthA', 'heightB', 'mBatant']) fixture.loader.context.document.getElementById(id);
   applyWindowCase(fixture, item);
   const actual = { product: productGeometrySnapshot(fixture.builder.placementRoot),

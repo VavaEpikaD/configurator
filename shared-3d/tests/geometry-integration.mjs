@@ -14,8 +14,8 @@ const requireFromPergola = createRequire(new URL('../../pergola-configurator/pac
 const THREE = await import(pathToFileURL(path.join(path.dirname(requireFromPergola.resolve('three')), 'three.module.js')).href);
 const baseline = JSON.parse(fs.readFileSync(new URL('./fixtures/pergola-geometry-v1.json', import.meta.url)));
 
-for (const { name, state } of pergolaCases(stateAPI)) test(`Pergola approved geometry regression: ${name}`, () => {
-  const materials = new MaterialLibrary(THREE), geometry = new GeometryLibrary(THREE);
+for (const { name, state } of pergolaCases(stateAPI)) test(`Pergola exact/no-edge baseline regression: ${name}`, () => {
+  const materials = new MaterialLibrary(THREE), geometry = new GeometryLibrary(THREE, { edgeDetails: false });
   const beforeState = JSON.stringify(state);
   const group = buildPergola(state, null, materials, geometry);
   const actual = productGeometrySnapshot(group), expected = baseline.cases[name];
@@ -61,7 +61,7 @@ test('Window adapter uses native runtime and existing mesh-reuse constructor for
   const loader = createWindowModuleLoader({ meshReuse: true });
   const { createWindowGeometry } = await loader.import('window-configurator/src/client/js/window-geometry.js');
   const engine = await loader.import('window-configurator/src/client/js/three-mesh-reuse.js');
-  const { MaterialLibrary: WindowMaterials } = await loader.import('shared-3d/src/index.js?v=2');
+  const { MaterialLibrary: WindowMaterials } = await loader.import('shared-3d/src/index.js?v=3');
   const materials = new WindowMaterials(engine), adapter = createWindowGeometry();
   const mat = materials.create('aluminium.powderCoated');
   const pane = adapter.panel(1, 1.5, 0.024, materials.create('glass.clear'));

@@ -3,7 +3,9 @@
 export const MATERIAL_PRESETS = Object.freeze({
   'aluminium.powderCoated': Object.freeze({
     type: 'standard', color: '#383e42', metalness: 0, roughness: 0.64,
-    texture: 'powder', normalStrength: 0.13, tile: [0.025, 0.025],
+    // Two-scale orange peel remains subtle, but does not rely solely on
+    // sub-millimetre detail that disappears under texture minification.
+    texture: 'powder', normalStrength: 0.38, tile: [0.08, 0.08],
   }),
   'aluminium.bare': Object.freeze({
     type: 'standard', color: '#d6dade', metalness: 1, roughness: 0.3,

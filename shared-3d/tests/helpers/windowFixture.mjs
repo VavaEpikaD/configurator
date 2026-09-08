@@ -27,7 +27,7 @@ export async function createWindowFixture(options = {}) {
   const layout = options.layout ? createWindowLayoutController({ initialSelection: { layoutId: options.layout } }) : null;
   const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(), ground = new THREE.Object3D(), gridHelper = new THREE.Object3D();
   camera.position.set(2, 1, 3); ground.position.y = -1.2;
-  const { MaterialLibrary } = await loader.import('shared-3d/src/index.js');
+  const { MaterialLibrary, GeometryLibrary } = await loader.import('shared-3d/src/index.js');
   const materials = new MaterialLibrary(THREE);
   const mat = materials.create('aluminium.powderCoated');
   function section(x, y, width, height) {
@@ -41,6 +41,7 @@ export async function createWindowFixture(options = {}) {
   if (layout) profiles.push({ index: 3, role: 'divider', componentId: '575800', layer: 'Aluminium', shape: section(56, 135, 88, 65), bbox: { minX: 56, maxX: 144, minY: 135, maxY: 200 }, dividerSourceBounds: { minX: 56, maxX: 144, minY: 135, maxY: 200, centerX: 100, centerY: 167.5 }, material: mat });
   const metadata = { globalCenterX: 32.5, globalMinX: 0, globalMaxX: 65, globalMinY: 0, globalMaxY: 105, isVertical: false, hasSplit: false };
   const builder = createWindowBuilder({ scene, camera, ground, gridHelper, isARMode: false, captureMode: false,
+    geometryLibrary: new GeometryLibrary(THREE, { edgeDetails: options.edgeDetails !== false }),
     pageParams: new URLSearchParams(), componentSelection: { add() {}, reset() {} },
     glassMat: materials.create('glass.clear'), handleMat: mat,
     profileInput: element('cadProfile'), glassThicknessInput: element('glassThickness'), glassThicknessLabel: element('valGlassThickness'),

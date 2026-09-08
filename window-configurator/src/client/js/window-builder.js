@@ -1,14 +1,14 @@
 import * as THREE from 'three';
-import { createWindowGeometry } from './window-geometry.js?v=geometry-2';
+import { createWindowGeometry } from './window-geometry.js?v=edges-3';
 import { WINDOW_WIDTH_MAX_M, normalizeHexColour } from './config.js';
 import {
     PROFILE_CURVE_SEGMENTS,
     createRoundedRectShape,
-} from './geometry-utils.js?v=geometry-2';
+} from './geometry-utils.js?v=edges-3';
 import { getHouseDimensions } from './house-config.js';
 import { getProfileCatalogEntry, isDrainageCapProfile } from './profile-catalog.js';
 import { translateCadTransformSource } from './profile-coordinate-transform.js';
-import { createHouseBuilder } from './house-builder.js?v=geometry-2';
+import { createHouseBuilder } from './house-builder.js?v=edges-3';
 import {
     getDividerSegmentAlongCoordinate,
     getDividerCrossSectionMetrics,
@@ -6013,7 +6013,7 @@ export function createWindowBuilder({
                         depth: 0.005,
                         bevelEnabled: false,
                         curveSegments: 20
-                    });
+                    }, { edgeFinish: 'aluminium.handle' });
                     plateGeo.translate(0, 0, -0.007);
                     const plate = geometry.mesh(plateGeo, handleMat);
                     plate.castShadow = !captureMode;
@@ -6070,7 +6070,7 @@ export function createWindowBuilder({
                         depth: 0.012,
                         bevelEnabled: false,
                         curveSegments: 24
-                    });
+                    }, { edgeFinish: 'aluminium.handle' });
                     leverGeo.center();
                     leverGeo.translate(0, -0.050, 0.018);
                     const lever = geometry.mesh(leverGeo, handleMat);

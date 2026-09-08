@@ -36,25 +36,27 @@ function cloneFittedAsset(assets, key, targetSize, alignY = 'center') {
 }
 
 function addPost(geometry, group, x, z, height, size, frameMaterial, premium) {
-  const post = geometry.box(size, height, size, frameMaterial);
+  const post = geometry.box(size, height, size, frameMaterial, { edgeFinish: 'aluminium.frame', axis: 'y', role: 'post' });
   post.position.set(x, height / 2, z);
   group.add(post);
 
   const foot = geometry.box(size * 1.35, 0.025, size * 1.35, frameMaterial, {
-    castShadow: false,
+    castShadow: false, edgeFinish: 'aluminium.trim', axis: 'y', role: 'foot',
   });
   foot.position.set(x, 0.0125, z);
   group.add(foot);
 
   if (premium) {
-    const cap = geometry.box(size * 1.06, 0.045, size * 1.06, frameMaterial);
+    const cap = geometry.box(size * 1.06, 0.045, size * 1.06, frameMaterial, { edgeFinish: 'aluminium.trim', axis: 'y', role: 'post-cap' });
     cap.position.set(x, height - 0.0225, z);
     group.add(cap);
   }
 }
 
 function addBeam(geometry, group, position, dimensions, frameMaterial, premium) {
-  const beam = geometry.box(dimensions.x, dimensions.y, dimensions.z, frameMaterial);
+  const beam = geometry.box(dimensions.x, dimensions.y, dimensions.z, frameMaterial, {
+    edgeFinish: 'aluminium.frame', axis: dimensions.x > dimensions.z ? 'x' : 'z', role: 'beam',
+  });
   beam.position.copy(position);
   group.add(beam);
 
@@ -87,7 +89,7 @@ function addLouvers(geometry, group, state, width, depth, topY, louverMaterial) 
       const z = -usable / 2 + (index + 0.5) * (usable / count);
       pivot.position.set(0, topY, z);
       pivot.rotation.x = tilt;
-      const louver = geometry.box(width - margin * 2, thickness, bladeWidth, louverMaterial);
+      const louver = geometry.box(width - margin * 2, thickness, bladeWidth, louverMaterial, { edgeFinish: 'aluminium.louver', axis: 'x', role: 'louver' });
       pivot.add(louver);
       group.add(pivot);
     }
@@ -99,7 +101,7 @@ function addLouvers(geometry, group, state, width, depth, topY, louverMaterial) 
       const x = -usable / 2 + (index + 0.5) * (usable / count);
       pivot.position.set(x, topY, 0);
       pivot.rotation.z = -tilt;
-      const louver = geometry.box(bladeWidth, thickness, depth - margin * 2, louverMaterial);
+      const louver = geometry.box(bladeWidth, thickness, depth - margin * 2, louverMaterial, { edgeFinish: 'aluminium.louver', axis: 'z', role: 'louver' });
       pivot.add(louver);
       group.add(pivot);
     }
@@ -110,7 +112,7 @@ function addDrainage(geometry, group, state, width, depth, height, surfaces) {
   if (state.roof.drainage !== 'integrated') return;
 
   const gutterMaterial = surfaces ? surfaces.create('aluminium.powderCoated', { color: '#151d20' }) : material('#151d20', { roughness: 0.4, metalness: 0.75 });
-  const gutter = geometry.box(width - 0.24, 0.06, 0.08, gutterMaterial);
+  const gutter = geometry.box(width - 0.24, 0.06, 0.08, gutterMaterial, { edgeFinish: 'aluminium.trim', axis: 'x', role: 'gutter' });
   gutter.position.set(0, height - 0.19, depth / 2 - 0.13);
   group.add(gutter);
 
@@ -197,7 +199,7 @@ function addPrivacyWall(geometry, container, transform, color, surfaces) {
   const count = Math.max(8, Math.floor(transform.usableHeight / 0.14));
   const spacing = transform.usableHeight / count;
   for (let index = 0; index < count; index += 1) {
-    const slat = geometry.box(transform.span - 0.06, 0.075, 0.055, slatMaterial);
+    const slat = geometry.box(transform.span - 0.06, 0.075, 0.055, slatMaterial, { edgeFinish: 'aluminium.louver', axis: 'x', role: 'privacy-slat' });
     slat.position.set(0, -transform.usableHeight / 2 + spacing * (index + 0.5), 0);
     slat.rotation.x = THREE.MathUtils.degToRad(-18);
     container.add(slat);
@@ -228,12 +230,12 @@ function addGlass(geometry, container, transform, frameMaterial, surfaces) {
     );
     container.add(panel);
 
-    const rail = geometry.box(0.025, transform.usableHeight - 0.06, 0.05, frameMaterial);
+    const rail = geometry.box(0.025, transform.usableHeight - 0.06, 0.05, frameMaterial, { edgeFinish: 'aluminium.trim', axis: 'y', role: 'glazing-rail' });
     rail.position.set(-transform.span / 2 + index * (panelWidth + gap), 0, 0);
     container.add(rail);
   }
 
-  const topRail = geometry.box(transform.span, 0.045, 0.07, frameMaterial);
+  const topRail = geometry.box(transform.span, 0.045, 0.07, frameMaterial, { edgeFinish: 'aluminium.trim', axis: 'x', role: 'glazing-rail' });
   topRail.position.y = transform.usableHeight / 2 - 0.0225;
   container.add(topRail);
   const bottomRail = topRail.clone();

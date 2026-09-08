@@ -1,46 +1,49 @@
-# Delivery validation — shared geometry Step 2
+# Validation — shared edge finishes Step 3
 
-Release: `20260908-geometry-2` · 8 September 2026
+Release: `20260908-edges-3`. Baseline: original uploaded project plus the accepted Orders/font, materials Step 1 and geometry Step 2 overlays, in that order. No commits, pushes or deployments were performed.
 
-Baseline: the supplied project, followed by the Orders/font fix and the accepted `configurator_shared_materials_step1_20260908.zip`. The patch is an incremental overlay on that baseline, not a full repository export. No production data, saves or deployments were changed.
+## Automated results
 
-## Executed successfully
+**146/146 shared tests passed**, using `npm run check:shared-3d`.
 
-| Check | Result |
-| --- | --- |
-| `npm run check:shared-3d` | **91 tests passed, 0 failed, 0 skipped** |
-| `npm run check --prefix window-configurator` | Full existing CAD/profile/layout/connection, i18n, import-map and module-graph chain passed; 13 graph entry modules / 39 linked modules |
-| `npm run prepare:static --prefix window-configurator` | Passed; copied shared source checked against workspace source |
-| `npm run check --prefix pergola-configurator` | Syntax and i18n checks passed, including the new adapter |
-| Changed JavaScript / test syntax | All changed/new JS and MJS files passed `node --check` |
-| Window cache-chain audit | Changed native modules and their local import parents use new URLs; HTML points to `main.js?v=14-geometry-2` |
+The original 91-test suite remains, including geometry ownership, UVs, cut operations, material/quality handling, Window mesh pooling, 28 Pergola baseline configurations and 13 Window builder/layout baseline cases. Original golden fixture files have not been regenerated. Where intentional new edge triangles differ from a box, these original fixtures run with the explicit exact/no-edge switch.
 
-### What the 91 tests cover
+The 55 additional tests cover:
 
-The 24 accepted material/quality/Pergola checks remain, joined by 67 geometry and lifecycle checks: 19 core-geometry tests, 32 integration tests, 14 Window regression tests, and two additional scene-controller lifetime tests.
+- Rounded rectangular prisms along each axis: original bounds, flat ends, watertight triangle topology, outward winding, unit normals, material slots and metre-scale UV continuity.
+- Guarded inset solid bevels: original depth/envelope, source immutability, protected holed/concave sections, safe radius limits and geometry ownership.
+- Explicit powder-coat map diagnostics and Low/Balanced/High behavior, deterministic broader surface detail and unchanged selected base color.
+- 28 actual Pergola assembly cases comparing edge-enabled to exact output: all mesh bounds/placement/shadow flags match; every untargeted buffer remains exact; targeted generated aluminium carries the expected maps and native UVs. Product state and resource disposal are checked.
+- 13 actual Window builder/layout cases comparing enabled handle bevels to exact geometry, including unchanged CAD section geometry and fabrication snapshots, repeated builds and quality transitions. These fixtures use deterministic **synthetic CAD sections**, not the entire production CAD catalog.
+- Deck top/footprint preservation and unrounded substructure; native bevel UV metadata surviving Window mesh reuse.
 
-The core checks compare generated buffers against original Three.js primitives/extrusions, including indices, groups, winding, holes and multi-island sections. They cover independent clones, validation, custom registration, CAD units, optional normal/UV finalization, rounded/simplified sections, scalar cuts, temporary-buffer cleanup on errors, deduplicated disposal and the injected Mesh-constructor contract.
+Cross-fixture Window comparisons normalize JSON snapshots across their separate VM realms; geometry and fabrication values are not rounded or relaxed by that normalization. Bounds/transform float comparisons use a small metre-space tolerance; untargeted attribute buffers are compared exactly.
 
-**28 Pergola fixtures** were captured from the accepted Step 1 before geometry changes. They cover preset combinations, sizes, louver orientation and tilt, wall attachment, privacy/screens/glass, drainage and accessories. On the available r160 engine, complete geometry hashes also match; every engine run checks per-mesh topology, bounds, transforms and shadow policies. Every generated product primitive in these cases is owned by the shared library. Additional tests check quality invariance and 25 consecutive resize/rebuild/disposal cycles.
+**Window's full `npm run check` validation chain and `prepare:static` passed.** This includes its catalog, compatibility, layout, CAD/accessory, import-map, translation, source-module and syntax checks. Its production static files resolve through the new native module cache versions.
 
-**13 Window fixtures** run the actual Window builder and layout controller with deterministic synthetic CAD sections. Their geometry data and fabrication snapshots match the accepted version, including repeat builds, glass thicknesses, opening/tilt/handle/explosion states, and split/mixed layouts. The fixtures cover logic and numerical output, not all manufacturer CAD input files. A separate adapter test runs Window's actual mesh-reuse wrapper and verifies that resizing retains the intended pooled mesh and tracks the surviving buffer.
+**Pergola's syntax and translation checks passed.**
 
-The scene-controller tests verify that changing Low/Balanced/High does not modify or dispose geometry, that already-disposed product buffers leave the live registry, and that teardown releases remaining registered buffers once.
+## Executed WebGL checks
 
-### Additional pre-existing defect corrected
+This release obtained a working **Chromium WebGL2 context through SwiftShader/Xvfb**. It is software rendering, not a representative desktop or phone GPU benchmark.
 
-During the Window mixed-layout regression, the fixed-pane fallback numbering read `fixedCellIndex` without declaring that `forEach` callback argument. The callback now receives its index. A separate T-grid case verifies two opening panes and one fixed pane build with three valid glazing meshes. This repair is tested independently; the formerly broken case is **not** advertised as unchanged baseline output.
+`npm run check:shared-3d:browser` passed both local harnesses through **Low, Balanced and High** (six rendered quality cases). All shader programs linked, no context was lost, environment generation succeeded, no scene/asset errors were reported, fine-map tier behavior was correct and tracked geometry counts stayed constant through quality changes.
 
-## Engines and testing limits
+- **Pergola:** the actual `PergolaScene`, store, procedural product and local GLB assets were loaded. Full-view, post close-up and beam-junction images were also captured from the accepted baseline and updated scene and inspected. A visible software-rasterization artifact with long, narrow deck bevel triangles was isolated and corrected with bounded longitudinal subdivision before final captures.
+- **Window:** the browser smoke uses its actual vendored r160 engine/mesh wrapper with the shared bevel factories, powder coating, glass and environment. A backplate component and rounded member were inspected. It is **not** a complete Window UI/saved-configuration visual test. A separate full static Window startup reached the real CAD assembly and diagnostic API, but its capture harness did not complete reliably; no full-Window visual sign-off is claimed.
 
-Window used its actual vendored Three.js **r160**, and the mesh-pooling test used its real wrapper. Pergola integration tests resolved the available repository-root Three.js **0.160.1**. The Pergola test imports resolve relative to its package, so a normal local installation will exercise that application's installed version instead. Exact baseline hashes are gated to the captured engine revision; cross-engine runs still check topology, bounds, transforms and shadow policies.
+The browser smoke implementation is included under `tests/browser-smoke.mjs`. It serves only local files, blocks external requests and prints the resolved engine revision. It does not access user accounts, write cloud data or visit production sites. Screenshots are optional outputs, not pixel-perfect automated assertions.
 
-**Pergola's production build did not run successfully here.** `npm run build --prefix pergola-configurator` stopped with `vite: not found`; the package's Vite 8.1.5 and Three.js 0.185.1 installation was unavailable, and the package registry was unreachable. Their declared versions were not changed or downgraded. Run the normal dependency installation and Vite production build in development/CI before deployment. Compatibility with that pinned Three.js version has not been execution-verified in this environment.
+## Dependency/build limitations
 
-**No successful WebGL render, GPU shader validation, visual comparison or frame-rate benchmark is claimed.** The installed Chromium could not obtain a WebGL2 context. Renderer/environment tests use a GPU-independent PMREM double: they validate settings and resource ownership, not rendered appearance. Step 2 intentionally leaves accepted material/lighting values and product shapes unchanged, but automated equivalence is not a substitute for device testing.
+Window retains its vendored **Three.js r160** and existing Mesh reuse wrapper. Pergola retains declared **Three.js 0.185.1** and **Vite 8.1.5**; neither package version nor lockfile was changed.
 
-Authenticated save/cart flows, capture/AR, actual imported asset loading, complete production CAD catalogs, mobile GPU performance and real browser memory behavior remain post-deployment acceptance items. Follow the checks in `README.md`; inspect resizing, mixed Window layouts, opening/exploded states, Pergola side closures and quality changes before moving on to the next visible geometry improvement.
+The available dependency tree in this environment resolves Pergola's tests to a hoisted **Three.js r160**. Both its numeric tests and its WebGL harness therefore ran on r160, **not its production r185.1**. Production-version compatibility is not proven by these results.
 
-## Delivery scope
+`npm run build --prefix pergola-configurator` was attempted and failed with **`vite: not found`**. The pinned dependencies could not be fetched here. Run the normal installed-dependency build pipeline and inspect the deployed result before accepting the update. No production Vite build, r185.1 runtime, real-device frame-rate result or post-deployment browser review is claimed.
 
-Only Window, Pergola and the shared 3D/test/documentation layer are changed. The ZIP includes a root `commit_message.md`, but no Git operation, push or deployment was performed. Test fixtures are regression data, not runtime assets. No dependencies, prebuilt output or font files are included.
+## Delivery and acceptance
+
+Apply the source ZIP over accepted Step 2, then run the usual builds/deployment. It includes only changed/new source, tests, documentation and root `commit_message.md`; no node_modules, prebuilt output, secrets added by this update, git metadata, fonts or captured images are packaged.
+
+Use `EDGE_FINISHES.md` for close-up material/edge acceptance, Window's debug-color caveat, quality expectations, diagnostic fields and browser test commands. Numerical tests are guardrails, not a substitute for visual review on the deployed engine and target devices.
