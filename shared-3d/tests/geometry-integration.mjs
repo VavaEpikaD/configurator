@@ -61,7 +61,7 @@ test('Window adapter uses native runtime and existing mesh-reuse constructor for
   const loader = createWindowModuleLoader({ meshReuse: true });
   const { createWindowGeometry } = await loader.import('window-configurator/src/client/js/window-geometry.js');
   const engine = await loader.import('window-configurator/src/client/js/three-mesh-reuse.js');
-  const { MaterialLibrary: WindowMaterials } = await loader.import('shared-3d/src/index.js?v=3');
+  const { MaterialLibrary: WindowMaterials } = await loader.import('shared-3d/src/index.js?v=4');
   const materials = new WindowMaterials(engine), adapter = createWindowGeometry();
   const mat = materials.create('aluminium.powderCoated');
   const pane = adapter.panel(1, 1.5, 0.024, materials.create('glass.clear'));

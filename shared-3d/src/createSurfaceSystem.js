@@ -1,5 +1,5 @@
-import { GeometryLibrary, GEOMETRY_SYSTEM_VERSION } from './geometry/GeometryLibrary.js?v=3';
-import { MaterialLibrary } from './materials/MaterialLibrary.js?v=3';
+import { GeometryLibrary, GEOMETRY_SYSTEM_VERSION } from './geometry/GeometryLibrary.js?v=4';
+import { MaterialLibrary } from './materials/MaterialLibrary.js?v=4';
 import { NeutralEnvironment } from './environment/NeutralEnvironment.js?v=1';
 import { getQualityProfile, normalizeQuality } from './quality.js?v=1';
 

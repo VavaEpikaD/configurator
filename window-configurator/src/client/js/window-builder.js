@@ -1,14 +1,14 @@
 import * as THREE from 'three';
-import { createWindowGeometry } from './window-geometry.js?v=edges-3';
+import { createWindowGeometry } from './window-geometry.js?v=corrective-4';
 import { WINDOW_WIDTH_MAX_M, normalizeHexColour } from './config.js';
 import {
     PROFILE_CURVE_SEGMENTS,
     createRoundedRectShape,
-} from './geometry-utils.js?v=edges-3';
+} from './geometry-utils.js?v=corrective-4';
 import { getHouseDimensions } from './house-config.js';
 import { getProfileCatalogEntry, isDrainageCapProfile } from './profile-catalog.js';
 import { translateCadTransformSource } from './profile-coordinate-transform.js';
-import { createHouseBuilder } from './house-builder.js?v=edges-3';
+import { createHouseBuilder } from './house-builder.js?v=corrective-4';
 import {
     getDividerSegmentAlongCoordinate,
     getDividerCrossSectionMetrics,
@@ -6039,7 +6039,7 @@ export function createWindowBuilder({
                         depth: 0.014,
                         bevelEnabled: false,
                         curveSegments: 24
-                    });
+                    }, { edgeFinish: 'aluminium.handle' });
                     neckGeo.center();
                     neckGeo.translate(0, 0, -0.001);
                     const neck = geometry.mesh(neckGeo, handleMat);

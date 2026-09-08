@@ -27,7 +27,7 @@ const server = createServer(async (req, res) => {
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const base = `http://127.0.0.1:${server.address().port}`;
 const url = file => `${base}/${file.replaceAll(path.sep, '/')}`;
-const common = `${base}/shared-3d/src/index.js?v=3`;
+const common = `${base}/shared-3d/src/index.js?v=4`;
 const sources = {
   window: {
     imports: { three: url('window-configurator/src/client/js/three-mesh-reuse.js?v=1'), 'three/addons/': url('window-configurator/src/client/lib/') },

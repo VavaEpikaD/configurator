@@ -1,5 +1,5 @@
-import { MATERIAL_PRESETS } from './presets.js?v=3';
-import { SurfaceTextures } from './SurfaceTextures.js?v=3';
+import { MATERIAL_PRESETS } from './presets.js?v=4';
+import { SurfaceTextures } from './SurfaceTextures.js?v=4';
 import { getQualityProfile, normalizeQuality } from '../quality.js?v=1';
 
 /** One library per scene. Materials are owned by callers; texture maps by the library. */
@@ -38,7 +38,7 @@ export class MaterialLibrary {
     material.metalness = options.metalness ?? definition.metalness ?? 0;
     material.roughness = options.roughness ?? definition.roughness ?? 0.7;
     material.side = options.side ?? THREE.FrontSide;
-    material.userData.surface = { id, version: 3, uvUnits: 'metres', grainAxis: 'u' };
+    material.userData.surface = { id, version: 4, uvUnits: 'metres', grainAxis: 'u' };
     this.track(material, id, { ...options });
     try {
       this.apply(material);
@@ -75,7 +75,7 @@ export class MaterialLibrary {
     const definition = this.presets.get(id);
     const profile = getQualityProfile(this.quality);
     const previousFeatures = `${!!material.normalMap}:${!!material.roughnessMap}:${!!material.map}:${material.transmission > 0}:${material.transparent}`;
-    material.envMapIntensity = (options.envMapIntensity ?? 1) * this.environmentIntensity;
+    material.envMapIntensity = (options.envMapIntensity ?? definition.envMapIntensity ?? 1) * this.environmentIntensity;
     if (definition.type === 'glass') {
       material.ior = definition.ior ?? 1.5;
       material.transmission = profile.transmission ? definition.transmission : 0;
@@ -93,7 +93,8 @@ export class MaterialLibrary {
       material.map = maps.color ?? null;
       material.normalMap = profile.surfaceDetail ? (maps.normal ?? null) : null;
       material.roughnessMap = profile.surfaceDetail ? (maps.roughness ?? null) : null;
-      material.normalScale.setScalar(definition.normalStrength ?? 0.1);
+      const detailScale = profile.quality === 'high' ? 1 : (profile.surfaceDetail ? 0.85 : 0);
+      material.normalScale.setScalar((definition.normalStrength ?? 0.1) * detailScale);
       this.textures.setAnisotropy(Math.min(this.maxAnisotropy, profile.anisotropy));
     }
     const nextFeatures = `${!!material.normalMap}:${!!material.roughnessMap}:${!!material.map}:${material.transmission > 0}:${material.transparent}`;
@@ -108,8 +109,9 @@ export class MaterialLibrary {
   }
   setEnvironmentIntensity(value) {
     this.environmentIntensity = Math.max(0, Number(value) || 0);
-    for (const [material, { options }] of this.materials) {
-      material.envMapIntensity = (options.envMapIntensity ?? 1) * this.environmentIntensity;
+    for (const [material, { id, options }] of this.materials) {
+      const definition = this.presets.get(id);
+      material.envMapIntensity = (options.envMapIntensity ?? definition?.envMapIntensity ?? 1) * this.environmentIntensity;
     }
   }
   getDiagnostics() {

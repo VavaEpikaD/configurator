@@ -77,9 +77,11 @@ test('night affects both new and legacy surfaces, then restores daylight without
   scene.add(new THREE.Mesh(new THREE.BoxGeometry(), newMaterial));
   scene.add(new THREE.Mesh(new THREE.BoxGeometry(), legacyMaterial));
   system.setEnvironmentIntensity(0.12); system.setEnvironmentIntensity(0.12);
-  assert.equal(newMaterial.envMapIntensity, 0.12); assert.equal(legacyMaterial.envMapIntensity, 0.096);
+  assert.ok(Math.abs(newMaterial.envMapIntensity - 0.0864) < 1e-12);
+  assert.equal(legacyMaterial.envMapIntensity, 0.096);
   system.setEnvironmentIntensity(1);
-  assert.equal(newMaterial.envMapIntensity, 1); assert.equal(legacyMaterial.envMapIntensity, 0.8);
+  assert.ok(Math.abs(newMaterial.envMapIntensity - 0.72) < 1e-12);
+  assert.equal(legacyMaterial.envMapIntensity, 0.8);
   system.dispose();
 });
 test('dispose restores a pre-existing environment and prevents later mutations', () => {

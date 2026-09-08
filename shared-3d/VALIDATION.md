@@ -1,6 +1,6 @@
-# Validation — shared edge finishes Step 3
+# Validation — shared edge finishes Step 4
 
-Release: `20260908-edges-3`. Baseline: original uploaded project plus the accepted Orders/font, materials Step 1 and geometry Step 2 overlays, in that order. No commits, pushes or deployments were performed.
+Release: `20260908-corrective-4`. Baseline: original uploaded project plus the accepted Orders/font, materials Step 1 and geometry Step 2 overlays, in that order. No commits, pushes or deployments were performed.
 
 ## Automated results
 

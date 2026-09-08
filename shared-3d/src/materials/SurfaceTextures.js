@@ -29,27 +29,32 @@ export function createSurfacePixels(kind, size) {
       const u = x / size, v = y / size, i = y * size + x, p = i * 4;
       let h, r;
       if (kind === 'oak') {
-        // Grain runs along U. Periodic slow warping gives non-straight growth lines.
-        const warp = 0.12 * Math.sin(TAU * u) + 0.045 * Math.sin(TAU * (u * 3 + v * 2));
-        const broad = noise(u, v, 4, 13, 11);
-        const rings = Math.sin(TAU * (v * 14 + warp));
-        const pores = Math.pow(Math.max(0, Math.sin(TAU * (v * 58 + warp * 3))), 12);
-        const fibre = noise(u, v, 12, 100, 19);
-        h = 0.55 * broad + 0.18 * rings - 0.12 * pores + 0.08 * fibre;
-        const tone = clamp(0.62 + broad * 0.23 + rings * 0.045 - pores * 0.075 + fibre * 0.05, 0.45, 0.98);
-        color[p] = Math.round(220 * tone);
-        color[p + 1] = Math.round(170 * tone);
-        color[p + 2] = Math.round(113 * tone);
+        // Grain runs along U with restrained contrast. The goal is a believable
+        // deck surface, not heavy dark striping that dominates the scene.
+        const warp = 0.08 * Math.sin(TAU * (u * 0.9 + v * 0.2)) + 0.03 * Math.sin(TAU * (u * 2.4 + v * 1.7));
+        const broad = noise(u, v, 5, 11, 11);
+        const rings = Math.sin(TAU * (v * 11 + warp));
+        const pores = Math.pow(Math.max(0, Math.sin(TAU * (v * 40 + warp * 2.2))), 10);
+        const fibre = noise(u, v, 10, 88, 19);
+        h = 0.62 * broad + 0.10 * rings - 0.05 * pores + 0.05 * fibre;
+        const tone = clamp(0.70 + broad * 0.18 + rings * 0.028 - pores * 0.04 + fibre * 0.028, 0.54, 0.97);
+        color[p] = Math.round(214 * tone);
+        color[p + 1] = Math.round(176 * tone);
+        color[p + 2] = Math.round(128 * tone);
         color[p + 3] = 255;
-        r = 0.86 + broad * 0.12 - pores * 0.04;
+        r = 0.84 + broad * 0.08 - pores * 0.025;
       } else if (kind === 'brushed') {
         h = noise(u, v, 3, 110) * 0.78 + noise(u, v, 12, 52, 73) * 0.22;
         r = 0.87 + h * 0.13;
       } else {
-        // Fine powder grain plus a restrained, broader orange-peel lobe.
-        // No colour/dirt overlay: the customer's chosen RAL stays unchanged.
-        h = noise(u, v, 28, 28) * 0.72 + noise(u, v, 70, 70, 19) * 0.20 + noise(u, v, 110, 110, 53) * 0.08;
-        r = 0.80 + h * 0.20;
+        // Fine powder-coat microtexture with only a faint larger undulation.
+        // This should stay subtle at normal viewing distance.
+        const broad = noise(u, v, 16, 16, 11);
+        const medium = noise(u, v, 52, 52, 19);
+        const fine = noise(u, v, 110, 110, 53);
+        const sparkle = noise(u, v, 160, 160, 71);
+        h = broad * 0.08 + medium * 0.32 + fine * 0.38 + sparkle * 0.22;
+        r = 0.76 + medium * 0.08 + fine * 0.06 + broad * 0.03;
       }
       height[i] = h;
       roughness[p] = roughness[p + 1] = roughness[p + 2] = Math.round(clamp(r, 0, 1) * 255);
