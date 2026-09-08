@@ -181,7 +181,7 @@
                 </div>
                 <div class="selected-window-size-row">
                     <button type="button" id="btnOverallWidthDec" class="handle-side-btn">-</button>
-                    <input type="range" id="overallWidthA" min="0.45" max="2" step="0.001" value="0.6"
+                    <input type="range" id="overallWidthA" min="0.45" max="25" step="0.001" value="0.6"
                         aria-label="Overall layout width">
                     <button type="button" id="btnOverallWidthInc" class="handle-side-btn">+</button>
                 </div>
@@ -199,7 +199,7 @@
                 </div>
                 <div class="selected-window-size-row">
                     <button type="button" id="btnOverallHeightDec" class="handle-side-btn">-</button>
-                    <input type="range" id="overallHeightB" min="0.45" max="2.2" step="0.001" value="0.9"
+                    <input type="range" id="overallHeightB" min="0.45" max="25" step="0.001" value="0.9"
                         aria-label="Overall layout height">
                     <button type="button" id="btnOverallHeightInc" class="handle-side-btn">+</button>
                 </div>
@@ -527,13 +527,13 @@
             <div class="selected-window-size-heading">
                 <span class="selected-window-size-name">Width:</span>
                 <span class="selected-window-size-value">
-                    <input type="number" id="valWidth" min="450" max="2000" step="1" value="600" inputmode="numeric" aria-label="Window width in millimetres" disabled>
+                    <input type="number" id="valWidth" min="450" max="2500" step="1" value="600" inputmode="numeric" aria-label="Window width in millimetres" disabled>
                     <span class="selected-window-size-unit">mm</span>
                 </span>
             </div>
             <div class="selected-window-size-row">
                 <button type="button" id="btnWidthDec" class="handle-side-btn" disabled>-</button>
-                <input type="range" id="widthA" min="0.45" max="2.0" step="0.001" value="0.6" disabled>
+                <input type="range" id="widthA" min="0.45" max="2.5" step="0.001" value="0.6" disabled>
                 <button type="button" id="btnWidthInc" class="handle-side-btn" disabled>+</button>
             </div>
         </div>
@@ -542,13 +542,13 @@
             <div class="selected-window-size-heading">
                 <span class="selected-window-size-name">Height:</span>
                 <span class="selected-window-size-value">
-                    <input type="number" id="valHeight" min="450" max="2200" step="1" value="900" inputmode="numeric" aria-label="Window height in millimetres" disabled>
+                    <input type="number" id="valHeight" min="450" max="2500" step="1" value="900" inputmode="numeric" aria-label="Window height in millimetres" disabled>
                     <span class="selected-window-size-unit">mm</span>
                 </span>
             </div>
             <div class="selected-window-size-row">
                 <button type="button" id="btnHeightDec" class="handle-side-btn" disabled>-</button>
-                <input type="range" id="heightB" min="0.45" max="2.2" step="0.001" value="0.9" disabled>
+                <input type="range" id="heightB" min="0.45" max="2.5" step="0.001" value="0.9" disabled>
                 <button type="button" id="btnHeightInc" class="handle-side-btn" disabled>+</button>
             </div>
         </div>
@@ -622,6 +622,7 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js"></script>
     <script src="./ar-upload-config.js"></script>
+    <script type="module" src="./js/window-size-limits.js?v=3"></script>
     <script type="module" src="./js/main.js?v=12"></script>
 </body>
 
