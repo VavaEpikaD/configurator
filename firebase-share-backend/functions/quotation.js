@@ -720,6 +720,123 @@ async function gmailSendRaw(accessToken, raw) {
   });
 }
 
+
+const ORDER_HISTORY_LIMIT = 250;
+const ORDER_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
+
+function archivedTimestampMs(value) {
+  return value?.toMillis?.() || 0;
+}
+
+function archivedOrderItem(doc) {
+  const data = doc.data() || {};
+  const productId = String(data.productId || '').trim().toLowerCase();
+  const value = Number(data.quotationValue);
+  return {
+    id: doc.id,
+    position: Math.max(0, Math.floor(Number(data.position) || 0)),
+    productId: PRODUCT_SET.has(productId) ? productId : '',
+    name: String(data.name || `${productId || 'configuration'} configuration`).trim().slice(0, 160),
+    amount: Number.isFinite(value) ? value : 0,
+    currency: String(data.quotationCurrency || '').trim().toUpperCase(),
+    hasConfiguration: typeof data.configurationState === 'string' && data.configurationState.length > 0,
+  };
+}
+
+async function listArchivedOrders(uid) {
+  const requestSnapshot = await getFirestore()
+    .collection(QUOTATIONS_COLLECTION)
+    .doc(uid)
+    .collection('requests')
+    .get();
+
+  const requests = await Promise.all(requestSnapshot.docs.map(async (doc) => {
+    const data = doc.data() || {};
+    const itemsSnapshot = await doc.ref.collection('items').get();
+    const items = itemsSnapshot.docs
+      .map(archivedOrderItem)
+      .filter((item) => item.productId)
+      .sort((a, b) => a.position - b.position || a.id.localeCompare(b.id));
+    const totalValue = Number(data.totalValue);
+    return {
+      id: doc.id,
+      requestedAtMs: archivedTimestampMs(data.requestedAt || data.sentAt),
+      currency: String(data.currency || '').trim().toUpperCase(),
+      totalValue: Number.isFinite(totalValue) ? totalValue : 0,
+      totalText: String(data.totalText || '').trim().slice(0, 100),
+      status: String(data.status || 'unknown').trim().slice(0, 40),
+      itemCount: items.length,
+      items,
+    };
+  }));
+
+  requests.sort((a, b) => a.requestedAtMs - b.requestedAtMs || a.id.localeCompare(b.id));
+  requests.forEach((order, index) => { order.orderNumber = index + 1; });
+  return requests.slice(-ORDER_HISTORY_LIMIT).reverse();
+}
+
+function validatedArchiveId(value, fieldName) {
+  const id = String(value || '').trim();
+  if (!ORDER_ID_PATTERN.test(id)) {
+    throw new HttpsError('invalid-argument', `Invalid ${fieldName}.`);
+  }
+  return id;
+}
+
+async function createArchivedOrderItemLink(uid, orderIdValue, itemIdValue) {
+  const orderId = validatedArchiveId(orderIdValue, 'order id');
+  const itemId = validatedArchiveId(itemIdValue, 'order item id');
+  const requestRef = getFirestore()
+    .collection(QUOTATIONS_COLLECTION)
+    .doc(uid)
+    .collection('requests')
+    .doc(orderId);
+  const [requestSnapshot, itemSnapshot] = await Promise.all([
+    requestRef.get(),
+    requestRef.collection('items').doc(itemId).get(),
+  ]);
+  if (!requestSnapshot.exists || !itemSnapshot.exists) {
+    throw new HttpsError('not-found', 'This order item no longer exists.');
+  }
+
+  const requestData = requestSnapshot.data() || {};
+  const itemData = itemSnapshot.data() || {};
+  const productId = String(itemData.productId || '').trim().toLowerCase();
+  const stateJson = String(itemData.configurationState || '');
+  if (!PRODUCT_SET.has(productId) || !stateJson) {
+    throw new HttpsError('failed-precondition', 'The archived configuration is not available.');
+  }
+  const sizeBytes = Buffer.byteLength(stateJson, 'utf8');
+  if (sizeBytes <= 0 || sizeBytes > MAX_SINGLE_SHARE_BYTES) {
+    throw new HttpsError('failed-precondition', 'The archived configuration is too large to open.');
+  }
+
+  const localeCandidate = String(requestData.locale || '').trim();
+  const locale = LOCALES.has(localeCandidate) ? localeCandidate : 'en-US';
+  const tenantCandidate = String(requestData.tenantSlug || '').trim().toLowerCase();
+  const tenantSlug = TENANT_SLUG_PATTERN.test(tenantCandidate) ? tenantCandidate : '';
+  const originalValue = Number(itemData.originalValue);
+  const originalCurrency = String(itemData.originalCurrency || requestData.currency || 'EUR').trim().toUpperCase();
+  const prepared = await createQuotationGuestShares([{
+    key: String(itemData.cartItemId || itemId),
+    productId,
+    name: String(itemData.name || `${productId} configuration`).trim().slice(0, 120),
+    amount: Number.isFinite(originalValue) ? originalValue : 0,
+    currency: CURRENCIES.has(originalCurrency) ? originalCurrency : 'EUR',
+    stateJson,
+    createdAtMs: itemData.cartCreatedAt?.toMillis?.() || 0,
+  }], locale, tenantSlug);
+
+  const item = prepared.items[0];
+  if (!item?.link) throw new HttpsError('unavailable', 'The configuration link could not be prepared.');
+  return {
+    url: item.link,
+    productId,
+    orderId,
+    itemId,
+  };
+}
+
 async function sendQuotationEmail({ locale, currency, items, brand, presentation = null }) {
   const emailPresentation = presentation || quotationPresentation(items, locale, currency);
   const subject = `${emailPresentation.copy.subject} — ${brand.companyName}`;
@@ -775,6 +892,18 @@ exports.requestCartQuotation = onCall(
   },
   async (request) => {
     const uid = requireUid(request);
+    const action = String(request.data?.action || 'submit').trim().toLowerCase();
+
+    if (action === 'list-orders') {
+      await quotationScope(request);
+      return { orders: await listArchivedOrders(uid) };
+    }
+
+    if (action === 'view-order-item') {
+      await quotationScope(request);
+      return createArchivedOrderItemLink(uid, request.data?.orderId, request.data?.itemId);
+    }
+
     const userEmail = String(request.auth?.token?.email || '').trim().slice(0, 320);
     const userName = String(request.auth?.token?.name || request.auth?.token?.display_name || '').trim().slice(0, 120);
     const locale = normalizeLocale(request.data?.locale);
