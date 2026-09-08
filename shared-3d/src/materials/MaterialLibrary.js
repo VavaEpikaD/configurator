@@ -1,5 +1,5 @@
-import { MATERIAL_PRESETS } from './presets.js?v=1';
-import { SurfaceTextures } from './SurfaceTextures.js?v=1';
+import { MATERIAL_PRESETS } from './presets.js?v=3';
+import { SurfaceTextures } from './SurfaceTextures.js?v=3';
 import { getQualityProfile, normalizeQuality } from '../quality.js?v=1';
 
 /** One library per scene. Materials are owned by callers; texture maps by the library. */
@@ -38,7 +38,7 @@ export class MaterialLibrary {
     material.metalness = options.metalness ?? definition.metalness ?? 0;
     material.roughness = options.roughness ?? definition.roughness ?? 0.7;
     material.side = options.side ?? THREE.FrontSide;
-    material.userData.surface = { id, version: 1, uvUnits: 'metres', grainAxis: 'u' };
+    material.userData.surface = { id, version: 3, uvUnits: 'metres', grainAxis: 'u' };
     this.track(material, id, { ...options });
     try {
       this.apply(material);
@@ -113,9 +113,17 @@ export class MaterialLibrary {
     }
   }
   getDiagnostics() {
-    const activeMaterials = {};
-    for (const { id } of this.materials.values()) activeMaterials[id] = (activeMaterials[id] || 0) + 1;
-    return { quality: this.quality, materialCount: this.materials.size, textureCount: this.textures.size, availableMaterials: [...this.presets.keys()], activeMaterials };
+    const activeMaterials = {}, surfaceDetails = {};
+    for (const [material, { id }] of this.materials) {
+      activeMaterials[id] = (activeMaterials[id] || 0) + 1;
+      const entry = surfaceDetails[id] ??= { materials: 0, normalMapped: 0, roughnessMapped: 0, colorMapped: 0,
+        tileMetres: this.presets.get(id).tile ? [...this.presets.get(id).tile] : null };
+      entry.materials++;
+      if (material.normalMap) entry.normalMapped++;
+      if (material.roughnessMap) entry.roughnessMapped++;
+      if (material.map) entry.colorMapped++;
+    }
+    return { quality: this.quality, surfaceDetailEnabled: getQualityProfile(this.quality).surfaceDetail, materialCount: this.materials.size, textureCount: this.textures.size, availableMaterials: [...this.presets.keys()], activeMaterials, surfaceDetails };
   }
   dispose() {
     for (const material of [...this.materials.keys()]) material.dispose();

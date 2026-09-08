@@ -1,7 +1,9 @@
 import { applySurfaceUVs } from './surfaceUVs.js?v=1';
 import { splitPositionGeometryAtScalarZero, clipPositionGeometryToScalarHalfspace } from './scalarGeometry.js?v=2';
 
-export const GEOMETRY_SYSTEM_VERSION = '20260908-geometry-2';
+import { createRoundedPrismGeometry, createBeveledSolidGeometry } from './edgeFinishes.js?v=3';
+
+export const GEOMETRY_SYSTEM_VERSION = '20260908-edges-3';
 
 function positive(value, name) {
   if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
@@ -29,11 +31,13 @@ const BOX_SLOTS = Object.freeze({ positiveX: 0, negativeX: 1, positiveY: 2, nega
  * change another, and Window's existing mesh/storage pool remains authoritative.
  */
 export class GeometryLibrary {
-  constructor(THREE) {
+  constructor(THREE, { edgeDetails = true } = {}) {
     if (!THREE?.BufferGeometry || !THREE?.Mesh || !THREE?.ExtrudeGeometry) {
       throw new TypeError('The host Three.js namespace is required.');
     }
     this.THREE = THREE;
+    // Explicit acceptance-test/rollback switch, never coupled to visual quality.
+    this.edgeDetails = edgeDetails !== false;
     this.builders = new Map();
     this.geometries = new Set();
     this.disposed = false;
@@ -44,6 +48,12 @@ export class GeometryLibrary {
       segments(p.widthSegments, 1, 'widthSegments'), segments(p.heightSegments, 1, 'heightSegments'),
       segments(p.depthSegments, 1, 'depthSegments'),
     ), BOX_SLOTS);
+    this.register('profile.roundedRectangle', p => this.edgeDetails
+      ? createRoundedPrismGeometry(THREE, p)
+      : new THREE.BoxGeometry(positive(p.width, 'width'), positive(p.height, 'height'), positive(p.depth, 'depth')), BOX_SLOTS);
+    this.register('profile.beveledSolid', p => this.edgeDetails
+      ? createBeveledSolidGeometry(THREE, p)
+      : new THREE.ExtrudeGeometry(p.shape, { ...p.settings, bevelEnabled: false }), { caps: 0, walls: 1 });
     this.register('panel.rectangular', p => new THREE.BoxGeometry(
       positive(p.width, 'width'), positive(p.height, 'height'), positive(p.thickness, 'thickness'),
     ), BOX_SLOTS);
@@ -123,6 +133,9 @@ export class GeometryLibrary {
   create(id, parameters = {}, { units = 'metres' } = {}) {
     this.assertActive();
     if (!['metres', 'source'].includes(units)) throw new TypeError('Geometry units must be metres or source.');
+    if (units !== 'metres' && ['profile.roundedRectangle', 'profile.beveledSolid'].includes(id)) {
+      throw new Error('Visual edge finishes require metre-authored geometry, never CAD source templates.');
+    }
     const entry = this.builders.get(id);
     if (!entry) throw new Error(`Unknown geometry type: ${id}`);
     return this.adopt(entry.builder(parameters, this.THREE), { kind: id, units, materialSlots: entry.materialSlots });
@@ -185,13 +198,15 @@ export class GeometryLibrary {
   }
 
   getDiagnostics() {
-    const activeTypes = {};
+    const activeTypes = {}, edgeFinishes = {};
     for (const geometry of this.geometries) {
       const id = geometry.userData.sharedGeometry?.kind ?? 'custom.buffer';
       activeTypes[id] = (activeTypes[id] ?? 0) + 1;
+      const method = geometry.userData.edgeFinish?.method;
+      if (method) edgeFinishes[method] = (edgeFinishes[method] ?? 0) + 1;
     }
     return { version: GEOMETRY_SYSTEM_VERSION, geometryCount: this.geometries.size,
-      registeredCount: this.registeredCount, activeTypes, registeredTypes: [...this.builders.keys()] };
+      registeredCount: this.registeredCount, activeTypes, edgeDetails: this.edgeDetails, edgeFinishes, registeredTypes: [...this.builders.keys()] };
   }
 
   dispose() {

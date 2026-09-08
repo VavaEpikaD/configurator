@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createSurfaceSystem, disposeObjectResources } from '../../../shared-3d/src/index.js?v=2';
+import { createSurfaceSystem, disposeObjectResources } from '../../../shared-3d/src/index.js?v=3';
 import { createPergolaGeometry } from './pergolaGeometry.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
@@ -491,7 +491,7 @@ export class PergolaScene {
     if (signature === this.platformSizeSignature) return;
 
     this.deckPlatform.geometry.dispose();
-    this.deckPlatform.geometry = this.geometry.boardGeometry(platformWidth, 0.10, platformDepth);
+    this.deckPlatform.geometry = this.geometry.boardGeometry(platformWidth, 0.10, platformDepth, {}, { edgeFinish: false });
     this.deckPlatform.scale.set(1, 1, 1);
     // The board tops stay at y=0; posts and feet keep their original placement.
     this.deckPlatform.position.set(platformOffsetX, -0.07, platformOffsetZ);

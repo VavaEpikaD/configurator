@@ -46,8 +46,10 @@ export function createSurfacePixels(kind, size) {
         h = noise(u, v, 3, 110) * 0.78 + noise(u, v, 12, 52, 73) * 0.22;
         r = 0.87 + h * 0.13;
       } else {
-        h = noise(u, v, 62, 62) * 0.7 + noise(u, v, 110, 110, 19) * 0.3;
-        r = 0.87 + h * 0.13;
+        // Fine powder grain plus a restrained, broader orange-peel lobe.
+        // No colour/dirt overlay: the customer's chosen RAL stays unchanged.
+        h = noise(u, v, 28, 28) * 0.72 + noise(u, v, 70, 70, 19) * 0.20 + noise(u, v, 110, 110, 53) * 0.08;
+        r = 0.80 + h * 0.20;
       }
       height[i] = h;
       roughness[p] = roughness[p + 1] = roughness[p + 2] = Math.round(clamp(r, 0, 1) * 255);

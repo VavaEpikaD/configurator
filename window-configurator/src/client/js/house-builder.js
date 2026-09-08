@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createWindowGeometry } from './window-geometry.js?v=geometry-2';
+import { createWindowGeometry } from './window-geometry.js?v=edges-3';
 import { getHouseDimensions } from './house-config.js';
 import { getWindowLocale } from './i18n.js';
 
