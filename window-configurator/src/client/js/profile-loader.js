@@ -1,6 +1,6 @@
 import { SVGLoader } from 'three/addons/loaders/SVGLoader.js';
 import { normalizeHexColour } from './config.js';
-import { simplifyProfileShape } from './geometry-utils.js?v=corrective-4';
+import { simplifyProfileShape } from './geometry-utils.js?v=contact-5';
 import {
     collapseProfileShapes,
     extractFilledSvgShapes,

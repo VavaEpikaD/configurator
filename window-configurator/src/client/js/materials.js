@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { MaterialLibrary } from '../shared-3d/src/index.js?v=4';
+import { MaterialLibrary } from '../shared-3d/src/index.js?v=5';
 import {
     ALUMINIUM_FINISH_CATALOG,
     FIXED_PROFILE_COLOURS,
