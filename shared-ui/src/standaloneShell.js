@@ -1,8 +1,8 @@
 import { LANGUAGE_PROFILES, LOCALE_HOSTS, getLanguageProfile, getLocaleForHostname, getLocalizedConfiguratorUrl } from './config.js?v=3';
 import { sharedT } from './i18n.js?v=26';
 import { renderActionFeedback } from './components/feedback.js?v=17';
-import { renderTopBar } from './components/topBar.js?v=24';
-import { syncAccountIdentity } from './components/accountMenu.js?v=22';
+import { renderTopBar } from './components/topBar.js?v=25';
+import { syncAccountIdentity } from './components/accountMenu.js?v=24';
 import { createDomainAuthHandoff, observeGoogleAuth, redeemDomainAuthHandoff, signInWithDomainCustomToken, signInWithGoogle, signOutGoogle } from './firebaseAuth.js?v=28';
 import { renderToolsMenu } from './components/toolsMenu.js?v=17';
 import { renderSavedConfigurationsDialog } from './components/savedConfigurationsDialog.js?v=17';
