@@ -7,7 +7,10 @@ import {
 import { sharedT } from '../i18n.js?v=25';
 import { sharedIcon } from '../icons.js?v=22';
 import { escapeHtml } from '../utils.js';
+import { accountOrdersLabel, installAccountOrders } from './accountOrders.js?v=1';
 
+
+installAccountOrders();
 
 const DOMAIN_OPTIONS = Object.freeze([
   { locale: 'en-US', suffix: 'COM', flag: '🇺🇸' },
@@ -133,7 +136,12 @@ export function renderAccountMenu(state) {
       </div>
       <div data-account-authenticated-content ${authenticated ? '' : 'hidden'}>
         <nav class="account-menu__items">
+<<<<<<< Updated upstream
           <button type="button" data-action="account-profile"><span>${sharedIcon('account')}</span><strong>${escapeHtml(sharedT(locale, 'account.profile'))}</strong></button>
+=======
+          ${profile ? `<button type="button" data-action="account-profile"><span>${sharedIcon('account')}</span><strong>${escapeHtml(sharedT(locale, 'account.profile'))}</strong></button>` : ''}
+          <button type="button" data-action="account-orders"><span>${sharedIcon('cart')}</span><strong>${escapeHtml(accountOrdersLabel(locale))}</strong></button>
+>>>>>>> Stashed changes
           <button type="button" data-action="account-saved"><span>${sharedIcon('folder')}</span><strong>${escapeHtml(sharedT(locale, 'account.saved'))}</strong></button>
           ${renderDomainControl(locale, domainOpen, currentDomainLocale)}
           <button class="account-menu__help" type="button" data-action="toggle-account-help" aria-expanded="${helpOpen}">

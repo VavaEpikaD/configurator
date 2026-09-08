@@ -2,7 +2,7 @@ import { getLanguageProfile } from '../config.js';
 import { sharedT } from '../i18n.js?v=21';
 import { sharedIcon } from '../icons.js?v=22';
 import { escapeHtml } from '../utils.js';
-import { renderAccountMenu } from './accountMenu.js?v=21';
+import { renderAccountMenu } from './accountMenu.js?v=23';
 import { renderLanguageMenu } from './languageMenu.js';
 
 function iconButton({ action, label, icon, disabled = false, extraClass = '' }) {
