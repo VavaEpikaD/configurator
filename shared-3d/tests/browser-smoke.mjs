@@ -27,7 +27,7 @@ const server = createServer(async (req, res) => {
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const base = `http://127.0.0.1:${server.address().port}`;
 const url = file => `${base}/${file.replaceAll(path.sep, '/')}`;
-const common = `${base}/shared-3d/src/index.js?v=4`;
+const common = `${base}/shared-3d/src/index.js?v=5`;
 const sources = {
   window: {
     imports: { three: url('window-configurator/src/client/js/three-mesh-reuse.js?v=1'), 'three/addons/': url('window-configurator/src/client/lib/') },
@@ -68,7 +68,7 @@ const sources = {
       cancelAnimationFrame(app.animationFrame);app.dimensionGroup.visible=false;
       app.controls.update();
       window.smoke = {renderer:app.renderer,scene:app.scene,camera:app.camera,system:app.surfaceSystem,
-        assetErrors:[...app.assets.errors.keys()],setQuality:q=>app.applyQuality(q),dispose:()=>app.dispose()};
+        assetErrors:[...app.assets.errors.keys()],setQuality:q=>app.applyQuality(q),dispose:()=>app.destroy()};
     `,
   },
 };
@@ -76,20 +76,21 @@ let browser;
 try {
   browser = await chromium.launch({ headless: true,
     ...(process.env.CHROMIUM_EXECUTABLE ? { executablePath: process.env.CHROMIUM_EXECUTABLE } : {}),
-    args: process.env.SOFTWARE_WEBGL === '1' ? ['--use-angle=swiftshader','--enable-unsafe-swiftshader','--no-sandbox'] : [],
+    args: process.env.SOFTWARE_WEBGL === '1' ? ['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--no-sandbox'] : [],
   });
   for (const [name, source] of Object.entries(sources)) {
     const page = await browser.newPage({viewport:{width:800,height:600}}), errors=[];
-    page.on('pageerror', error => errors.push(error.message));
-    page.on('console', message => { if (message.type()==='error') errors.push(message.text()); });
+    page.on('pageerror', error => { errors.push(error.message); console.error('[PAGE]', error.message); });
+    page.on('requestfailed', req => console.error('[REQUEST]', req.url(), req.failure()?.errorText));
+    page.on('console', message => { if (message.type()==='error') { errors.push(message.text()); console.error('[CONSOLE]',message.text()); } });
     await page.route('**/*', route => route.request().url().startsWith(base) ? route.continue() : route.abort());
     // setContent also works in restricted CI where top-level URL navigation is unavailable.
     await page.setContent(`<!doctype html><html><head><base href="${source.base}"><style>html,body,#scene{margin:0;width:100%;height:100%;overflow:hidden}#scene{position:relative}.dimension-layer{display:none}</style><script type="importmap">${JSON.stringify({imports:source.imports})}</script></head><body><div id="scene"></div><script type="module">${source.code}</script></body></html>`);
-    await page.waitForFunction(()=>!!window.smoke,{}, {timeout:90000});
+    await page.waitForFunction(()=>!!window.smoke,{}, {timeout:30000});
     const reports=[];
     for (const quality of ['low','balanced','high']) {
       const report = await page.evaluate(quality => {
-        const s=window.smoke;s.setQuality(quality);s.renderer.render(s.scene,s.camera);
+        const s=window.smoke;s.setQuality(quality);s.system.render(s.camera);
         const gl=s.renderer.getContext();
         return {diagnostics:s.system.getDiagnostics(),webgl2:s.renderer.capabilities.isWebGL2,
           programsLinked:s.renderer.info.programs.every(p=>gl.getProgramParameter(p.program,gl.LINK_STATUS)),
@@ -101,7 +102,7 @@ try {
       assert.deepEqual(report.assetErrors,[]);reports.push(report);
       if (process.env.VISUAL_OUTPUT_DIR) {
         await mkdir(process.env.VISUAL_OUTPUT_DIR,{recursive:true});
-        const png=await page.evaluate(()=>{const s=window.smoke;s.renderer.render(s.scene,s.camera);return s.renderer.domElement.toDataURL('image/png');});
+        const png=await page.evaluate(()=>{const s=window.smoke;s.system.render(s.camera);return s.renderer.domElement.toDataURL('image/png');});
         await writeFile(path.join(process.env.VISUAL_OUTPUT_DIR,`${name}-${quality}.png`),Buffer.from(png.split(',')[1],'base64'));
       }
     }

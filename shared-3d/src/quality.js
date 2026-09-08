@@ -1,8 +1,8 @@
 // Keep "balanced" as the persisted middle-tier ID used by Common UI and old saves.
 export const QUALITY_PROFILES = Object.freeze({
-  low: Object.freeze({ pixelRatio: 1, shadows: false, shadowSize: 512, environmentWidth: 256, surfaceDetail: false, transmission: false, anisotropy: 1 }),
-  balanced: Object.freeze({ pixelRatio: 1.5, shadows: true, shadowSize: 1024, environmentWidth: 512, surfaceDetail: true, transmission: true, anisotropy: 4 }),
-  high: Object.freeze({ pixelRatio: 2, shadows: true, shadowSize: 2048, environmentWidth: 1024, surfaceDetail: true, transmission: true, anisotropy: 8 }),
+  low: Object.freeze({ pixelRatio: 1, shadows: false, shadowSize: 512, environmentWidth: 256, surfaceDetail: false, transmission: false, anisotropy: 1, contactShading: Object.freeze({ enabled: false, resolutionScale: 0.5, maxSize: 0, samples: 0 }) }),
+  balanced: Object.freeze({ pixelRatio: 1.5, shadows: true, shadowSize: 1024, environmentWidth: 512, surfaceDetail: true, transmission: true, anisotropy: 4, contactShading: Object.freeze({ enabled: true, resolutionScale: 0.5, maxSize: 960, samples: 12 }) }),
+  high: Object.freeze({ pixelRatio: 2, shadows: true, shadowSize: 2048, environmentWidth: 1024, surfaceDetail: true, transmission: true, anisotropy: 8, contactShading: Object.freeze({ enabled: true, resolutionScale: 0.75, maxSize: 1440, samples: 20 }) }),
 });
 
 export function normalizeQuality(value) {
@@ -19,5 +19,6 @@ export function getQualityProfile(value, { devicePixelRatio = 1, compact = false
     // A phone retains the requested surface tier; only framebuffer/shadow budgets are capped.
     pixelRatio: Math.min(Math.max(0.5, Number(devicePixelRatio) || 1), base.pixelRatio, compact ? 1.5 : 2),
     shadowSize: Math.min(base.shadowSize, compact ? 1024 : 2048),
+    contactShading: { ...base.contactShading, maxSize: Math.min(base.contactShading.maxSize, compact ? 720 : 1440) },
   };
 }

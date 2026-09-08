@@ -1,6 +1,6 @@
 import { MATERIAL_PRESETS } from './presets.js?v=4';
 import { SurfaceTextures } from './SurfaceTextures.js?v=4';
-import { getQualityProfile, normalizeQuality } from '../quality.js?v=1';
+import { getQualityProfile, normalizeQuality } from '../quality.js?v=2';
 
 /** One library per scene. Materials are owned by callers; texture maps by the library. */
 export class MaterialLibrary {

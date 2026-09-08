@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as THREE from '../../window-configurator/src/client/lib/three.module.js';
-import { createSurfaceSystem } from '../src/index.js';
+import { createSurfaceSystem, GEOMETRY_SYSTEM_VERSION } from '../src/index.js';
 import { NeutralEnvironment } from '../src/environment/NeutralEnvironment.js';
 
 // Tests renderer integration and resource ownership with a GPU-independent PMREM
@@ -133,7 +133,7 @@ test('scene teardown releases owned geometry once, without disposing it on a qua
     assert.equal(system.getDiagnostics().geometry.geometryCount, 1);
     assert.equal(disposed, 0);
   }
-  assert.equal(system.getDiagnostics().geometry.version, system.getDiagnostics().version);
+  assert.equal(system.getDiagnostics().geometry.version, GEOMETRY_SYSTEM_VERSION);
   system.dispose(); system.dispose();
   assert.equal(disposed, 1);
   assert.equal(system.getDiagnostics().geometry.geometryCount, 0);

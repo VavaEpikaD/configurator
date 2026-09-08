@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createSurfaceSystem, disposeObjectResources } from '../../../shared-3d/src/index.js?v=4';
+import { createSurfaceSystem, disposeObjectResources } from '../../../shared-3d/src/index.js?v=5';
 import { createPergolaGeometry } from './pergolaGeometry.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
@@ -127,6 +127,7 @@ export class PergolaScene {
     this.scene.add(this.sun.target);
     this.surfaceSystem = createSurfaceSystem(THREE, {
       renderer: this.renderer, scene: this.scene, shadowLights: [this.sun], quality: this.state.quality,
+      contactShading: { radius: 0.14 },
     });
     this.geometry = createPergolaGeometry(this.surfaceSystem.geometry);
     this.visualsApi = Object.freeze({ getDiagnostics: () => this.surfaceSystem.getDiagnostics() });
@@ -638,7 +639,7 @@ export class PergolaScene {
   }
 
   capturePNG() {
-    this.renderer.render(this.scene, this.camera);
+    this.surfaceSystem.render(this.camera);
     return this.renderer.domElement.toDataURL('image/png');
   }
 
@@ -659,7 +660,7 @@ export class PergolaScene {
 
   animate() {
     this.controls.update();
-    this.renderer.render(this.scene, this.camera);
+    this.surfaceSystem.render(this.camera);
     this.labelRenderer.render(this.scene, this.camera);
     this.animationFrame = requestAnimationFrame(this.animate);
   }
