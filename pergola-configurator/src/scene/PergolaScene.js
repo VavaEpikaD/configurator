@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { createSurfaceSystem, applySurfaceUVs } from '../../../shared-3d/src/index.js?v=1';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { buildPergola } from './buildPergola.js';
@@ -6,12 +7,20 @@ import { AssetLibrary, fitAssetToBox } from './AssetLibrary.js';
 import { pergolaT } from '../i18n.js';
 
 function disposeObject(object) {
+  const geometries = new Set();
+  const materials = new Set();
   object.traverse((child) => {
-    if (child.geometry) child.geometry.dispose();
-    if (child.material) {
-      const materials = Array.isArray(child.material) ? child.material : [child.material];
-      materials.forEach((item) => item.dispose?.());
+    if (child.geometry) geometries.add(child.geometry);
+    for (const item of (Array.isArray(child.material) ? child.material : [child.material])) {
+      if (item) materials.add(item);
     }
+  });
+  geometries.forEach((geometry) => geometry.dispose());
+  // Surface maps are library-owned and may still be used by the deck or the
+  // next product rebuild. Only the locally generated compass owns its map.
+  materials.forEach((item) => {
+    if (item.userData?.ownsCompassMap) item.map?.dispose();
+    item.dispose?.();
   });
 }
 
@@ -93,12 +102,6 @@ export class PergolaScene {
       preserveDrawingBuffer: true,
       powerPreference: 'high-performance',
     });
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    this.lastQuality = null;
-    this.lastCompactViewport = null;
-    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.08;
     this.container.append(this.renderer.domElement);
 
     this.labelRenderer = new CSS2DRenderer();
@@ -131,6 +134,11 @@ export class PergolaScene {
     this.sun.shadow.bias = -0.00035;
     this.scene.add(this.sun);
     this.scene.add(this.sun.target);
+    this.surfaceSystem = createSurfaceSystem(THREE, {
+      renderer: this.renderer, scene: this.scene, shadowLights: [this.sun], quality: this.state.quality,
+    });
+    this.visualsApi = Object.freeze({ getDiagnostics: () => this.surfaceSystem.getDiagnostics() });
+    window.PERGOLA_VISUALS_API = this.visualsApi;
     this.applyQuality(this.state.quality);
 
     this.environmentGroup = new THREE.Group();
@@ -159,7 +167,7 @@ export class PergolaScene {
   }
 
   buildEnvironment() {
-    this.environmentGroup.children.forEach((child) => disposeObject(child));
+    disposeObject(this.environmentGroup);
     this.environmentGroup.clear();
 
     const ground = new THREE.Mesh(
@@ -172,7 +180,7 @@ export class PergolaScene {
     ground.name = 'environment-ground';
     this.environmentGroup.add(ground);
 
-    const deckMaterial = makeMaterial('#aa9477', { roughness: 0.82 });
+    const deckMaterial = this.surfaceSystem.materials.create('wood.oak', { color: '#b8ada0' });
     this.deckPlatform = new THREE.Mesh(new THREE.BoxGeometry(1, 0.12, 1), deckMaterial);
     this.deckPlatform.position.set(0, -0.01, 0);
     this.deckPlatform.receiveShadow = true;
@@ -180,7 +188,7 @@ export class PergolaScene {
     this.deckPlatform.name = 'environment-platform';
     this.environmentGroup.add(this.deckPlatform);
 
-    this.deckPlankMaterial = makeMaterial('#c1ad90', { roughness: 0.88 });
+    this.deckPlankMaterial = this.surfaceSystem.materials.create('wood.oak');
     this.deckPlankGroup = new THREE.Group();
     this.deckPlankGroup.name = 'environment-platform-planks';
     this.environmentGroup.add(this.deckPlankGroup);
@@ -244,6 +252,7 @@ export class PergolaScene {
         side: THREE.DoubleSide,
       }),
     );
+    compassPlane.material.userData.ownsCompassMap = true;
     compassPlane.rotation.x = -Math.PI / 2;
     compass.add(compassPlane);
     compass.name = 'north-compass';
@@ -399,9 +408,10 @@ export class PergolaScene {
       this.pergolaGroup.remove(this.pergola);
       disposeObject(this.pergola);
     }
+    disposeObject(this.dimensionGroup);
     this.dimensionGroup.clear();
 
-    this.pergola = buildPergola(this.state, this.assets);
+    this.pergola = buildPergola(this.state, this.assets, this.surfaceSystem.materials);
     this.pergolaGroup.add(this.pergola);
     this.buildDimensions(this.pergola.userData.dimensions);
 
@@ -488,22 +498,25 @@ export class PergolaScene {
     const signature = `${platformWidth.toFixed(3)}x${platformDepth.toFixed(3)}@${platformOffsetX.toFixed(3)},${platformOffsetZ.toFixed(3)}`;
     if (signature === this.platformSizeSignature) return;
 
-    this.deckPlatform.scale.set(platformWidth, 1, platformDepth);
-    // The deck top is the pergola's zero level. Keeping the top at y=0 makes the
-    // posts/feet sit on it instead of making the complete pergola appear raised.
-    this.deckPlatform.position.set(platformOffsetX, -0.06, platformOffsetZ);
+    this.deckPlatform.geometry.dispose();
+    this.deckPlatform.geometry = applySurfaceUVs(THREE,
+      new THREE.BoxGeometry(platformWidth, 0.10, platformDepth), { grainAxis: 'x' });
+    this.deckPlatform.scale.set(1, 1, 1);
+    // The board tops stay at y=0; posts and feet keep their original placement.
+    this.deckPlatform.position.set(platformOffsetX, -0.07, platformOffsetZ);
     this.deckPlankGroup.position.set(platformOffsetX, 0, platformOffsetZ);
 
     this.deckPlankGroup.children.forEach((child) => child.geometry?.dispose?.());
     this.deckPlankGroup.clear();
-    const inset = 0.14;
-    const usableDepth = Math.max(0.1, platformDepth - inset * 2);
-    const plankCount = Math.max(2, Math.ceil(usableDepth / 0.305) + 1);
-    const spacing = usableDepth / Math.max(1, plankCount - 1);
-    const plankWidth = Math.max(0.1, platformWidth - inset * 2);
+    const plankCount = Math.max(2, Math.ceil(platformDepth / 0.16));
+    const pitch = platformDepth / plankCount;
     for (let index = 0; index < plankCount; index += 1) {
-      const plank = new THREE.Mesh(new THREE.BoxGeometry(plankWidth, 0.008, 0.008), this.deckPlankMaterial);
-      plank.position.set(0, 0.004, -usableDepth / 2 + index * spacing);
+      const geometry = applySurfaceUVs(THREE,
+        new THREE.BoxGeometry(platformWidth, 0.02, Math.max(0.01, pitch - 0.004)),
+        { grainAxis: 'x', offset: [(index * 0.731) % 2.4, (index * 0.117) % 0.24] });
+      const plank = new THREE.Mesh(geometry, this.deckPlankMaterial);
+      plank.position.set(0, -0.01, -platformDepth / 2 + (index + 0.5) * pitch);
+      plank.receiveShadow = true;
       this.deckPlankGroup.add(plank);
     }
 
@@ -524,8 +537,8 @@ export class PergolaScene {
       Math.sin(azimuth) * Math.cos(elevation) * radius,
     );
     this.sun.target.position.set(0, 0.7, 0);
-    this.sun.intensity = night ? 0.18 : 3.4 + Math.sin(progress * Math.PI) * 2.1;
-    this.ambient.intensity = night ? 0.5 : 1.65;
+    this.sun.intensity = night ? 0.18 : 2.5 + Math.sin(progress * Math.PI) * 1.0;
+    this.ambient.intensity = night ? 0.28 : 0.5;
     this.ambient.color.set(night ? '#7082a0' : '#f5fbff');
     this.ambient.groundColor.set(night ? '#10151a' : '#75806f');
 
@@ -540,7 +553,8 @@ export class PergolaScene {
     this.scene.fog.color.set(fogColor);
     const ground = this.environmentGroup.getObjectByName('environment-ground');
     ground?.material?.color.set(night ? '#273039' : palette.ground);
-    this.renderer.toneMappingExposure = night ? 0.92 : 1.08;
+    this.renderer.toneMappingExposure = night ? 0.92 : 1;
+    this.surfaceSystem.setEnvironmentIntensity(night ? 0.12 : 1);
 
     const pergolaHeight = this.state.dimensions.height / 1000;
     if (this.northCompass) {
@@ -638,29 +652,8 @@ export class PergolaScene {
   }
 
   applyQuality(quality = 'balanced') {
-    const compactViewport = window.innerWidth <= 760 || (window.innerWidth <= 900 && window.innerHeight <= 520);
-    if (this.lastQuality === quality && this.lastCompactViewport === compactViewport) return;
-    const baseProfile = {
-      low: { pixelRatio: 1, shadows: false, shadowSize: 512 },
-      balanced: { pixelRatio: Math.min(window.devicePixelRatio, 1.5), shadows: true, shadowSize: 1024 },
-      high: { pixelRatio: Math.min(window.devicePixelRatio, 2), shadows: true, shadowSize: 2048 },
-    }[quality] ?? { pixelRatio: Math.min(window.devicePixelRatio, 1.5), shadows: true, shadowSize: 1024 };
-    const profile = compactViewport
-      ? {
-          ...baseProfile,
-          pixelRatio: Math.min(baseProfile.pixelRatio, 1.5),
-          shadowSize: Math.min(baseProfile.shadowSize, 1024),
-        }
-      : baseProfile;
-
-    this.renderer.setPixelRatio(profile.pixelRatio);
-    this.renderer.shadowMap.enabled = profile.shadows;
-    this.sun.castShadow = profile.shadows;
-    this.sun.shadow.mapSize.set(profile.shadowSize, profile.shadowSize);
-    this.sun.shadow.map?.dispose?.();
-    this.lastQuality = quality;
-    this.lastCompactViewport = compactViewport;
-    if (this.container?.clientWidth && this.container?.clientHeight) this.resize();
+    const compact = window.innerWidth <= 760 || (window.innerWidth <= 900 && window.innerHeight <= 520);
+    this.surfaceSystem?.setQuality(quality, { compact });
   }
 
   resize() {
@@ -687,6 +680,11 @@ export class PergolaScene {
     this.unsubscribe?.();
     this.controls.dispose();
     this.assets.dispose();
+    disposeObject(this.environmentGroup);
+    disposeObject(this.pergolaGroup);
+    disposeObject(this.dimensionGroup);
+    this.surfaceSystem.dispose();
+    if (window.PERGOLA_VISUALS_API === this.visualsApi) delete window.PERGOLA_VISUALS_API;
     this.renderer.dispose();
     this.labelRenderer.domElement.remove();
     this.renderer.domElement.remove();

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { applySurfaceUVs } from '../../../shared-3d/src/index.js?v=1';
 import { fitAssetToBox } from './AssetLibrary.js';
 import {
   getBoundaryHeaterSegments,
@@ -17,6 +18,7 @@ const SCREEN_TYPES = ['screen', 'motorized-screen'];
 
 function box(width, height, depth, material, options = {}) {
   const geometry = new THREE.BoxGeometry(width, height, depth);
+  if (material?.userData?.surface) applySurfaceUVs(THREE, geometry);
   const mesh = new THREE.Mesh(geometry, material);
   mesh.castShadow = options.castShadow ?? true;
   mesh.receiveShadow = options.receiveShadow ?? true;
@@ -24,10 +26,9 @@ function box(width, height, depth, material, options = {}) {
 }
 
 function cylinder(radius, height, material, radialSegments = 20) {
-  const mesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(radius, radius, height, radialSegments),
-    material,
-  );
+  const geometry = new THREE.CylinderGeometry(radius, radius, height, radialSegments);
+  if (material?.userData?.surface) applySurfaceUVs(THREE, geometry);
+  const mesh = new THREE.Mesh(geometry, material);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   return mesh;
@@ -123,10 +124,10 @@ function addLouvers(group, state, width, depth, topY, louverMaterial) {
   }
 }
 
-function addDrainage(group, state, width, depth, height) {
+function addDrainage(group, state, width, depth, height, surfaces) {
   if (state.roof.drainage !== 'integrated') return;
 
-  const gutterMaterial = material('#151d20', { roughness: 0.4, metalness: 0.75 });
+  const gutterMaterial = surfaces ? surfaces.create('aluminium.powderCoated', { color: '#151d20' }) : material('#151d20', { roughness: 0.4, metalness: 0.75 });
   const gutter = box(width - 0.24, 0.06, 0.08, gutterMaterial);
   gutter.position.set(0, height - 0.19, depth / 2 - 0.13);
   group.add(gutter);
@@ -209,8 +210,8 @@ function addScreen(container, transform, config, motorized, assets) {
   }
 }
 
-function addPrivacyWall(container, transform, color) {
-  const slatMaterial = material(color, { roughness: 0.42, metalness: 0.72 });
+function addPrivacyWall(container, transform, color, surfaces) {
+  const slatMaterial = surfaces ? surfaces.create('aluminium.powderCoated', { color }) : material(color, { roughness: 0.42, metalness: 0.72 });
   const count = Math.max(8, Math.floor(transform.usableHeight / 0.14));
   const spacing = transform.usableHeight / count;
   for (let index = 0; index < count; index += 1) {
@@ -222,11 +223,11 @@ function addPrivacyWall(container, transform, color) {
 }
 
 
-function addGlass(container, transform, frameMaterial) {
+function addGlass(container, transform, frameMaterial, surfaces) {
   const panelCount = Math.max(2, Math.round(transform.span / 1.25));
   const gap = 0.025;
   const panelWidth = (transform.span - gap * (panelCount - 1)) / panelCount;
-  const glassMaterial = material('#b9d9e4', {
+  const glassMaterial = surfaces ? surfaces.create('glass.clear', { thickness: 0.008 }) : material('#b9d9e4', {
     roughness: 0.06,
     metalness: 0.02,
     transparent: true,
@@ -258,7 +259,7 @@ function addGlass(container, transform, frameMaterial) {
   container.add(bottomRail);
 }
 
-function addSideClosings(group, state, width, depth, height, postSize, frameMaterial, assets) {
+function addSideClosings(group, state, width, depth, height, postSize, frameMaterial, assets, surfaces) {
   const grid = getPoleGrid(state);
   grid.segments.forEach((segment) => {
     const config = getSideSegmentConfig(state, segment.id);
@@ -273,9 +274,9 @@ function addSideClosings(group, state, width, depth, height, postSize, frameMate
     if (SCREEN_TYPES.includes(config.type)) {
       addScreen(container, transform, config, config.type === 'motorized-screen', assets);
     } else if (config.type === 'privacy-wall') {
-      addPrivacyWall(container, transform, config.privacyColor ?? state.roof.frameColor);
+      addPrivacyWall(container, transform, config.privacyColor ?? state.roof.frameColor, surfaces);
     } else if (config.type === 'glass') {
-      addGlass(container, transform, frameMaterial);
+      addGlass(container, transform, frameMaterial, surfaces);
     }
 
     group.add(container);
@@ -357,11 +358,12 @@ function styleSpotlight(object) {
   });
 }
 
-function addSpotlights(group, state, coordinates, height, beamHeight, frameMaterial, assets, night = false) {
+function addSpotlights(group, state, coordinates, height, beamHeight, frameMaterial, assets, night = false, surfaces = null) {
   const railY = height - beamHeight - 0.022;
   const lightY = railY - 0.016;
-  const railMaterial = frameMaterial.clone();
-  railMaterial.color.offsetHSL(0, -0.02, 0.04);
+  // Allocate only when a rail is actually added; disabled spotlights must not
+  // leave an unattached managed material behind on every rebuild.
+  let railMaterial = null;
 
   getRoofRectangles(state).forEach((rectangle) => {
     const layout = getSpotlightRectangleLayout(state, rectangle.id);
@@ -381,6 +383,10 @@ function addSpotlights(group, state, coordinates, height, beamHeight, frameMater
     const safeMinZ = minZ < maxZ ? minZ : (frontLeft.z + backLeft.z) / 2;
     const safeMaxZ = minZ < maxZ ? maxZ : safeMinZ;
 
+    if (!railMaterial) {
+      railMaterial = surfaces ? surfaces.clone(frameMaterial) : frameMaterial.clone();
+      railMaterial.color.offsetHSL(0, -0.02, 0.04);
+    }
     const rowPositions = layout.usedRows <= 1
       ? [(safeMinZ + safeMaxZ) / 2]
       : Array.from({ length: layout.usedRows }, (_, index) => THREE.MathUtils.lerp(
@@ -447,11 +453,11 @@ function styleHeater(object) {
   });
 }
 
-function addHeaterBrackets(group, segment, heaterPosition, height, beamHeight, frameMaterial) {
+function addHeaterBrackets(group, segment, heaterPosition, height, beamHeight, frameMaterial, surfaces) {
   const beamBottom = height - beamHeight + 0.012;
   const heaterTop = heaterPosition.y + 0.095;
   const rodThickness = 0.022;
-  const hangerMaterial = frameMaterial.clone();
+  const hangerMaterial = surfaces ? surfaces.clone(frameMaterial) : frameMaterial.clone();
   hangerMaterial.color.offsetHSL(0, -0.03, 0.03);
 
   const alongX = segment.axis === 'horizontal';
@@ -468,7 +474,7 @@ function addHeaterBrackets(group, segment, heaterPosition, height, beamHeight, f
   });
 }
 
-function addHeaters(group, state, coordinates, height, beamHeight, frameMaterial, assets) {
+function addHeaters(group, state, coordinates, height, beamHeight, frameMaterial, assets, surfaces) {
   const faceOffset = 0.18;
   const heaterY = height - beamHeight - 0.235;
 
@@ -505,7 +511,7 @@ function addHeaters(group, state, coordinates, height, beamHeight, frameMaterial
       heater.position.copy(position);
       heater.rotation.y = pose.rotationY;
       group.add(heater);
-      addHeaterBrackets(group, segment, position, height, beamHeight, frameMaterial);
+      addHeaterBrackets(group, segment, position, height, beamHeight, frameMaterial, surfaces);
     });
   });
 }
@@ -703,7 +709,7 @@ function addPoleMounts(group, state, width, depth, height, postSize, assets) {
 }
 
 
-export function buildPergola(state, assets = null) {
+export function buildPergola(state, assets = null, surfaces = null) {
   const group = new THREE.Group();
   group.name = 'Pergola';
 
@@ -715,11 +721,11 @@ export function buildPergola(state, assets = null) {
   const postSize = state.model === 'lite' ? 0.115 : state.model === 'comfort' ? 0.135 : 0.15;
   const beamHeight = state.model === 'lite' ? 0.16 : state.model === 'comfort' ? 0.19 : 0.215;
   const beamDepth = state.model === 'lite' ? 0.13 : 0.155;
-  const frameMaterial = material(state.roof.frameColor, {
+  const frameMaterial = surfaces ? surfaces.create('aluminium.powderCoated', { color: state.roof.frameColor }) : material(state.roof.frameColor, {
     roughness: 0.36,
     metalness: 0.78,
   });
-  const louverMaterial = material(state.roof.louverColor, {
+  const louverMaterial = surfaces ? surfaces.create('aluminium.powderCoated', { color: state.roof.louverColor }) : material(state.roof.louverColor, {
     roughness: 0.38,
     metalness: 0.72,
   });
@@ -744,16 +750,16 @@ export function buildPergola(state, assets = null) {
   }
 
   addLouvers(group, state, width, depth, height - beamHeight - 0.015, louverMaterial);
-  addDrainage(group, state, width, depth, height);
-  addSideClosings(group, state, width, depth, height, postSize, frameMaterial, assets);
+  addDrainage(group, state, width, depth, height, surfaces);
+  addSideClosings(group, state, width, depth, height, postSize, frameMaterial, assets, surfaces);
   addMotorizedAutomation(group, state, width, depth, height);
 
   const isNight = Boolean(state.environment?.night);
   if (state.accessories.perimeterLed.enabled) {
     addPerimeterLed(group, width, depth, height, state.accessories.perimeterLed, assets, isNight);
   }
-  addSpotlights(group, state, coordinates, height, beamHeight, frameMaterial, assets, isNight);
-  addHeaters(group, state, coordinates, height, beamHeight, frameMaterial, assets);
+  addSpotlights(group, state, coordinates, height, beamHeight, frameMaterial, assets, isNight, surfaces);
+  addHeaters(group, state, coordinates, height, beamHeight, frameMaterial, assets, surfaces);
   addSensors(group, state, coordinates, height, postSize, assets);
   addPoleMounts(group, state, width, depth, height, postSize, assets);
 

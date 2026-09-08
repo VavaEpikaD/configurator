@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { applySurfaceUVs } from '../shared-3d/src/index.js?v=1';
 import { WINDOW_WIDTH_MAX_M, normalizeHexColour } from './config.js';
 import {
     PROFILE_CURVE_SEGMENTS,
@@ -823,7 +824,10 @@ export function createWindowBuilder({
         }
         geom.computeVertexNormals();
 
-        const mesh = new THREE.Mesh(geom, profile.material);
+        const mesh = new THREE.Mesh(
+            profile.material?.userData?.surface ? applySurfaceUVs(THREE, geom) : geom,
+            profile.material
+        );
         mesh.castShadow = !captureMode;
         mesh.receiveShadow = !captureMode;
         return mesh;
@@ -943,7 +947,10 @@ export function createWindowBuilder({
 
         geom.deleteAttribute('normal');
         geom.computeVertexNormals();
-        const mesh = new THREE.Mesh(geom, profile.material);
+        const mesh = new THREE.Mesh(
+            profile.material?.userData?.surface ? applySurfaceUVs(THREE, geom) : geom,
+            profile.material
+        );
         mesh.castShadow = !captureMode;
         mesh.receiveShadow = !captureMode;
         return mesh;
@@ -1446,7 +1453,10 @@ export function createWindowBuilder({
         geom.computeBoundingBox();
         geom.computeBoundingSphere();
 
-        const mesh = new THREE.Mesh(geom, profile.material);
+        const mesh = new THREE.Mesh(
+            profile.material?.userData?.surface ? applySurfaceUVs(THREE, geom) : geom,
+            profile.material
+        );
         // Apply the layout position before registerExplode() captures basePos.
         // Repeated dividers used to be translated only afterwards, so the pose
         // animation reset every copy to (0, 0) and collapsed them into one.
@@ -1536,6 +1546,7 @@ export function createWindowBuilder({
         if (!positions || positions.count < 3) return false;
         mesh.geometry.deleteAttribute('normal');
         mesh.geometry.computeVertexNormals();
+        if (mesh.material?.userData?.surface) applySurfaceUVs(THREE, mesh.geometry);
         mesh.geometry.computeBoundingBox();
         mesh.geometry.computeBoundingSphere();
         return true;
@@ -1581,6 +1592,7 @@ export function createWindowBuilder({
         if (!positions || positions.count < 3) return false;
         mesh.geometry.deleteAttribute('normal');
         mesh.geometry.computeVertexNormals();
+        if (mesh.material?.userData?.surface) applySurfaceUVs(THREE, mesh.geometry);
         mesh.geometry.computeBoundingBox();
         mesh.geometry.computeBoundingSphere();
         return true;
@@ -1815,7 +1827,10 @@ export function createWindowBuilder({
         geom.computeBoundingBox();
         geom.computeBoundingSphere();
 
-        const mesh = new THREE.Mesh(geom, profile.material);
+        const mesh = new THREE.Mesh(
+            profile.material?.userData?.surface ? applySurfaceUVs(THREE, geom) : geom,
+            profile.material
+        );
         mesh.position.set(originX, originY, 0);
         mesh.castShadow = !captureMode;
         mesh.receiveShadow = !captureMode;
@@ -6131,7 +6146,10 @@ export function createWindowBuilder({
                         curveSegments: 20
                     });
                     plateGeo.translate(0, 0, -0.007);
-                    const plate = new THREE.Mesh(plateGeo, handleMat);
+                    const plate = new THREE.Mesh(
+                        handleMat?.userData?.surface ? applySurfaceUVs(THREE, plateGeo) : plateGeo,
+                        handleMat
+                    );
                     plate.castShadow = !captureMode;
                     plate.receiveShadow = !captureMode;
                     plate.userData.windowHandleCellId = cell.id;
@@ -6158,7 +6176,10 @@ export function createWindowBuilder({
                     });
                     neckGeo.center();
                     neckGeo.translate(0, 0, -0.001);
-                    const neck = new THREE.Mesh(neckGeo, handleMat);
+                    const neck = new THREE.Mesh(
+                        handleMat?.userData?.surface ? applySurfaceUVs(THREE, neckGeo) : neckGeo,
+                        handleMat
+                    );
                     neck.position.set(0, 0, 0.006);
                     neck.castShadow = !captureMode;
                     neck.receiveShadow = !captureMode;
@@ -6189,7 +6210,10 @@ export function createWindowBuilder({
                     });
                     leverGeo.center();
                     leverGeo.translate(0, -0.050, 0.018);
-                    const lever = new THREE.Mesh(leverGeo, handleMat);
+                    const lever = new THREE.Mesh(
+                        handleMat?.userData?.surface ? applySurfaceUVs(THREE, leverGeo) : leverGeo,
+                        handleMat
+                    );
                     lever.castShadow = !captureMode;
                     lever.receiveShadow = !captureMode;
                     lever.userData.windowHandleCellId = cell.id;
