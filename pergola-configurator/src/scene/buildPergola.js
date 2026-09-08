@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { applySurfaceUVs } from '../../../shared-3d/src/index.js?v=1';
+import { createPergolaGeometry } from './pergolaGeometry.js';
 import { fitAssetToBox } from './AssetLibrary.js';
 import {
   getBoundaryHeaterSegments,
@@ -15,24 +15,6 @@ import {
 
 const METERS_PER_MM = 0.001;
 const SCREEN_TYPES = ['screen', 'motorized-screen'];
-
-function box(width, height, depth, material, options = {}) {
-  const geometry = new THREE.BoxGeometry(width, height, depth);
-  if (material?.userData?.surface) applySurfaceUVs(THREE, geometry);
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.castShadow = options.castShadow ?? true;
-  mesh.receiveShadow = options.receiveShadow ?? true;
-  return mesh;
-}
-
-function cylinder(radius, height, material, radialSegments = 20) {
-  const geometry = new THREE.CylinderGeometry(radius, radius, height, radialSegments);
-  if (material?.userData?.surface) applySurfaceUVs(THREE, geometry);
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  return mesh;
-}
 
 function material(color, options = {}) {
   return new THREE.MeshStandardMaterial({
@@ -53,32 +35,32 @@ function cloneFittedAsset(assets, key, targetSize, alignY = 'center') {
   return fitAssetToBox(model, targetSize, { alignY });
 }
 
-function addPost(group, x, z, height, size, frameMaterial, premium) {
-  const post = box(size, height, size, frameMaterial);
+function addPost(geometry, group, x, z, height, size, frameMaterial, premium) {
+  const post = geometry.box(size, height, size, frameMaterial);
   post.position.set(x, height / 2, z);
   group.add(post);
 
-  const foot = box(size * 1.35, 0.025, size * 1.35, frameMaterial, {
+  const foot = geometry.box(size * 1.35, 0.025, size * 1.35, frameMaterial, {
     castShadow: false,
   });
   foot.position.set(x, 0.0125, z);
   group.add(foot);
 
   if (premium) {
-    const cap = box(size * 1.06, 0.045, size * 1.06, frameMaterial);
+    const cap = geometry.box(size * 1.06, 0.045, size * 1.06, frameMaterial);
     cap.position.set(x, height - 0.0225, z);
     group.add(cap);
   }
 }
 
-function addBeam(group, position, dimensions, frameMaterial, premium) {
-  const beam = box(dimensions.x, dimensions.y, dimensions.z, frameMaterial);
+function addBeam(geometry, group, position, dimensions, frameMaterial, premium) {
+  const beam = geometry.box(dimensions.x, dimensions.y, dimensions.z, frameMaterial);
   beam.position.copy(position);
   group.add(beam);
 
   if (premium) {
     const trimMaterial = material('#111719', { roughness: 0.3, metalness: 0.8 });
-    const trim = box(
+    const trim = geometry.box(
       Math.max(0.015, dimensions.x - 0.018),
       0.025,
       Math.max(0.015, dimensions.z - 0.018),
@@ -89,7 +71,7 @@ function addBeam(group, position, dimensions, frameMaterial, premium) {
   }
 }
 
-function addLouvers(group, state, width, depth, topY, louverMaterial) {
+function addLouvers(geometry, group, state, width, depth, topY, louverMaterial) {
   const orientation = state.roof.orientation;
   const tilt = THREE.MathUtils.degToRad(state.roof.louverTilt);
   const bladeWidth = state.model === 'lite' ? 0.115 : 0.135;
@@ -105,7 +87,7 @@ function addLouvers(group, state, width, depth, topY, louverMaterial) {
       const z = -usable / 2 + (index + 0.5) * (usable / count);
       pivot.position.set(0, topY, z);
       pivot.rotation.x = tilt;
-      const louver = box(width - margin * 2, thickness, bladeWidth, louverMaterial);
+      const louver = geometry.box(width - margin * 2, thickness, bladeWidth, louverMaterial);
       pivot.add(louver);
       group.add(pivot);
     }
@@ -117,23 +99,23 @@ function addLouvers(group, state, width, depth, topY, louverMaterial) {
       const x = -usable / 2 + (index + 0.5) * (usable / count);
       pivot.position.set(x, topY, 0);
       pivot.rotation.z = -tilt;
-      const louver = box(bladeWidth, thickness, depth - margin * 2, louverMaterial);
+      const louver = geometry.box(bladeWidth, thickness, depth - margin * 2, louverMaterial);
       pivot.add(louver);
       group.add(pivot);
     }
   }
 }
 
-function addDrainage(group, state, width, depth, height, surfaces) {
+function addDrainage(geometry, group, state, width, depth, height, surfaces) {
   if (state.roof.drainage !== 'integrated') return;
 
   const gutterMaterial = surfaces ? surfaces.create('aluminium.powderCoated', { color: '#151d20' }) : material('#151d20', { roughness: 0.4, metalness: 0.75 });
-  const gutter = box(width - 0.24, 0.06, 0.08, gutterMaterial);
+  const gutter = geometry.box(width - 0.24, 0.06, 0.08, gutterMaterial);
   gutter.position.set(0, height - 0.19, depth / 2 - 0.13);
   group.add(gutter);
 
   if (state.model !== 'lite') {
-    const pipe = cylinder(0.024, height - 0.22, gutterMaterial, 12);
+    const pipe = geometry.cylinder(0.024, height - 0.22, gutterMaterial, 12);
     pipe.position.set(width / 2 - 0.085, (height - 0.22) / 2, depth / 2 - 0.085);
     group.add(pipe);
   }
@@ -165,7 +147,7 @@ function screenSettings(config) {
   };
 }
 
-function addScreen(container, transform, config, motorized, assets) {
+function addScreen(geometry, container, transform, config, motorized, assets) {
   const settings = screenSettings(config);
   const screenMaterial = material(settings.color, {
     roughness: 0.86,
@@ -192,30 +174,30 @@ function addScreen(container, transform, config, motorized, assets) {
     });
     container.add(cassetteAsset);
   } else {
-    const cassette = box(transform.span, 0.11, 0.12, cassetteMaterial);
+    const cassette = geometry.box(transform.span, 0.11, 0.12, cassetteMaterial);
     cassette.position.set(0, transform.usableHeight / 2 - 0.055, 0);
     container.add(cassette);
   }
 
   if (deployedHeight > 0.04) {
-    const fabric = box(transform.span - 0.08, deployedHeight, 0.018, screenMaterial, {
+    const fabric = geometry.box(transform.span - 0.08, deployedHeight, 0.018, screenMaterial, {
       castShadow: false,
     });
     fabric.position.set(0, transform.usableHeight / 2 - 0.11 - deployedHeight / 2, 0);
     container.add(fabric);
 
-    const bottomRail = box(transform.span - 0.06, 0.045, 0.045, cassetteMaterial);
+    const bottomRail = geometry.box(transform.span - 0.06, 0.045, 0.045, cassetteMaterial);
     bottomRail.position.set(0, fabric.position.y - deployedHeight / 2, 0);
     container.add(bottomRail);
   }
 }
 
-function addPrivacyWall(container, transform, color, surfaces) {
+function addPrivacyWall(geometry, container, transform, color, surfaces) {
   const slatMaterial = surfaces ? surfaces.create('aluminium.powderCoated', { color }) : material(color, { roughness: 0.42, metalness: 0.72 });
   const count = Math.max(8, Math.floor(transform.usableHeight / 0.14));
   const spacing = transform.usableHeight / count;
   for (let index = 0; index < count; index += 1) {
-    const slat = box(transform.span - 0.06, 0.075, 0.055, slatMaterial);
+    const slat = geometry.box(transform.span - 0.06, 0.075, 0.055, slatMaterial);
     slat.position.set(0, -transform.usableHeight / 2 + spacing * (index + 0.5), 0);
     slat.rotation.x = THREE.MathUtils.degToRad(-18);
     container.add(slat);
@@ -223,7 +205,7 @@ function addPrivacyWall(container, transform, color, surfaces) {
 }
 
 
-function addGlass(container, transform, frameMaterial, surfaces) {
+function addGlass(geometry, container, transform, frameMaterial, surfaces) {
   const panelCount = Math.max(2, Math.round(transform.span / 1.25));
   const gap = 0.025;
   const panelWidth = (transform.span - gap * (panelCount - 1)) / panelCount;
@@ -236,7 +218,7 @@ function addGlass(container, transform, frameMaterial, surfaces) {
   });
 
   for (let index = 0; index < panelCount; index += 1) {
-    const panel = box(panelWidth - 0.018, transform.usableHeight - 0.1, 0.018, glassMaterial, {
+    const panel = geometry.panel(panelWidth - 0.018, transform.usableHeight - 0.1, 0.018, glassMaterial, {
       castShadow: false,
     });
     panel.position.set(
@@ -246,12 +228,12 @@ function addGlass(container, transform, frameMaterial, surfaces) {
     );
     container.add(panel);
 
-    const rail = box(0.025, transform.usableHeight - 0.06, 0.05, frameMaterial);
+    const rail = geometry.box(0.025, transform.usableHeight - 0.06, 0.05, frameMaterial);
     rail.position.set(-transform.span / 2 + index * (panelWidth + gap), 0, 0);
     container.add(rail);
   }
 
-  const topRail = box(transform.span, 0.045, 0.07, frameMaterial);
+  const topRail = geometry.box(transform.span, 0.045, 0.07, frameMaterial);
   topRail.position.y = transform.usableHeight / 2 - 0.0225;
   container.add(topRail);
   const bottomRail = topRail.clone();
@@ -259,7 +241,7 @@ function addGlass(container, transform, frameMaterial, surfaces) {
   container.add(bottomRail);
 }
 
-function addSideClosings(group, state, width, depth, height, postSize, frameMaterial, assets, surfaces) {
+function addSideClosings(geometry, group, state, width, depth, height, postSize, frameMaterial, assets, surfaces) {
   const grid = getPoleGrid(state);
   grid.segments.forEach((segment) => {
     const config = getSideSegmentConfig(state, segment.id);
@@ -272,11 +254,11 @@ function addSideClosings(group, state, width, depth, height, postSize, frameMate
     container.rotation.y = transform.rotationY;
 
     if (SCREEN_TYPES.includes(config.type)) {
-      addScreen(container, transform, config, config.type === 'motorized-screen', assets);
+      addScreen(geometry, container, transform, config, config.type === 'motorized-screen', assets);
     } else if (config.type === 'privacy-wall') {
-      addPrivacyWall(container, transform, config.privacyColor ?? state.roof.frameColor, surfaces);
+      addPrivacyWall(geometry, container, transform, config.privacyColor ?? state.roof.frameColor, surfaces);
     } else if (config.type === 'glass') {
-      addGlass(container, transform, frameMaterial, surfaces);
+      addGlass(geometry, container, transform, frameMaterial, surfaces);
     }
 
     group.add(container);
@@ -305,7 +287,7 @@ function styleLedAsset(object, color) {
   });
 }
 
-function addPerimeterLed(group, width, depth, height, ledConfig, assets, night = false) {
+function addPerimeterLed(geometry, group, width, depth, height, ledConfig, assets, night = false) {
   const y = height - 0.225;
   const offset = 0.105;
   const specifications = [
@@ -329,7 +311,7 @@ function addPerimeterLed(group, width, depth, height, ledConfig, assets, night =
         emissive: ledConfig.color,
         emissiveIntensity: 4,
       });
-      const fallback = box(size.x, size.y, size.z, fallbackMaterial, { castShadow: false });
+      const fallback = geometry.box(size.x, size.y, size.z, fallbackMaterial, { castShadow: false });
       fallback.position.copy(position);
       fallback.rotation.y = rotationY;
       group.add(fallback);
@@ -358,7 +340,7 @@ function styleSpotlight(object) {
   });
 }
 
-function addSpotlights(group, state, coordinates, height, beamHeight, frameMaterial, assets, night = false, surfaces = null) {
+function addSpotlights(geometry, group, state, coordinates, height, beamHeight, frameMaterial, assets, night = false, surfaces = null) {
   const railY = height - beamHeight - 0.022;
   const lightY = railY - 0.016;
   // Allocate only when a rail is actually added; disabled spotlights must not
@@ -396,7 +378,7 @@ function addSpotlights(group, state, coordinates, height, beamHeight, frameMater
       ));
 
     rowPositions.forEach((z) => {
-      const rail = box(Math.max(0.18, safeMaxX - safeMinX + 0.18), 0.035, 0.045, railMaterial);
+      const rail = geometry.box(Math.max(0.18, safeMaxX - safeMinX + 0.18), 0.035, 0.045, railMaterial);
       rail.position.set((safeMinX + safeMaxX) / 2, railY, z);
       group.add(rail);
     });
@@ -421,7 +403,7 @@ function addSpotlights(group, state, coordinates, height, beamHeight, frameMater
           model.position.set(x, lightY, z);
           group.add(model);
         } else {
-          const body = cylinder(0.055, 0.035, material('#111719'), 20);
+          const body = geometry.cylinder(0.055, 0.035, material('#111719'), 20);
           body.position.set(x, lightY, z);
           group.add(body);
         }
@@ -453,7 +435,7 @@ function styleHeater(object) {
   });
 }
 
-function addHeaterBrackets(group, segment, heaterPosition, height, beamHeight, frameMaterial, surfaces) {
+function addHeaterBrackets(geometry, group, segment, heaterPosition, height, beamHeight, frameMaterial, surfaces) {
   const beamBottom = height - beamHeight + 0.012;
   const heaterTop = heaterPosition.y + 0.095;
   const rodThickness = 0.022;
@@ -461,20 +443,20 @@ function addHeaterBrackets(group, segment, heaterPosition, height, beamHeight, f
   hangerMaterial.color.offsetHSL(0, -0.03, 0.03);
 
   const alongX = segment.axis === 'horizontal';
-  const rail = box(alongX ? 0.76 : 0.045, rodThickness, alongX ? 0.045 : 0.76, hangerMaterial);
+  const rail = geometry.box(alongX ? 0.76 : 0.045, rodThickness, alongX ? 0.045 : 0.76, hangerMaterial);
   rail.position.set(heaterPosition.x, heaterTop + 0.004, heaterPosition.z);
   group.add(rail);
 
   [-0.29, 0.29].forEach((offset) => {
     const x = heaterPosition.x + (alongX ? offset : 0);
     const z = heaterPosition.z + (alongX ? 0 : offset);
-    const rod = box(rodThickness, Math.max(0.03, beamBottom - heaterTop), rodThickness, hangerMaterial);
+    const rod = geometry.box(rodThickness, Math.max(0.03, beamBottom - heaterTop), rodThickness, hangerMaterial);
     rod.position.set(x, (heaterTop + beamBottom) / 2, z);
     group.add(rod);
   });
 }
 
-function addHeaters(group, state, coordinates, height, beamHeight, frameMaterial, assets, surfaces) {
+function addHeaters(geometry, group, state, coordinates, height, beamHeight, frameMaterial, assets, surfaces) {
   const faceOffset = 0.18;
   const heaterY = height - beamHeight - 0.235;
 
@@ -511,7 +493,7 @@ function addHeaters(group, state, coordinates, height, beamHeight, frameMaterial
       heater.position.copy(position);
       heater.rotation.y = pose.rotationY;
       group.add(heater);
-      addHeaterBrackets(group, segment, position, height, beamHeight, frameMaterial, surfaces);
+      addHeaterBrackets(geometry, group, segment, position, height, beamHeight, frameMaterial, surfaces);
     });
   });
 }
@@ -526,7 +508,7 @@ function styleWeatherSensor(model, type) {
   });
 }
 
-function addSensors(group, state, coordinates, height, postSize, assets) {
+function addSensors(geometry, group, state, coordinates, height, postSize, assets) {
   const sensors = state.accessories.sensors;
   const mountMaterial = material('#2b353a', { roughness: 0.38, metalness: 0.68 });
 
@@ -535,7 +517,7 @@ function addSensors(group, state, coordinates, height, postSize, assets) {
     if (!config?.enabled || !config.pole || !coordinates[config.pole]) return;
     const pole = coordinates[config.pole];
     const plateSize = Math.max(0.16, postSize * 1.04);
-    const plate = box(plateSize, 0.025, plateSize, mountMaterial);
+    const plate = geometry.box(plateSize, 0.025, plateSize, mountMaterial);
     plate.position.set(pole.x, height + 0.012, pole.z);
     group.add(plate);
 
@@ -602,27 +584,27 @@ function styleSpeakerModel(model) {
 }
 
 
-function buildOutletModel(type) {
+function buildOutletModel(geometry, type) {
   const outlet = new THREE.Group();
   const plateMaterial = material('#f0f1ed', { roughness: 0.64, metalness: 0.06 });
   const insertMaterial = material('#f7f7f4', { roughness: 0.58, metalness: 0.04 });
   const holeMaterial = material('#1e2529', { roughness: 0.88, metalness: 0.02 });
 
-  const basePlate = box(0.108, 0.148, 0.012, plateMaterial, { castShadow: false });
+  const basePlate = geometry.box(0.108, 0.148, 0.012, plateMaterial, { castShadow: false });
   outlet.add(basePlate);
-  const innerPlate = box(0.082, 0.122, 0.006, insertMaterial, { castShadow: false });
+  const innerPlate = geometry.box(0.082, 0.122, 0.006, insertMaterial, { castShadow: false });
   innerPlate.position.z = 0.009;
   outlet.add(innerPlate);
 
   const addHoleCylinder = (radius, x, y) => {
-    const hole = cylinder(radius, 0.004, holeMaterial, 20);
+    const hole = geometry.cylinder(radius, 0.004, holeMaterial, 20);
     hole.rotation.z = Math.PI / 2;
     hole.position.set(x, y, 0.0135);
     outlet.add(hole);
   };
 
   const addHoleSlot = (w, h, x, y, rotation = 0) => {
-    const slot = box(w, h, 0.004, holeMaterial, { castShadow: false });
+    const slot = geometry.box(w, h, 0.004, holeMaterial, { castShadow: false });
     slot.position.set(x, y, 0.0135);
     slot.rotation.z = rotation;
     outlet.add(slot);
@@ -631,7 +613,7 @@ function buildOutletModel(type) {
   if (type === 'us') {
     const socketYs = [0.031, -0.031];
     socketYs.forEach((centerY) => {
-      const bezel = box(0.047, 0.043, 0.0035, material('#ebece8', { roughness: 0.55, metalness: 0.03 }), { castShadow: false });
+      const bezel = geometry.box(0.047, 0.043, 0.0035, material('#ebece8', { roughness: 0.55, metalness: 0.03 }), { castShadow: false });
       bezel.position.set(0, centerY, 0.0122);
       outlet.add(bezel);
       addHoleSlot(0.007, 0.018, -0.011, centerY + 0.002, 0);
@@ -639,13 +621,13 @@ function buildOutletModel(type) {
       addHoleCylinder(0.0045, 0, centerY - 0.010);
     });
   } else {
-    const bezel = box(0.055, 0.055, 0.0035, material('#ebece8', { roughness: 0.55, metalness: 0.03 }), { castShadow: false });
+    const bezel = geometry.box(0.055, 0.055, 0.0035, material('#ebece8', { roughness: 0.55, metalness: 0.03 }), { castShadow: false });
     bezel.position.set(0, 0.006, 0.0122);
     outlet.add(bezel);
     addHoleCylinder(0.0068, -0.015, 0.006);
     addHoleCylinder(0.0068, 0.015, 0.006);
     addHoleSlot(0.009, 0.018, 0, -0.012, 0);
-    const earthLip = box(0.038, 0.006, 0.003, material('#c8cbc7', { roughness: 0.6 }), { castShadow: false });
+    const earthLip = geometry.box(0.038, 0.006, 0.003, material('#c8cbc7', { roughness: 0.6 }), { castShadow: false });
     earthLip.position.set(0, 0.032, 0.012);
     outlet.add(earthLip);
   }
@@ -662,15 +644,15 @@ function styleAutomationAsset(model) {
   });
 }
 
-function addMotorizedAutomation(group, state, width, depth, height) {
+function addMotorizedAutomation(geometry, group, state, width, depth, height) {
   if (state.automation === 'manual') return;
   const motorMaterial = material('#111719', { roughness: 0.35, metalness: 0.75 });
-  const motor = box(0.34, 0.13, 0.13, motorMaterial);
+  const motor = geometry.box(0.34, 0.13, 0.13, motorMaterial);
   motor.position.set(width / 2 - 0.32, height - 0.11, -depth / 2 + 0.13);
   group.add(motor);
 }
 
-function addPoleMounts(group, state, width, depth, height, postSize, assets) {
+function addPoleMounts(geometry, group, state, width, depth, height, postSize, assets) {
   const coordinates = poleCoordinates(state, width, depth, postSize);
 
   Object.entries(state.poleMounts ?? {}).forEach(([pole, faces]) => {
@@ -688,7 +670,7 @@ function addPoleMounts(group, state, width, depth, height, postSize, assets) {
           if (model) styleSpeakerModel(model);
           depthOffset = 0.045;
         } else if (mount.type === 'outlet') {
-          model = buildOutletModel(mount.outletType === 'us' ? 'us' : 'eu');
+          model = buildOutletModel(geometry, mount.outletType === 'us' ? 'us' : 'eu');
           depthOffset = 0.006;
         } else if (mount.type === 'hand-crank') {
           model = cloneFittedAsset(assets, 'handCrank', new THREE.Vector3(0.23, 0.78, 0.12));
@@ -709,7 +691,8 @@ function addPoleMounts(group, state, width, depth, height, postSize, assets) {
 }
 
 
-export function buildPergola(state, assets = null, surfaces = null) {
+export function buildPergola(state, assets = null, surfaces = null, geometryLibrary = null) {
+  const geometry = createPergolaGeometry(geometryLibrary);
   const group = new THREE.Group();
   group.name = 'Pergola';
 
@@ -734,34 +717,34 @@ export function buildPergola(state, assets = null, surfaces = null) {
   const coordinates = poleCoordinates(state, width, depth, postSize);
   Object.entries(coordinates).forEach(([key, position]) => {
     if (!poleIsAvailable(state, key)) return;
-    addPost(group, position.x, position.z, height, postSize, frameMaterial, isPremium);
+    addPost(geometry, group, position.x, position.z, height, postSize, frameMaterial, isPremium);
   });
 
   const beamY = height - beamHeight / 2;
   for (let row = 0; row < grid.rows; row += 1) {
     const rowPole = grid.poles.find((item) => item.row === row && item.column === 0);
     const z = coordinates[rowPole?.id]?.z ?? 0;
-    addBeam(group, new THREE.Vector3(0, beamY, z), new THREE.Vector3(width, beamHeight, beamDepth), frameMaterial, isPremium);
+    addBeam(geometry, group, new THREE.Vector3(0, beamY, z), new THREE.Vector3(width, beamHeight, beamDepth), frameMaterial, isPremium);
   }
   for (let column = 0; column < grid.columns; column += 1) {
     const columnPole = grid.poles.find((item) => item.row === 0 && item.column === column);
     const x = coordinates[columnPole?.id]?.x ?? 0;
-    addBeam(group, new THREE.Vector3(x, beamY, 0), new THREE.Vector3(beamDepth, beamHeight, depth), frameMaterial, isPremium);
+    addBeam(geometry, group, new THREE.Vector3(x, beamY, 0), new THREE.Vector3(beamDepth, beamHeight, depth), frameMaterial, isPremium);
   }
 
-  addLouvers(group, state, width, depth, height - beamHeight - 0.015, louverMaterial);
-  addDrainage(group, state, width, depth, height, surfaces);
-  addSideClosings(group, state, width, depth, height, postSize, frameMaterial, assets, surfaces);
-  addMotorizedAutomation(group, state, width, depth, height);
+  addLouvers(geometry, group, state, width, depth, height - beamHeight - 0.015, louverMaterial);
+  addDrainage(geometry, group, state, width, depth, height, surfaces);
+  addSideClosings(geometry, group, state, width, depth, height, postSize, frameMaterial, assets, surfaces);
+  addMotorizedAutomation(geometry, group, state, width, depth, height);
 
   const isNight = Boolean(state.environment?.night);
   if (state.accessories.perimeterLed.enabled) {
-    addPerimeterLed(group, width, depth, height, state.accessories.perimeterLed, assets, isNight);
+    addPerimeterLed(geometry, group, width, depth, height, state.accessories.perimeterLed, assets, isNight);
   }
-  addSpotlights(group, state, coordinates, height, beamHeight, frameMaterial, assets, isNight, surfaces);
-  addHeaters(group, state, coordinates, height, beamHeight, frameMaterial, assets, surfaces);
-  addSensors(group, state, coordinates, height, postSize, assets);
-  addPoleMounts(group, state, width, depth, height, postSize, assets);
+  addSpotlights(geometry, group, state, coordinates, height, beamHeight, frameMaterial, assets, isNight, surfaces);
+  addHeaters(geometry, group, state, coordinates, height, beamHeight, frameMaterial, assets, surfaces);
+  addSensors(geometry, group, state, coordinates, height, postSize, assets);
+  addPoleMounts(geometry, group, state, width, depth, height, postSize, assets);
 
   group.userData.dimensions = { width, depth, height };
   group.userData.postSize = postSize;

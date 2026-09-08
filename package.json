@@ -24,7 +24,7 @@
     "check:analytics": "node scripts/validation/validate_configurator_analytics.mjs",
     "check:tenant-dashboard": "node scripts/validation/validate_tenant_dashboard.mjs",
     "check:tenant-audit": "node scripts/validation/validate_tenant_audit_log.mjs",
-    "check:shared-3d": "node --test shared-3d/tests/material-library.mjs shared-3d/tests/renderer-quality.mjs shared-3d/tests/pergola-integration.mjs"
+    "check:shared-3d": "node --no-warnings --experimental-vm-modules --test shared-3d/tests/material-library.mjs shared-3d/tests/renderer-quality.mjs shared-3d/tests/pergola-integration.mjs shared-3d/tests/geometry-library.mjs shared-3d/tests/geometry-integration.mjs shared-3d/tests/window-geometry-regression.mjs"
   },
   "dependencies": {
     "playwright": "^1.54.1"

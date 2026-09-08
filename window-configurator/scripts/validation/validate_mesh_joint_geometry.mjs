@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { splitTriangleAtScalarZero } from '../../src/client/js/mesh-joint-geometry.js';
+import { splitTriangleAtScalarZero } from '../../../shared-3d/src/geometry/scalarGeometry.js';
 
 const result = splitTriangleAtScalarZero([
     { x: -2, y: 0, z: 0, scalar: -2 },

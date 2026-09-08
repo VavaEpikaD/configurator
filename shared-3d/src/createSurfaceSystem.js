@@ -1,8 +1,9 @@
+import { GeometryLibrary, GEOMETRY_SYSTEM_VERSION } from './geometry/GeometryLibrary.js?v=2';
 import { MaterialLibrary } from './materials/MaterialLibrary.js?v=1';
 import { NeutralEnvironment } from './environment/NeutralEnvironment.js?v=1';
 import { getQualityProfile, normalizeQuality } from './quality.js?v=1';
 
-export const SURFACE_SYSTEM_VERSION = '20260908-materials-1';
+export const SURFACE_SYSTEM_VERSION = GEOMETRY_SYSTEM_VERSION;
 
 /** No renderer is created here. The host retains its camera, controls, scene and lifetime. */
 export function createSurfaceSystem(THREE, { renderer, scene, shadowLights = [], quality = 'balanced', capture = false } = {}) {
@@ -11,6 +12,7 @@ export function createSurfaceSystem(THREE, { renderer, scene, shadowLights = [],
     quality: capture ? 'low' : quality,
     maxAnisotropy: renderer.capabilities.getMaxAnisotropy(),
   });
+  const geometry = new GeometryLibrary(THREE);
   const environment = new NeutralEnvironment(THREE, renderer, scene);
   let currentSignature = '', currentProfile = null, disposed = false, environmentError = null;
   const legacyEnvironmentStrength = new WeakMap();
@@ -23,6 +25,7 @@ export function createSurfaceSystem(THREE, { renderer, scene, shadowLights = [],
 
   const controller = {
     materials: library,
+    geometry,
     setQuality(value, { compact = false, devicePixelRatio = globalThis.devicePixelRatio || 1 } = {}) {
       if (disposed) return false;
       requestedQuality = normalizeQuality(value);
@@ -80,12 +83,13 @@ export function createSurfaceSystem(THREE, { renderer, scene, shadowLights = [],
       });
     },
     getDiagnostics() {
-      return { version: SURFACE_SYSTEM_VERSION, threeRevision: THREE.REVISION, requestedQuality, profile: { ...currentProfile }, environment: !!environment.target, environmentWidth: environment.width, environmentError, ...library.getDiagnostics() };
+      return { version: SURFACE_SYSTEM_VERSION, threeRevision: THREE.REVISION, requestedQuality, profile: { ...currentProfile }, environment: !!environment.target, environmentWidth: environment.width, environmentError, geometry: geometry.getDiagnostics(), ...library.getDiagnostics() };
     },
     dispose() {
       if (disposed) return;
       disposed = true;
       environment.dispose();
+      geometry.dispose();
       library.dispose();
       delete renderer.domElement.dataset.surfaceSystem;
       delete renderer.domElement.dataset.visualQuality;

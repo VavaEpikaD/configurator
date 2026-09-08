@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { createSurfaceSystem } from '../shared-3d/src/index.js?v=1';
+import { createSurfaceSystem } from '../shared-3d/src/index.js?v=2';
 
 function createWindowCameraViewController({ camera, controls }) {
     let lastReportedSide = null;
@@ -143,6 +143,7 @@ export function createSceneContext({
     const surfaceSystem = createSurfaceSystem(THREE, {
         renderer, scene, shadowLights: [primaryLight], quality: preferredQuality, capture: captureMode,
     });
+    surfaceSystem.geometry.adopt(groundGeometry, { kind: 'primitive.plane' });
     const applyQuality = (value = preferredQuality) => {
         preferredQuality = value;
         surfaceSystem.setQuality(value, {

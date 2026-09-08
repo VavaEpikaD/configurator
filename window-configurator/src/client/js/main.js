@@ -5,13 +5,13 @@ import {
     WINDOW_HEIGHT_MAX_M,
 } from './config.js';
 import { createComponentSelection } from './component-selection.js';
-import { createSceneContext } from './scene.js?v=materials-1';
+import { createSceneContext } from './scene.js?v=geometry-2';
 import { initializeUIControls } from './ui-controls.js?v=4';
-import { createWindowBuilder } from './window-builder.js?v=materials-1';
-import { createMaterialManager } from './materials.js?v=materials-1';
+import { createWindowBuilder } from './window-builder.js?v=geometry-2';
+import { createMaterialManager } from './materials.js?v=geometry-2';
 import { createARController } from './ar-controller.js';
 import { createCadReferenceController } from './cad-reference.js';
-import { createProfileController } from './profile-controller.js';
+import { createProfileController } from './profile-controller.js?v=geometry-2';
 import { createAccessoryController } from './accessory-controller.js';
 import { createProfileSelectionController } from './profile-selection-controller.js';
 import {
@@ -738,6 +738,7 @@ const {
 } = profileController;
 
 windowBuilder = createWindowBuilder({
+    geometryLibrary: surfaceSystem.geometry,
     scene,
     camera,
     renderer,
