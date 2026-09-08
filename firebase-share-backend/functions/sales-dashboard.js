@@ -19,6 +19,7 @@ const DASHBOARD_ADMIN_EMAILS = new Set([
   'office@360design.ro',
   'alexandru.alexe@360design.ro',
   'vlamogusamogus@gmail.com',
+  'matei.belciug.work@gmail.com',
 ]);
 
 const DASHBOARD_ORIGINS = Object.freeze([
