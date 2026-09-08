@@ -23,13 +23,13 @@ function getCameraViewText() {
   return CAMERA_VIEW_TEXT[shell?.state?.locale] || CAMERA_VIEW_TEXT['en-US'];
 }
 
-function enableWindowSharedCameraTool() {
-  if (document.getElementById('window-shared-camera-tool-styles')) return;
+function enableWindowSharedTools() {
+  if (document.getElementById('window-shared-tools-styles')) return;
   const style = document.createElement('style');
-  style.id = 'window-shared-camera-tool-styles';
+  style.id = 'window-shared-tools-styles';
   style.textContent = `
-/* Window opts into the Common UI camera tool. Override the legacy rule that
-   hid the whole shared Tools launcher in this configurator. */
+/* Window opts into Common UI tools. Override the legacy rule that hid the
+   complete shared Tools launcher in this configurator. */
 body.shared-ui-mounted .shared-ui-host [data-shared-tools] {
   display: flex !important;
 }
@@ -47,7 +47,15 @@ function cycleWindowCameraView() {
   return nextSide;
 }
 
-enableWindowSharedCameraTool();
+function toggleWindowDimensions() {
+  const api = window.WINDOW_DIMENSIONS_API;
+  if (!api?.toggle) return null;
+  const visible = Boolean(api.toggle());
+  shell?.setToolActive?.('dimensions', visible);
+  return visible;
+}
+
+enableWindowSharedTools();
 
 const history = new SharedUndoManager({
   capture: () => window.WINDOW_CONFIGURATOR_API?.captureState?.(),
@@ -68,9 +76,12 @@ shell = mountStandaloneConfiguratorShell({
     share: true,
   },
   tools: {
-    // Use the exact Common UI camera tool used by Pergola and the other
-    // configurators. Window intentionally exposes no other shared tool here.
-    items: resolveSharedTools(['camera']),
+    // Use the same Common UI dimensions and camera tools as the other
+    // configurators. Dimension guides are visible by default.
+    items: resolveSharedTools([
+      { id: 'dimensions', active: true },
+      'camera',
+    ]),
     placement: { side: 'left', direction: 'down', offsetX: 12, offsetY: 12 },
   },
   settingsPanel: {
@@ -138,14 +149,24 @@ shell = mountStandaloneConfiguratorShell({
         : window.location.href;
     },
     onToolAction({ toolId }) {
-      if (toolId === 'camera') cycleWindowCameraView();
+      if (toolId === 'dimensions') toggleWindowDimensions();
+      else if (toolId === 'camera') cycleWindowCameraView();
     },
   },
 });
 
-// The shared camera tool is present immediately; the scene API arrives a
-// moment later when main.js creates the Three.js context.
+// The shared tools are rendered before the Three.js scene APIs exist. Disable
+// them until their corresponding Window APIs announce that they are ready.
+shell.setToolDisabled('dimensions', !window.WINDOW_DIMENSIONS_API);
 shell.setToolDisabled('camera', !window.WINDOW_CAMERA_VIEW_API);
+
+window.addEventListener('window-dimensions-api-ready', (event) => {
+  shell.setToolDisabled('dimensions', false);
+  shell.setToolActive('dimensions', event.detail?.visible !== false);
+});
+window.addEventListener('window-dimensions-visibility-changed', (event) => {
+  shell.setToolActive('dimensions', event.detail?.visible !== false);
+});
 window.addEventListener('window-camera-view-api-ready', () => {
   shell.setToolDisabled('camera', false);
 });
