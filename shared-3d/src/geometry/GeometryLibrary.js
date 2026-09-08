@@ -1,9 +1,9 @@
 import { applySurfaceUVs } from './surfaceUVs.js?v=1';
 import { splitPositionGeometryAtScalarZero, clipPositionGeometryToScalarHalfspace } from './scalarGeometry.js?v=2';
 
-import { createRoundedPrismGeometry, createBeveledSolidGeometry } from './edgeFinishes.js?v=3';
+import { createRoundedPrismGeometry, createBeveledSolidGeometry } from './edgeFinishes.js?v=4';
 
-export const GEOMETRY_SYSTEM_VERSION = '20260908-edges-3';
+export const GEOMETRY_SYSTEM_VERSION = '20260908-corrective-4';
 
 function positive(value, name) {
   if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {

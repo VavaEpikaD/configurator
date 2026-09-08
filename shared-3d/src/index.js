@@ -1,10 +1,10 @@
-export { MaterialLibrary } from './materials/MaterialLibrary.js?v=3';
-export { MATERIAL_PRESETS } from './materials/presets.js?v=3';
+export { MaterialLibrary } from './materials/MaterialLibrary.js?v=4';
+export { MATERIAL_PRESETS } from './materials/presets.js?v=4';
 export { applySurfaceUVs } from './geometry/surfaceUVs.js?v=1';
 export { QUALITY_PROFILES, normalizeQuality, getQualityProfile } from './quality.js?v=1';
-export { createSurfaceSystem, SURFACE_SYSTEM_VERSION } from './createSurfaceSystem.js?v=3';
-export { GeometryLibrary, GEOMETRY_SYSTEM_VERSION } from './geometry/GeometryLibrary.js?v=3';
+export { createSurfaceSystem, SURFACE_SYSTEM_VERSION } from './createSurfaceSystem.js?v=4';
+export { GeometryLibrary, GEOMETRY_SYSTEM_VERSION } from './geometry/GeometryLibrary.js?v=4';
 export { createRoundedRectangleShape, simplifySectionShape, simplifyClosedContour } from './geometry/sectionShapes.js?v=2';
 export { splitTriangleAtScalarZero, splitPositionGeometryAtScalarZero, clipPositionGeometryToScalarHalfspace } from './geometry/scalarGeometry.js?v=2';
 export { disposeObjectResources } from './geometry/resourceLifecycle.js?v=2';
-export { EDGE_FINISH_PRESETS, getEdgeFinish, createRoundedPrismGeometry, createBeveledSolidGeometry } from './geometry/edgeFinishes.js?v=3';
+export { EDGE_FINISH_PRESETS, getEdgeFinish, createRoundedPrismGeometry, createBeveledSolidGeometry } from './geometry/edgeFinishes.js?v=4';

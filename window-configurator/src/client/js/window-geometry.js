@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GeometryLibrary, disposeObjectResources, getEdgeFinish } from '../shared-3d/src/index.js?v=3';
+import { GeometryLibrary, disposeObjectResources, getEdgeFinish } from '../shared-3d/src/index.js?v=4';
 
 /** Window owns CAD transforms, profile choice, join rules and assembly placement. */
 export function createWindowGeometry(library = null, { captureMode = false } = {}) {

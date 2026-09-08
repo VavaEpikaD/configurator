@@ -1,6 +1,6 @@
-# Shared edge finishes — Step 3
+# Shared edge finishes — Step 4
 
-Release: `20260908-edges-3`. Apply after the accepted materials and geometry updates.
+Release: `20260908-corrective-4`. Apply after the accepted materials and geometry updates.
 
 ## Visible changes
 
@@ -41,7 +41,7 @@ Normals are smoothed only across the intended small bevel rings; cap normals and
 These are visual defaults, **not manufacturing/tooling specifications**. Analytic normals smooth the low-segment fillets. Factory callers can supply other validated radii/segment budgets for future product families, or add a semantic preset centrally. Do not infer an edge policy merely from a mesh's color/material: glass and CAD can share rendering infrastructure without sharing a geometry policy.
 
 ```js
-import { getEdgeFinish } from './shared-3d/src/index.js?v=3';
+import { getEdgeFinish } from './shared-3d/src/index.js?v=4';
 
 const buffer = surfaces.geometry.create('profile.roundedRectangle', {
   width: 4, height: 0.16, depth: 0.12, axis: 'x',
@@ -65,7 +65,7 @@ PERGOLA_VISUALS_API.getDiagnostics()
 WINDOW_VISUALS_API.getDiagnostics()
 ```
 
-Both should report version `20260908-edges-3`. New information includes:
+Both should report version `20260908-corrective-4`. New information includes:
 
 - `geometry.edgeDetails` and `geometry.edgeFinishes`, counts of active shared generated edge methods, not all imported scene meshes.
 - `surfaceDetailEnabled` and `surfaceDetails['aluminium.powderCoated']`: managed material counts with normal/roughness/color maps and the preset's metre tile size. These count materials, not meshes; Low should show zero fine-map assignments.

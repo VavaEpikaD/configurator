@@ -1,8 +1,8 @@
 # Shared 3D — Materials and common geometry foundation
 
-Release: `20260908-edges-3` (Step 3, built on the accepted materials and geometry foundation)
+Release: `20260908-corrective-4` (Step 4, built on the accepted materials and geometry foundation)
 
-This is the shared material, quality and geometry foundation for **Window and Pergola only**. Step 3 adds explicit, bounded edge finishes for generated parts and recalibrates powder-coat surface detail. Product adapters share construction, section processing, UV handling and resource lifetime. Window CAD templates and manufactured connections remain exact; its generated handle backplate and lever alone opt into the new bevel factory. See `EDGE_FINISHES.md` for scope, safeguards and visual checks. Fabrication rules, dimensions, finish selections, pricing, saved-configuration schemas and account/cart code are not redesigned.
+This is the shared material, quality and geometry foundation for **Window and Pergola only**. Step 4 adds explicit, bounded edge finishes for generated parts and recalibrates powder-coat surface detail. Product adapters share construction, section processing, UV handling and resource lifetime. Window CAD templates and manufactured connections remain exact; its generated handle backplate and lever alone opt into the new bevel factory. See `EDGE_FINISHES.md` for scope, safeguards and visual checks. Fabrication rules, dimensions, finish selections, pricing, saved-configuration schemas and account/cart code are not redesigned.
 
 The library uses the host configurator's Three.js namespace. It neither imports a second Three.js runtime nor upgrades the existing engines: Window retains its vendored r160 engine/mesh-reuse adapter; Pergola retains its package-pinned 0.185.1 dependency. See `VALIDATION.md` for the important distinction between intended engine support and what was actually executable in the delivery environment.
 
@@ -49,7 +49,7 @@ Actual pixel ratio cannot exceed the device's ratio. Compact viewports cap pixel
 
 Window's existing preference event is now connected to the scene. Pergola's quality handler delegates to the same controller. Changing quality updates existing managed materials, resizes/disposes shadow targets correctly, and changes reflection resolution without rebuilding the product. Repeating an unchanged selection does not allocate another environment.
 
-There is no AO, screen-space reflection, bloom, path tracing, new antialiasing algorithm or additional lighting retune in Step 3. Generated edge finishes are documented separately in `EDGE_FINISHES.md`.
+There is no AO, screen-space reflection, bloom, path tracing, new antialiasing algorithm or additional lighting retune in Step 4. Generated edge finishes are documented separately in `EDGE_FINISHES.md`.
 
 ## Ownership and geometry contract
 
@@ -65,7 +65,7 @@ There is no AO, screen-space reflection, bloom, path tracing, new antialiasing a
 
 ```js
 // Import from the correct built/source path for the host configurator.
-import { createSurfaceSystem } from './shared-3d/src/index.js?v=3';
+import { createSurfaceSystem } from './shared-3d/src/index.js?v=4';
 
 const surfaces = createSurfaceSystem(THREE, {
   renderer, scene, shadowLights: [sun], quality: 'balanced',
@@ -155,7 +155,7 @@ WINDOW_VISUALS_API.getDiagnostics()
 PERGOLA_VISUALS_API.getDiagnostics()
 ```
 
-Expect `version: "20260908-edges-3"`, the selected `quality`, `environment: true`, and `environmentError: null`. `profile` describes the requested budgets; `environmentWidth` reports the actually allocated probe. The result also lists active material IDs and counts. Its `geometry` object reports the geometry-library version, registered types, active buffers by type, and cumulative registrations. `registeredCount` is cumulative; it is not a live-memory count, and neither count includes unadopted imported/context/helper geometry. For a lifecycle check compare `geometryCount` after equivalent settled rebuilds, not cumulative registrations. Neither hook writes configuration/account data.
+Expect `version: "20260908-corrective-4"`, the selected `quality`, `environment: true`, and `environmentError: null`. `profile` describes the requested budgets; `environmentWidth` reports the actually allocated probe. The result also lists active material IDs and counts. Its `geometry` object reports the geometry-library version, registered types, active buffers by type, and cumulative registrations. `registeredCount` is cumulative; it is not a live-memory count, and neither count includes unadopted imported/context/helper geometry. For a lifecycle check compare `geometryCount` after equivalent settled rebuilds, not cumulative registrations. Neither hook writes configuration/account data.
 
 **Window:** disable the existing square CAD/debug-color toggle beside the aluminium finish controls (or select a finish/color, which already turns it off). Its previous default is deliberately preserved. Compare Mill finish, Anodized and Color coated at the same view; also test separate inside/outside colors, an open sash, glass from both sides, exploded view and several dimension changes. Debug mode is meant to show CAD colors, not the final finish.
 
@@ -163,6 +163,6 @@ Expect `version: "20260908-edges-3"`, the selected `quality`, `environment: true
 
 **Both:** switch Low → Balanced → High → Low without reloading. Check the diagnostics each time, make sure the model remains interactive, and compare one close-up with one full-product view. Test a compact/mobile viewport and portrait/landscape rotation, not only desktop. Save/reopen a configuration and verify selections/pricing, then inspect any capture/AR workflow you use before production acceptance.
 
-For Step 3, expect restrained coating grain at close range and small highlights along explicitly finished edges, without changes to overall dimensions. Pay particular attention to resizing, mixed fixed/opening Window layouts, trans-mullions, exploded view, Pergola side closures and switching between presets. Supplied Window CAD profiles remain exact. See `EDGE_FINISHES.md` for the targeted parts.
+For Step 4, expect restrained coating grain at close range and small highlights along explicitly finished edges, without changes to overall dimensions. Pay particular attention to resizing, mixed fixed/opening Window layouts, trans-mullions, exploded view, Pergola side closures and switching between presets. Supplied Window CAD profiles remain exact. See `EDGE_FINISHES.md` for the targeted parts.
 
 Rendered appearance and actual device performance remain acceptance items. Desktop/mobile screenshots, including one metal close-up and one glass/wood view, are the basis for the next tuning pass. Do not interpret the automated tests as visual approval.

@@ -1,6 +1,6 @@
 # Common geometry foundation — Steps 2 and 3
 
-Release: `20260908-edges-3`
+Release: `20260908-corrective-4`
 
 ## Boundary between shared code and products
 
@@ -17,7 +17,7 @@ The reusable layer lives in `shared-3d/src/geometry`. It does not import a produ
 
 Window's adapter is `window-configurator/src/client/js/window-geometry.js`; Pergola's is `pergola-configurator/src/scene/pergolaGeometry.js`. The scene supplies a single library to the adapter. Pergola passes that adapter explicitly through assembly helpers; there is no module-global active library that can cross-contaminate multiple scenes.
 
-The library provides common **construction**, not common business logic or one universal model. Product layouts, the Window fabrication snapshot, accessory placement, imported assets and scene-specific architectural/organic meshes remain with their owners. Step 3 adds two explicit generated-part edge factories (see `EDGE_FINISHES.md`), not a generic CAD bevel modifier, boolean-solid engine, new CAD parser or automatic quality-dependent decimation.
+The library provides common **construction**, not common business logic or one universal model. Product layouts, the Window fabrication snapshot, accessory placement, imported assets and scene-specific architectural/organic meshes remain with their owners. Step 4 adds two explicit generated-part edge factories (see `EDGE_FINISHES.md`), not a generic CAD bevel modifier, boolean-solid engine, new CAD parser or automatic quality-dependent decimation.
 
 ## Units and finalization
 
@@ -89,7 +89,7 @@ const mesh = surfaces.geometry.mesh(buffer, frameMaterial, {
 scene.add(mesh);
 ```
 
-The Step 3 edge policy is explicit and protected by envelope/placement/fabrication tests. It does not silently replace precise CAD geometry or vary manufacturing output with quality. `edgeDetails: false` provides an exact-mode acceptance test; it is not the Low quality tier. Native metre-space edge UVs marked `surfaceUV.preserve` survive both adapters.
+The Step 4 edge policy is explicit and protected by envelope/placement/fabrication tests. It does not silently replace precise CAD geometry or vary manufacturing output with quality. `edgeDetails: false` provides an exact-mode acceptance test; it is not the Low quality tier. Native metre-space edge UVs marked `surfaceUV.preserve` survive both adapters.
 
 ## Intermediate cuts are not solid booleans
 
@@ -108,4 +108,4 @@ The reports include `version`, `geometryCount`, `registeredCount`, `activeTypes`
 
 The committed fixtures were generated from the **accepted materials Step 1 source**, before the geometry extraction. Pergola's 28 cases cover presets, sizes, wall attachment, closures and accessories. Window's 13 cases exercise the actual builder/layout controller with deterministic synthetic CAD sections, including pane thickness, poses, mixed/split layouts, repeated rebuilds and fabrication data. They are not a replacement for testing every production CAD file or GPU rendering. See `VALIDATION.md` for exact execution coverage and environmental limits.
 
-Step 3 retains the original Step 1 golden fixtures unchanged, running them in explicit exact/no-edge mode. Separate enabled-edge tests compare all bounds, transforms and untargeted buffers, and independently compare Window fabrication/CAD output. This avoids either requiring intended bevel buffers to match a box or silently replacing the baseline with the new output.
+Step 4 retains the original Step 1 golden fixtures unchanged, running them in explicit exact/no-edge mode. Separate enabled-edge tests compare all bounds, transforms and untargeted buffers, and independently compare Window fabrication/CAD output. This avoids either requiring intended bevel buffers to match a box or silently replacing the baseline with the new output.

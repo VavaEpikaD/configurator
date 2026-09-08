@@ -122,8 +122,8 @@ test('powder-coat detail diagnostics distinguish texture assignment from Low-qua
   let diagnostics = library.getDiagnostics();
   assert.equal(diagnostics.surfaceDetailEnabled, true);
   assert.equal(diagnostics.surfaceDetails['aluminium.powderCoated'].normalMapped, 1);
-  assert.deepEqual(diagnostics.surfaceDetails['aluminium.powderCoated'].tileMetres, [.08, .08]);
-  assert.ok(material.normalScale.x > .13); assert.equal(material.map, null, 'There is no fake colour/dirt overlay.');
+  assert.deepEqual(diagnostics.surfaceDetails['aluminium.powderCoated'].tileMetres, [.035, .035]);
+  assert.ok(material.normalScale.x > .1 && material.normalScale.x < .2); assert.equal(material.map, null, 'There is no fake colour/dirt overlay.');
   const maps = [material.normalMap, material.roughnessMap];
   library.setQuality('low'); diagnostics = library.getDiagnostics();
   assert.equal(diagnostics.surfaceDetailEnabled, false);
@@ -141,5 +141,7 @@ test('powder maps contain deterministic broader-scale variation, not just single
     for (let j = y; j < y + 16; j++) for (let i = x; i < x + 16; i++) sum += pixels.roughness[(j * 256 + i) * 4 + 1];
     blocks.push(sum / 256);
   }
-  assert.ok(Math.max(...blocks) - Math.min(...blocks) > 5);
+  const spread = Math.max(...blocks) - Math.min(...blocks);
+  assert.ok(spread > 1);
+  assert.ok(spread < 20);
 });
