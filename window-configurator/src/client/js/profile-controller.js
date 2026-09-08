@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { getGlazingBeadCode, getGasketCode } from './config.js';
-import { createProfileLoader } from './profile-loader.js';
+import { createProfileLoader } from './profile-loader.js?v=contact-5';
 import {
     createConnectionTemplateLoader,
     getConnectionTemplateIdForLayout,

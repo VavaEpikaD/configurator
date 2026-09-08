@@ -5,13 +5,13 @@ import {
     WINDOW_HEIGHT_MAX_M,
 } from './config.js';
 import { createComponentSelection } from './component-selection.js';
-import { createSceneContext } from './scene.js';
+import { createSceneContext } from './scene.js?v=contact-5';
 import { initializeUIControls } from './ui-controls.js?v=4';
-import { createWindowBuilder } from './window-builder.js';
-import { createMaterialManager } from './materials.js';
+import { createWindowBuilder } from './window-builder.js?v=contact-5';
+import { createMaterialManager } from './materials.js?v=contact-5';
 import { createARController } from './ar-controller.js';
 import { createCadReferenceController } from './cad-reference.js';
-import { createProfileController } from './profile-controller.js';
+import { createProfileController } from './profile-controller.js?v=contact-5';
 import { createAccessoryController } from './accessory-controller.js';
 import { createProfileSelectionController } from './profile-selection-controller.js';
 import {
@@ -388,6 +388,7 @@ const {
     controls,
     ground,
     gridHelper,
+    surfaceSystem,
 } = createSceneContext({
     container: document.getElementById('canvas-container'),
     isARMode,
@@ -498,6 +499,7 @@ const componentSelection = createComponentSelection({
 
 // MATERIALS AND ALUMINUM FINISH STATE
 const materialManager = createMaterialManager({
+    surfaceLibrary: surfaceSystem.materials,
     captureMode,
     pageParams,
     requestedColour,
@@ -736,6 +738,7 @@ const {
 } = profileController;
 
 windowBuilder = createWindowBuilder({
+    geometryLibrary: surfaceSystem.geometry,
     scene,
     camera,
     renderer,
@@ -1042,7 +1045,7 @@ function renderFrame(_time, xrFrame) {
         controls.update();
         windowLayoutOverlay?.update();
     }
-    renderer.render(scene, camera);
+    surfaceSystem.render(camera);
 }
 
 

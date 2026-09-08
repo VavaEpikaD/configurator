@@ -1,14 +1,14 @@
 import * as THREE from 'three';
+import { createWindowGeometry } from './window-geometry.js?v=contact-5';
 import { WINDOW_WIDTH_MAX_M, normalizeHexColour } from './config.js';
 import {
     PROFILE_CURVE_SEGMENTS,
     createRoundedRectShape,
-} from './geometry-utils.js';
+} from './geometry-utils.js?v=contact-5';
 import { getHouseDimensions } from './house-config.js';
 import { getProfileCatalogEntry, isDrainageCapProfile } from './profile-catalog.js';
 import { translateCadTransformSource } from './profile-coordinate-transform.js';
-import { createHouseBuilder } from './house-builder.js';
-import { splitTriangleAtScalarZero } from './mesh-joint-geometry.js';
+import { createHouseBuilder } from './house-builder.js?v=contact-5';
 import {
     getDividerSegmentAlongCoordinate,
     getDividerCrossSectionMetrics,
@@ -52,6 +52,7 @@ export function createWindowBuilder({
     scene,
     camera,
     renderer = null,
+    geometryLibrary = null,
     ground,
     gridHelper,
     isARMode,
@@ -90,6 +91,7 @@ export function createWindowBuilder({
         dividerProfileId: null,
     }),
 }) {
+    const geometry = createWindowGeometry(geometryLibrary, { captureMode });
     let currentMetadata = null;
     let profilesData = [];
     let sectionSampleMetadata = null;
@@ -783,7 +785,7 @@ export function createWindowBuilder({
         // glazing bead even after the glass thickness selected 573930/573920.
         const activeShape = getProfileShape(profile);
         const extrudeSettings = { depth: 0.1, bevelEnabled: false, curveSegments: PROFILE_CURVE_SEGMENTS, steps: 1 };
-        const geom = new THREE.ExtrudeGeometry(activeShape, extrudeSettings);
+        const geom = geometry.profile(activeShape, extrudeSettings);
         const posAttribute = geom.attributes.position;
         const v = new THREE.Vector3();
 
@@ -823,7 +825,7 @@ export function createWindowBuilder({
         }
         geom.computeVertexNormals();
 
-        const mesh = new THREE.Mesh(geom, profile.material);
+        const mesh = geometry.mesh(geom, profile.material);
         mesh.castShadow = !captureMode;
         mesh.receiveShadow = !captureMode;
         return mesh;
@@ -906,7 +908,7 @@ export function createWindowBuilder({
 
     function createDividerSampleExtrusion(profile, bounds) {
         const shape = getProfileShape(profile);
-        const geom = new THREE.ExtrudeGeometry(shape, {
+        const geom = geometry.profile(shape, {
             depth: 0.1,
             bevelEnabled: false,
             curveSegments: PROFILE_CURVE_SEGMENTS,
@@ -943,115 +945,16 @@ export function createWindowBuilder({
 
         geom.deleteAttribute('normal');
         geom.computeVertexNormals();
-        const mesh = new THREE.Mesh(geom, profile.material);
+        const mesh = geometry.mesh(geom, profile.material);
         mesh.castShadow = !captureMode;
         mesh.receiveShadow = !captureMode;
         return mesh;
     }
 
-    function splitBufferGeometryAtScalarZero(geometry, scalarResolver) {
-        const source = geometry.index ? geometry.toNonIndexed() : geometry;
-        const positions = source.attributes.position;
-        const output = [];
-
-        for (let base = 0; base + 2 < positions.count; base += 3) {
-            const triangle = [];
-            for (let offset = 0; offset < 3; offset += 1) {
-                const index = base + offset;
-                const point = {
-                    x: positions.getX(index),
-                    y: positions.getY(index),
-                    z: positions.getZ(index),
-                };
-                triangle.push({
-                    ...point,
-                    scalar: Number(scalarResolver(point, index)) || 0,
-                });
-            }
-
-            splitTriangleAtScalarZero(triangle).forEach(splitTriangle => {
-                splitTriangle.forEach(point => {
-                    output.push(point.x, point.y, point.z);
-                });
-            });
-        }
-
-        const result = new THREE.BufferGeometry();
-        result.setAttribute('position', new THREE.Float32BufferAttribute(output, 3));
-        result.computeBoundingBox();
-        result.computeBoundingSphere();
-
-        if (source !== geometry) {
-            source.dispose();
-        }
-        return result;
-    }
-
-    function clipBufferGeometryToScalarHalfspace(geometry, scalarResolver) {
-        const source = geometry.index ? geometry.toNonIndexed() : geometry;
-        const positions = source.attributes.position;
-        const output = [];
-        const EPSILON = 1e-10;
-
-        const interpolate = (a, b) => {
-            const denominator = a.scalar - b.scalar;
-            const t = Math.abs(denominator) <= EPSILON
-                ? 0
-                : a.scalar / denominator;
-            return {
-                x: a.x + (b.x - a.x) * t,
-                y: a.y + (b.y - a.y) * t,
-                z: a.z + (b.z - a.z) * t,
-                scalar: 0,
-            };
-        };
-
-        for (let base = 0; base + 2 < positions.count; base += 3) {
-            let polygon = [];
-            for (let offset = 0; offset < 3; offset += 1) {
-                const index = base + offset;
-                const point = {
-                    x: positions.getX(index),
-                    y: positions.getY(index),
-                    z: positions.getZ(index),
-                };
-                polygon.push({
-                    ...point,
-                    scalar: Number(scalarResolver(point, index)) || 0,
-                });
-            }
-
-            const clipped = [];
-            for (let index = 0; index < polygon.length; index += 1) {
-                const current = polygon[index];
-                const previous = polygon[(index + polygon.length - 1) % polygon.length];
-                const currentInside = current.scalar >= -EPSILON;
-                const previousInside = previous.scalar >= -EPSILON;
-
-                if (currentInside) {
-                    if (!previousInside) clipped.push(interpolate(previous, current));
-                    clipped.push(current);
-                } else if (previousInside) {
-                    clipped.push(interpolate(previous, current));
-                }
-            }
-
-            if (clipped.length < 3) continue;
-            for (let index = 1; index + 1 < clipped.length; index += 1) {
-                [clipped[0], clipped[index], clipped[index + 1]].forEach(point => {
-                    output.push(point.x, point.y, point.z);
-                });
-            }
-        }
-
-        const result = new THREE.BufferGeometry();
-        result.setAttribute('position', new THREE.Float32BufferAttribute(output, 3));
-        result.computeBoundingBox();
-        result.computeBoundingSphere();
-
-        if (source !== geometry) source.dispose();
-        return result;
-    }
+    // The adapter supplies the product-specific scalar plane; the shared base
+    // subdivides/clips intermediate positions without changing the CAD rules.
+    const splitBufferGeometryAtScalarZero = geometry.split;
+    const clipBufferGeometryToScalarHalfspace = geometry.clip;
 
     function createDividerSegment(
         profile,
@@ -1066,7 +969,7 @@ export function createWindowBuilder({
         longitudinalJoint = null
     ) {
         const shape = getProfileShape(profile);
-        const sourceGeom = new THREE.ExtrudeGeometry(shape, {
+        const sourceGeom = geometry.profile(shape, {
             depth: 1,
             bevelEnabled: false,
             curveSegments: 8,
@@ -1446,7 +1349,7 @@ export function createWindowBuilder({
         geom.computeBoundingBox();
         geom.computeBoundingSphere();
 
-        const mesh = new THREE.Mesh(geom, profile.material);
+        const mesh = geometry.mesh(geom, profile.material);
         // Apply the layout position before registerExplode() captures basePos.
         // Repeated dividers used to be translated only afterwards, so the pose
         // animation reset every copy to (0, 0) and collapsed them into one.
@@ -1536,6 +1439,7 @@ export function createWindowBuilder({
         if (!positions || positions.count < 3) return false;
         mesh.geometry.deleteAttribute('normal');
         mesh.geometry.computeVertexNormals();
+        geometry.prepare(mesh.geometry, mesh.material);
         mesh.geometry.computeBoundingBox();
         mesh.geometry.computeBoundingSphere();
         return true;
@@ -1581,6 +1485,7 @@ export function createWindowBuilder({
         if (!positions || positions.count < 3) return false;
         mesh.geometry.deleteAttribute('normal');
         mesh.geometry.computeVertexNormals();
+        geometry.prepare(mesh.geometry, mesh.material);
         mesh.geometry.computeBoundingBox();
         mesh.geometry.computeBoundingSphere();
         return true;
@@ -1596,7 +1501,7 @@ export function createWindowBuilder({
 
         if (!templateGeometryCache.has(cacheKey)) {
             const extrudeSettings = { depth: 1.0, bevelEnabled: false, curveSegments: 8, steps: 1 };
-            const geom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+            const geom = geometry.profile(shape, extrudeSettings);
             templateGeometryCache.set(cacheKey, geom);
         }
 
@@ -1625,7 +1530,7 @@ export function createWindowBuilder({
         const length = isHorizontal ? lengthA : lengthB;
 
         const templateGeom = getTemplateGeometry(profile);
-        let geom = templateGeom.clone();
+        let geom = geometry.clone(templateGeom);
 
         // The divider joint has a real topology break where the two perimeter
         // frame halves stop meeting each other vertically and begin the 45°
@@ -1815,7 +1720,7 @@ export function createWindowBuilder({
         geom.computeBoundingBox();
         geom.computeBoundingSphere();
 
-        const mesh = new THREE.Mesh(geom, profile.material);
+        const mesh = geometry.mesh(geom, profile.material);
         mesh.position.set(originX, originY, 0);
         mesh.castShadow = !captureMode;
         mesh.receiveShadow = !captureMode;
@@ -2053,6 +1958,7 @@ export function createWindowBuilder({
     scene.add(placementRoot);
 
     const { buildHouse } = createHouseBuilder({
+        geometryLibrary: geometry.library,
         scene,
         ground,
         gridHelper,
@@ -2501,18 +2407,8 @@ export function createWindowBuilder({
     function clearGeneratedGroup(group, sharedGeometries = null) {
         const shared = sharedGeometries || new Set();
 
-        group.traverse(child => {
-            if (child.geometry && !shared.has(child.geometry)) {
-                child.geometry.dispose();
-            }
-
-            // Only sprites own unique materials/textures. Window meshes use
-            // shared cached materials and must not dispose them here.
-            if (child.isSprite && child.material) {
-                child.material.map?.dispose();
-                child.material.dispose();
-            }
-        });
+        // Keep cached profile materials; only generated label sprites own theirs.
+        geometry.disposeGenerated(group, shared);
 
         group.clear();
     }
@@ -3180,14 +3076,7 @@ export function createWindowBuilder({
         // Generated geometries are unique and must be disposed. Materials are
         // shared/cached, so disposing them here causes shader recompilation and
         // severe slider lag.
-        mainGroup.traverse(child => {
-            child.geometry?.dispose();
-
-            if (child.isSprite && child.material) {
-                child.material.map?.dispose();
-                child.material.dispose();
-            }
-        });
+        geometry.disposeGenerated(mainGroup);
         mainGroup.clear();
         pivotOscilo.clear();
         pivotBatant.clear();
@@ -5991,13 +5880,8 @@ export function createWindowBuilder({
         }) {
             const paneWidth = Math.max(0.05, width);
             const paneHeight = Math.max(0.05, height);
-            const pane = new THREE.Mesh(
-                new THREE.BoxGeometry(
-                    paneWidth,
-                    paneHeight,
-                    glassPlacement.thicknessMm * S
-                ),
-                glassMat
+            const pane = geometry.panel(
+                paneWidth, paneHeight, glassPlacement.thicknessMm * S, glassMat
             );
             fabricationGlassPieces.push(Object.freeze({
                 width: paneWidth,
@@ -6125,13 +6009,13 @@ export function createWindowBuilder({
 
                     const handleBase = new THREE.Group();
                     const plateShape = createRoundedRectShape(0.04, 0.1, 0.027);
-                    const plateGeo = new THREE.ExtrudeGeometry(plateShape, {
+                    const plateGeo = geometry.solidProfile(plateShape, {
                         depth: 0.005,
                         bevelEnabled: false,
                         curveSegments: 20
-                    });
+                    }, { edgeFinish: 'aluminium.handle' });
                     plateGeo.translate(0, 0, -0.007);
-                    const plate = new THREE.Mesh(plateGeo, handleMat);
+                    const plate = geometry.mesh(plateGeo, handleMat);
                     plate.castShadow = !captureMode;
                     plate.receiveShadow = !captureMode;
                     plate.userData.windowHandleCellId = cell.id;
@@ -6151,14 +6035,14 @@ export function createWindowBuilder({
                             centerY + Math.cos(angle) * radius
                         );
                     }
-                    const neckGeo = new THREE.ExtrudeGeometry(neckShape, {
+                    const neckGeo = geometry.solidProfile(neckShape, {
                         depth: 0.014,
                         bevelEnabled: false,
                         curveSegments: 24
-                    });
+                    }, { edgeFinish: 'aluminium.handle' });
                     neckGeo.center();
                     neckGeo.translate(0, 0, -0.001);
-                    const neck = new THREE.Mesh(neckGeo, handleMat);
+                    const neck = geometry.mesh(neckGeo, handleMat);
                     neck.position.set(0, 0, 0.006);
                     neck.castShadow = !captureMode;
                     neck.receiveShadow = !captureMode;
@@ -6182,14 +6066,14 @@ export function createWindowBuilder({
                     leverShape.lineTo(0.01, -0.055);
                     leverShape.lineTo(-0.01, -0.055);
                     leverShape.lineTo(-0.01, 0.055);
-                    const leverGeo = new THREE.ExtrudeGeometry(leverShape, {
+                    const leverGeo = geometry.solidProfile(leverShape, {
                         depth: 0.012,
                         bevelEnabled: false,
                         curveSegments: 24
-                    });
+                    }, { edgeFinish: 'aluminium.handle' });
                     leverGeo.center();
                     leverGeo.translate(0, -0.050, 0.018);
-                    const lever = new THREE.Mesh(leverGeo, handleMat);
+                    const lever = geometry.mesh(leverGeo, handleMat);
                     lever.castShadow = !captureMode;
                     lever.receiveShadow = !captureMode;
                     lever.userData.windowHandleCellId = cell.id;
@@ -6285,7 +6169,7 @@ export function createWindowBuilder({
         syncOpenAngleControl(activePoseCellId);
 
         if (fixedCells.length) {
-            fixedCells.forEach(fixedCell => {
+            fixedCells.forEach((fixedCell, fixedCellIndex) => {
                 const panePlacement = getFixedGlassPanePlacement({
                     width: fixedCell.fixedAccessoryWidth ?? fixedCell.width,
                     height: fixedCell.fixedAccessoryHeight ?? fixedCell.height,

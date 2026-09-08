@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { createWindowGeometry } from './window-geometry.js?v=contact-5';
 import { getHouseDimensions } from './house-config.js';
 import { getWindowLocale } from './i18n.js';
 
@@ -25,12 +26,14 @@ const ENVIRONMENT_LABELS = Object.freeze({
  * its authored orientation at all times.
  */
 export function createHouseBuilder({
+    geometryLibrary = null,
     scene,
     ground,
     gridHelper,
     isARMode = false,
     captureMode = false,
 }) {
+    const geometry = createWindowGeometry(geometryLibrary, { captureMode });
     const houseGroup = new THREE.Group();
     houseGroup.name = 'windowEnvironmentRoot';
 
@@ -204,7 +207,7 @@ export function createHouseBuilder({
         opening.closePath();
         wallShape.holes.push(opening);
 
-        currentWallGeometry = new THREE.ExtrudeGeometry(wallShape, {
+        currentWallGeometry = geometry.solidProfile(wallShape, {
             depth: wallThickness,
             bevelEnabled: false,
             curveSegments: 1,
@@ -212,7 +215,7 @@ export function createHouseBuilder({
         });
         currentWallEdges = new THREE.EdgesGeometry(currentWallGeometry);
 
-        const wall = new THREE.Mesh(currentWallGeometry, wallMaterial);
+        const wall = geometry.mesh(currentWallGeometry, wallMaterial);
         wall.name = 'windowEnvironmentSingleWall';
         wall.position.z = -wallThickness / 2;
         wall.castShadow = !captureMode;

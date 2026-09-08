@@ -58,47 +58,6 @@ function providerLabel(locale, providerId) {
   return String(providerId || sharedT(locale, 'profile.providerOther'));
 }
 
-function formatHistoryDate(locale, timestampMs) {
-  if (!timestampMs) return '—';
-  try {
-    return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(timestampMs));
-  } catch {
-    return new Date(timestampMs).toLocaleString();
-  }
-}
-
-function quotationStatus(locale, status) {
-  const normalized = String(status || '').toLowerCase();
-  if (normalized === 'sent') return sharedT(locale, 'profile.quotationSent');
-  if (normalized === 'sending') return sharedT(locale, 'profile.quotationSending');
-  if (normalized.includes('failed')) return sharedT(locale, 'profile.quotationFailed');
-  return status || sharedT(locale, 'profile.quotationUnknown');
-}
-
-function renderQuotationHistory(locale, dialog) {
-  const history = Array.isArray(dialog?.quotationHistory) ? dialog.quotationHistory : [];
-  if (dialog?.loading) return `<p class="profile-empty-state">${escapeHtml(sharedT(locale, 'profile.loading'))}</p>`;
-  if (!history.length) return `<p class="profile-empty-state">${escapeHtml(sharedT(locale, 'profile.noQuotations'))}</p>`;
-  return `
-    <div class="profile-quotation-list">
-      ${history.map((item) => {
-        const status = String(item.status || 'unknown').toLowerCase();
-        const total = item.totalText || `${Number(item.totalValue || 0).toFixed(2)} ${item.currency || ''}`.trim();
-        return `
-          <article class="profile-quotation-row">
-            <div class="profile-quotation-row__main">
-              <strong>${escapeHtml(total || '—')}</strong>
-              <span>${escapeHtml(formatHistoryDate(locale, item.requestedAtMs))}</span>
-            </div>
-            <div class="profile-quotation-row__meta">
-              <span>${escapeHtml(sharedT(locale, 'profile.quotationItems', { count: item.itemCount || 0 }))}</span>
-              <span class="profile-status profile-status--${escapeHtml(status)}">${escapeHtml(quotationStatus(locale, item.status))}</span>
-            </div>
-          </article>`;
-      }).join('')}
-    </div>`;
-}
-
 export function renderProfileDialog(locale, dialog = {}) {
   if (!dialog.open) return '<section class="profile-dialog" data-profile-dialog></section>';
 
@@ -179,17 +138,6 @@ export function renderProfileDialog(locale, dialog = {}) {
           </section>
 
           <section class="profile-card">
-            <div class="profile-card__heading profile-card__heading--row">
-              <div>
-                <h3>${escapeHtml(sharedT(locale, 'profile.quotationHistory'))}</h3>
-                <p>${escapeHtml(sharedT(locale, 'profile.quotationHistoryHint'))}</p>
-              </div>
-              <span class="profile-history-count">${Array.isArray(dialog.quotationHistory) ? dialog.quotationHistory.length : 0}</span>
-            </div>
-            ${renderQuotationHistory(locale, dialog)}
-          </section>
-
-          <section class="profile-card">
             <div class="profile-card__heading">
               <h3>${escapeHtml(sharedT(locale, 'profile.signInMethods'))}</h3>
               <p>${escapeHtml(sharedT(locale, 'profile.signInMethodsHint'))}</p>
@@ -228,7 +176,7 @@ export function renderProfileDialog(locale, dialog = {}) {
               </div>` : ''}
           </section>
 
-          <footer class="profile-dialog__footer">
+          <footer class="profile-dialog__footer" style="bottom:0">
             <button class="profile-secondary-button" type="button" data-action="profile-close">${escapeHtml(sharedT(locale, 'profile.cancel'))}</button>
             <button class="profile-primary-button" type="button" data-action="profile-save" ${dialog.saving ? 'disabled' : ''}>${escapeHtml(sharedT(locale, dialog.saving ? 'profile.saving' : 'profile.save'))}</button>
           </footer>

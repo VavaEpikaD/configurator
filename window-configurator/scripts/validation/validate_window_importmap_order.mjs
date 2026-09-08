@@ -35,8 +35,24 @@ function validate(filePath, label) {
     return;
   }
 
-  if (!html.includes('"three": "./lib/three.module.js"')) {
-    fail(`${label}: import map no longer maps the bare "three" specifier.`);
+  const mapMatch = html.match(/<script\b[^>]*\btype=["']importmap["'][^>]*>([\s\S]*?)<\/script>/i);
+  let imports;
+  try { imports = JSON.parse(mapMatch?.[1] || "{}").imports; }
+  catch { fail(`${label}: import map contains invalid JSON.`); return; }
+  const threeEntry = String(imports?.three || "").split("?")[0];
+  const allowedEntries = ["./lib/three.module.js", "./js/three-mesh-reuse.js"];
+  if (!allowedEntries.includes(threeEntry)) {
+    fail(`${label}: bare "three" must resolve to the vendored engine or its existing mesh-reuse adapter.`);
+    return;
+  }
+  const moduleFile = path.resolve(path.dirname(filePath), threeEntry);
+  if (!fs.existsSync(moduleFile)) {
+    fail(`${label}: Three.js entry module does not exist: ${threeEntry}`);
+    return;
+  }
+  if (threeEntry.endsWith("three-mesh-reuse.js")
+      && !fs.readFileSync(moduleFile, "utf8").includes("export * from '../lib/three.module.js'")) {
+    fail(`${label}: mesh-reuse adapter must re-export the same vendored Three.js engine.`);
     return;
   }
 

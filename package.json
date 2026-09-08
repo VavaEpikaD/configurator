@@ -23,7 +23,11 @@
     "check:tenant-usage": "node scripts/validation/validate_tenant_usage_metering.mjs",
     "check:analytics": "node scripts/validation/validate_configurator_analytics.mjs",
     "check:tenant-dashboard": "node scripts/validation/validate_tenant_dashboard.mjs",
-    "check:tenant-audit": "node scripts/validation/validate_tenant_audit_log.mjs"
+    "check:tenant-audit": "node scripts/validation/validate_tenant_audit_log.mjs",
+    "check:shared-3d": "node --no-warnings --experimental-vm-modules --test shared-3d/tests/material-library.mjs shared-3d/tests/renderer-quality.mjs shared-3d/tests/pergola-integration.mjs shared-3d/tests/geometry-library.mjs shared-3d/tests/geometry-integration.mjs shared-3d/tests/window-geometry-regression.mjs shared-3d/tests/edge-finishes.mjs shared-3d/tests/edge-integration.mjs shared-3d/tests/contact-shading.mjs",
+    "check:shared-3d:browser": "node shared-3d/tests/browser-smoke.mjs",
+    "check:shared-3d:contact": "node --test shared-3d/tests/contact-shading.mjs",
+    "check:shared-3d:contact-browser": "node shared-3d/tests/contact-browser.mjs"
   },
   "dependencies": {
     "playwright": "^1.54.1"

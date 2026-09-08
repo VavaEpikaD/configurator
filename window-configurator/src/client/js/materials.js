@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { MaterialLibrary } from '../shared-3d/src/index.js?v=5';
 import {
     ALUMINIUM_FINISH_CATALOG,
     FIXED_PROFILE_COLOURS,
@@ -12,6 +13,7 @@ import { isDrainageCapProfile } from './profile-catalog.js';
 import { getWindowLocale, localizeFinishSelection, windowT } from './i18n.js';
 
 export function createMaterialManager({
+    surfaceLibrary = null,
     captureMode,
     pageParams,
     requestedColour,
@@ -21,6 +23,8 @@ export function createMaterialManager({
     renderGroupFilters,
     buildWindow,
 }) {
+    const surfaces = surfaceLibrary || new MaterialLibrary(THREE, { quality: captureMode ? 'low' : 'balanced' });
+
     function createFinishSelectionFromParams(side, fallbackSelection) {
         const type = pageParams.get(`${side}_finish_type`);
         const preset = pageParams.get(`${side}_finish_preset`);
@@ -72,21 +76,9 @@ export function createMaterialManager({
         });
     }
 
-    const glassMat = createSurfaceMaterial({
-        color: 0x60a5fa,
-        transparent: true,
-        opacity: 0.25,
-        metalness: 0.9,
-        roughness: 0.1,
-        shininess: 90,
-    });
-
-    const handleMat = createSurfaceMaterial({
-        color: 0x1f2937,
-        metalness: 0.7,
-        roughness: 0.25,
-        shininess: 100,
-        side: THREE.FrontSide,
+    const glassMat = surfaces.create('glass.clear', { thickness: 0.006 });
+    const handleMat = surfaces.create('aluminium.powderCoated', {
+        color: '#1f2937', roughness: 0.48, envMapIntensity: 0.82,
     });
 
     const profileMaterialCache = new Map();
@@ -203,10 +195,17 @@ export function createMaterialManager({
         if (!profileMaterialCache.has(cacheKey)) {
             profileMaterialCache.set(
                 cacheKey,
-                createSurfaceMaterial({
-                    color: colour,
-                    ...materialProperties,
-                })
+                finish
+                    ? surfaces.create({
+                        mill: 'aluminium.bare',
+                        anodized: 'aluminium.anodized',
+                        coated: 'aluminium.powderCoated',
+                    }[finish.type] || 'aluminium.powderCoated', {
+                        color: colour, side: THREE.DoubleSide,
+                    })
+                    : (!debugColoursEnabled && materialKey === 'glass'
+                        ? surfaces.create('glass.clear')
+                        : createSurfaceMaterial({ color: colour, ...materialProperties }))
             );
         }
 

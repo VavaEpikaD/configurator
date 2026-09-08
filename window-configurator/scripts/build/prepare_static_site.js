@@ -8,6 +8,7 @@ const sourceRoot = path.join(projectRoot, 'src', 'client');
 const distRoot = path.join(projectRoot, 'dist', 'site');
 const headersSource = path.join(workspaceRoot, 'netlify', '_headers');
 const sharedUiSource = path.join(workspaceRoot, 'shared-ui');
+const shared3dSource = path.join(workspaceRoot, 'shared-3d');
 
 function gitShortHash() {
     try {
@@ -46,6 +47,11 @@ fs.cpSync(sourceRoot, distRoot, { recursive: true, force: true });
 if (fs.existsSync(sharedUiSource)) {
     fs.cpSync(sharedUiSource, path.join(distRoot, 'shared-ui'), { recursive: true, force: true });
 }
+
+if (!fs.existsSync(path.join(shared3dSource, 'src', 'index.js'))) {
+    throw new Error('Missing shared-3d material library. Apply the complete material update at the repository root.');
+}
+fs.cpSync(path.join(shared3dSource, 'src'), path.join(distRoot, 'shared-3d', 'src'), { recursive: true });
 
 if (fs.existsSync(preservedModels)) {
     fs.cpSync(preservedModels, path.join(distRoot, 'models'), { recursive: true, force: true });
