@@ -12,6 +12,7 @@
   z-index: 1000;
   height: var(--shared-topbar-height);
   font-family: "Axiforma", "Avenir Next", "Segoe UI", Arial, sans-serif;
+  font-synthesis: auto;
   color: #172027;
 }
 
