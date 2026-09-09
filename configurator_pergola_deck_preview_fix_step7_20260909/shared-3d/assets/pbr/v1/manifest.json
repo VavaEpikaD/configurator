@@ -1,0 +1,53 @@
+{
+  "version": "20260909-pbr-deck-7",
+  "files": {
+    "brushed-normal-256.png": {
+      "width": 256,
+      "height": 256,
+      "bytes": 29840,
+      "sha256": "12060f92dad2c671e3e7764bbdba853792134a8b96c31c61be30e906f9ef6de5"
+    },
+    "brushed-roughness-256.png": {
+      "width": 256,
+      "height": 256,
+      "bytes": 11145,
+      "sha256": "744d8bcd05a9a353d646092e77387854f5f88280b554ba377cc8bacc8ac33cc7"
+    },
+    "deck-color-256.jpg": {
+      "width": 256,
+      "height": 256,
+      "bytes": 25100,
+      "sha256": "1f166535cda45127f729099ba13c36579e5a9376dd0ef645ca6759cca77cf8a8"
+    },
+    "deck-color-512.jpg": {
+      "width": 512,
+      "height": 512,
+      "bytes": 107755,
+      "sha256": "d65dc0ad413f390b615102151a9f6de907fadeae19f45c5b9e56a540e09b5df8"
+    },
+    "deck-normal-512.png": {
+      "width": 512,
+      "height": 512,
+      "bytes": 17659,
+      "sha256": "736fd2927e106d966501af4de77ab76795e90d1916603c63d48c66372d549fbe"
+    },
+    "deck-roughness-512.png": {
+      "width": 512,
+      "height": 512,
+      "bytes": 96613,
+      "sha256": "2331a8c93c463b9a5e37a62f5ca5c875918885a75fdf51a52aa430219f9ac8a7"
+    },
+    "powder-normal-256.png": {
+      "width": 256,
+      "height": 256,
+      "bytes": 144076,
+      "sha256": "6ecd8a0b06c4412b94f8c040ebe973aa6ecaecdffa20510992cb87b2971f88be"
+    },
+    "powder-roughness-256.png": {
+      "width": 256,
+      "height": 256,
+      "bytes": 37589,
+      "sha256": "ecd99d2acc3741998787bdcfeb2aa7415ee6b522d36d85880aeebd544ef32da8"
+    }
+  }
+}
