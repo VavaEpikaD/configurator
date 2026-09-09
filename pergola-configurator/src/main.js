@@ -5,7 +5,7 @@ import { ConfiguratorStore } from './state.js';
 import { readShareState } from '../../shared-ui/src/shareState.js';
 import { applyConfiguratorSeo } from '../../shared-ui/src/configuratorSeo.js';
 import { getLanguageProfile, getLocaleForHostname } from '../../shared-ui/src/config.js';
-import { PergolaScene } from './scene/PergolaScene.js';
+import { PergolaScene } from './scene/PergolaScene.js?v=9';
 import { ConfiguratorUI } from './ui/ConfiguratorUI.js';
 import { mountPergolaSharedShell } from './ui/pergolaSharedShell.js';
 import { pergolaT } from './i18n.js';
