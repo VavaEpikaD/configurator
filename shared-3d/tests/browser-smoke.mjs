@@ -27,7 +27,7 @@ const server = createServer(async (req, res) => {
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const base = `http://127.0.0.1:${server.address().port}`;
 const url = file => `${base}/${file.replaceAll(path.sep, '/')}`;
-const common = `${base}/shared-3d/src/index.js?v=5`;
+const common = `${base}/shared-3d/src/index.js?v=6`;
 const sources = {
   window: {
     imports: { three: url('window-configurator/src/client/js/three-mesh-reuse.js?v=1'), 'three/addons/': url('window-configurator/src/client/lib/') },
@@ -89,8 +89,8 @@ try {
     await page.waitForFunction(()=>!!window.smoke,{}, {timeout:30000});
     const reports=[];
     for (const quality of ['low','balanced','high']) {
-      const report = await page.evaluate(quality => {
-        const s=window.smoke;s.setQuality(quality);s.system.render(s.camera);
+      const report = await page.evaluate(async quality => {
+        const s=window.smoke;s.setQuality(quality);await s.system.materials.whenTexturesReady();s.system.render(s.camera);
         const gl=s.renderer.getContext();
         return {diagnostics:s.system.getDiagnostics(),webgl2:s.renderer.capabilities.isWebGL2,
           programsLinked:s.renderer.info.programs.every(p=>gl.getProgramParameter(p.program,gl.LINK_STATUS)),

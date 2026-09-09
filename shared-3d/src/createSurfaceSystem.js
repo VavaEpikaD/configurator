@@ -1,11 +1,11 @@
 import { GeometryLibrary } from './geometry/GeometryLibrary.js?v=4';
-import { MaterialLibrary } from './materials/MaterialLibrary.js?v=5';
+import { MaterialLibrary } from './materials/MaterialLibrary.js?v=6';
 import { NeutralEnvironment } from './environment/NeutralEnvironment.js?v=1';
 import { getQualityProfile, normalizeQuality } from './quality.js?v=2';
 
 import { ContactShading } from './rendering/ContactShading.js?v=5';
 
-export const SURFACE_SYSTEM_VERSION = '20260908-contact-5';
+export const SURFACE_SYSTEM_VERSION = '20260909-pbr-6';
 
 /** No renderer is created here. The host retains its camera, controls, scene and lifetime. */
 export function createSurfaceSystem(THREE, { renderer, scene, shadowLights = [], quality = 'balanced', capture = false, contactShading = {} } = {}) {

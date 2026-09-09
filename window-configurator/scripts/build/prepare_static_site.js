@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const childProcess = require('child_process');
+const crypto = require('node:crypto');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
 const workspaceRoot = path.resolve(projectRoot, '..');
@@ -32,6 +33,24 @@ if (!fs.existsSync(sourceIndex)) {
     throw new Error(`Missing client entry point: ${sourceIndex}`);
 }
 
+// Fail before modifying dist when an update was applied without all PBR images.
+const pbrAssets = path.join(shared3dSource, 'assets');
+const pbrManifestPath = path.join(pbrAssets, 'pbr', 'v1', 'manifest.json');
+if (!fs.existsSync(pbrManifestPath)) {
+    throw new Error('Missing shared-3d PBR images. Apply the complete PBR update, including shared-3d/assets.');
+}
+const pbrManifest = JSON.parse(fs.readFileSync(pbrManifestPath, 'utf8'));
+if (!pbrManifest.files || !Object.keys(pbrManifest.files).length) throw new Error('Empty PBR asset manifest.');
+for (const [file, record] of Object.entries(pbrManifest.files)) {
+    if (!/^[a-z0-9-]+\.(png|jpg)$/.test(file)) throw new Error('Invalid PBR asset filename.');
+    const source = path.join(path.dirname(pbrManifestPath), file);
+    if (!fs.existsSync(source)) throw new Error(`Missing PBR asset: ${file}`);
+    const bytes = fs.readFileSync(source);
+    if (bytes.length !== record.bytes || crypto.createHash('sha256').update(bytes).digest('hex') !== record.sha256) {
+        throw new Error(`PBR asset integrity mismatch: ${file}`);
+    }
+}
+
 // Keep manually published fallback models across local rebuilds.
 const preservedModels = path.join(projectRoot, '.dist-models-preserved');
 const currentModels = path.join(distRoot, 'models');
@@ -52,6 +71,7 @@ if (!fs.existsSync(path.join(shared3dSource, 'src', 'index.js'))) {
     throw new Error('Missing shared-3d material library. Apply the complete material update at the repository root.');
 }
 fs.cpSync(path.join(shared3dSource, 'src'), path.join(distRoot, 'shared-3d', 'src'), { recursive: true });
+fs.cpSync(pbrAssets, path.join(distRoot, 'shared-3d', 'assets'), { recursive: true });
 
 if (fs.existsSync(preservedModels)) {
     fs.cpSync(preservedModels, path.join(distRoot, 'models'), { recursive: true, force: true });

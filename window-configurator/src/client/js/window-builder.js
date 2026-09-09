@@ -1,14 +1,14 @@
 import * as THREE from 'three';
-import { createWindowGeometry } from './window-geometry.js?v=contact-5';
+import { createWindowGeometry } from './window-geometry.js?v=pbr-6';
 import { WINDOW_WIDTH_MAX_M, normalizeHexColour } from './config.js';
 import {
     PROFILE_CURVE_SEGMENTS,
     createRoundedRectShape,
-} from './geometry-utils.js?v=contact-5';
+} from './geometry-utils.js?v=pbr-6';
 import { getHouseDimensions } from './house-config.js';
 import { getProfileCatalogEntry, isDrainageCapProfile } from './profile-catalog.js';
 import { translateCadTransformSource } from './profile-coordinate-transform.js';
-import { createHouseBuilder } from './house-builder.js?v=contact-5';
+import { createHouseBuilder } from './house-builder.js?v=pbr-6';
 import {
     getDividerSegmentAlongCoordinate,
     getDividerCrossSectionMetrics,

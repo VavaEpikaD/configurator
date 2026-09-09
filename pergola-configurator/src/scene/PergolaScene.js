@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createSurfaceSystem, disposeObjectResources } from '../../../shared-3d/src/index.js?v=5';
+import { createSurfaceSystem, disposeObjectResources } from '../../../shared-3d/src/index.js?v=6';
 import { createPergolaGeometry } from './pergolaGeometry.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
@@ -173,7 +173,7 @@ export class PergolaScene {
     ground.name = 'environment-ground';
     this.environmentGroup.add(ground);
 
-    const deckMaterial = this.surfaceSystem.materials.create('wood.oak', { color: '#b8ada0' });
+    const deckMaterial = this.surfaceSystem.materials.create('wood.deck', { color: '#b8ada0' });
     this.deckPlatform = this.geometry.box(1, 0.12, 1, deckMaterial);
     this.deckPlatform.position.set(0, -0.01, 0);
     this.deckPlatform.receiveShadow = true;
@@ -181,7 +181,7 @@ export class PergolaScene {
     this.deckPlatform.name = 'environment-platform';
     this.environmentGroup.add(this.deckPlatform);
 
-    this.deckPlankMaterial = this.surfaceSystem.materials.create('wood.oak');
+    this.deckPlankMaterial = this.surfaceSystem.materials.create('wood.deck');
     this.deckPlankGroup = new THREE.Group();
     this.deckPlankGroup.name = 'environment-platform-planks';
     this.environmentGroup.add(this.deckPlankGroup);
