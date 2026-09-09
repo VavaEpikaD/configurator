@@ -1,6 +1,7 @@
+import { getWindowSliderRange } from './window-settings.js';
+
 const EPSILON = 1e-8;
 const MIN_TRACK_M = 0.05;
-const MIN_WINDOW_M = 0.45;
 const DEFAULT_EDGE_EXTENSION_M = 0.013;
 const SIZE_REBUILD_INTERVAL_MS = 70;
 
@@ -244,7 +245,7 @@ function getCellActualAxisSize(state, cell, axis, extension) {
 function stateMeetsMinimumWindowSize(
     state,
     axis,
-    minWindowM = MIN_WINDOW_M,
+    minWindowM = getWindowSliderRange('individual', axis).minM,
     extension = DEFAULT_EDGE_EXTENSION_M
 ) {
     return (state?.windows || []).every(cell => (
@@ -255,7 +256,7 @@ function stateMeetsMinimumWindowSize(
 function getMinimumOverallAxisSize(
     state,
     axis,
-    minWindowM = MIN_WINDOW_M,
+    minWindowM = getWindowSliderRange('individual', axis).minM,
     extension = DEFAULT_EDGE_EXTENSION_M
 ) {
     const tracks = state?.gridTracks?.[axis] || [];
@@ -352,7 +353,7 @@ function proposeIndividualAxis(
     const selectedAfter = sumTrackSizes(tracksForCell(state, cell, axis));
     const feasible = nearlyEqual(totalAfter, totalStructural, 1e-6)
         && nearlyEqual(selectedAfter, targetSelectedStructural, 1e-6)
-        && stateMeetsMinimumWindowSize(state, axis, MIN_WINDOW_M, extension);
+        && stateMeetsMinimumWindowSize(state, axis, getWindowSliderRange('individual', axis).minM, extension);
 
     return {
         feasible,
@@ -373,7 +374,8 @@ function findBestIndividualAxisProposal(
     const cell = state.windows.find(candidate => String(candidate.id) === String(cellId));
     if (!cell) return { feasible: false, state };
     const currentActual = getCellActualAxisSize(state, cell, axis, extension);
-    const requested = Math.max(MIN_WINDOW_M, finite(requestedActualM, currentActual));
+    const { minM, maxM } = getWindowSliderRange('individual', axis);
+    const requested = Math.min(maxM, Math.max(minM, finite(requestedActualM, currentActual)));
 
     const requestedProposal = proposeIndividualAxis(
         state,
@@ -482,37 +484,33 @@ function bindOverallControls({
     let lastRebuildAt = 0;
     const pendingAxes = new Set();
 
-    function updateBounds(range, valueM, minimumM, configuredMax) {
-        const min = Math.max(0.05, finite(minimumM, 0.45));
-        const currentMax = Math.max(min + 0.001, finite(range.max, configuredMax));
-        const max = Math.max(
-            configuredMax,
-            currentMax,
-            valueM * 1.25,
-            min + 0.1
-        );
+    function writePair(range, valueInput, valueM, minimumM, configuredMax, preserveValue = false) {
+        const requested = finite(valueM, finite(range.value, minimumM));
+        const unavailable = minimumM > configuredMax + EPSILON;
+        const min = Math.min(configuredMax, Math.ceil(minimumM * 1000 - 1e-6) / 1000);
+        // A layout-dependent minimum may exceed the admin cap after adding cells.
+        // Disable this axis, rather than silently extending the maximum again.
+        range.dataset.layoutMinimumM = String(minimumM);
         range.min = min.toFixed(3);
-        range.max = (Math.ceil(max * 1000) / 1000).toFixed(3);
-        return { min, max };
-    }
-
-    function writePair(range, valueInput, valueM, minimumM, configuredMax) {
-        const requested = Math.max(0.001, finite(valueM, finite(range.value, 1)));
-        const { min } = updateBounds(range, requested, minimumM, configuredMax);
-        if (requested > finite(range.max)) {
-            range.max = (Math.ceil(requested * 1.15 * 1000) / 1000).toFixed(3);
-        }
-        const clamped = Math.max(min, requested);
+        range.max = configuredMax.toFixed(3);
+        range.disabled = unavailable;
+        valueInput.disabled = unavailable;
+        const buttons = range.id === 'overallWidthA' ? [widthDec, widthInc] : [heightDec, heightInc];
+        buttons.forEach(button => { if (button) button.disabled = unavailable; });
+        const clamped = Math.min(configuredMax, Math.max(min, requested));
         range.value = clamped.toFixed(3);
         valueInput.min = String(Math.round(min * 1000));
-        valueInput.value = String(Math.round(clamped * 1000));
+        valueInput.max = String(Math.round(configuredMax * 1000));
+        // A saved layout outside new limits still displays its real dimensions.
+        valueInput.value = String(Math.round((preserveValue ? requested : clamped) * 1000));
+        valueInput.setAttribute('aria-invalid', String(preserveValue && (requested < min || requested > configuredMax)));
         return clamped;
     }
 
     function sync(dimensions = getDimensions()) {
         const minimum = getMinimumDimensions();
-        writePair(widthRange, widthValue, dimensions.widthM, minimum.widthM, widthMaxM);
-        writePair(heightRange, heightValue, dimensions.heightM, minimum.heightM, heightMaxM);
+        writePair(widthRange, widthValue, dimensions.widthM, minimum.widthM, widthMaxM, true);
+        writePair(heightRange, heightValue, dimensions.heightM, minimum.heightM, heightMaxM, true);
     }
 
     function preview(axis = null) {
@@ -619,6 +617,8 @@ export function createLayoutSizingManager({
     onPreviewStateChange = () => {},
 } = {}) {
     if (!controller) throw new Error('A window layout controller is required.');
+    widthMaxM = getWindowSliderRange('overall', 'width').maxM;
+    heightMaxM = getWindowSliderRange('overall', 'height').maxM;
 
     const extension = Math.max(0, finite(edgeExtensionM, DEFAULT_EDGE_EXTENSION_M));
     // Width and height modification state are deliberately independent.
@@ -647,8 +647,10 @@ export function createLayoutSizingManager({
         { edgeExtensionM: extension }
     );
     const getMinimumDimensions = () => ({
-        widthM: getMinimumOverallAxisSize(getState(), 'x', MIN_WINDOW_M, extension),
-        heightM: getMinimumOverallAxisSize(getState(), 'y', MIN_WINDOW_M, extension),
+        widthM: Math.max(getWindowSliderRange('overall', 'x').minM,
+            getMinimumOverallAxisSize(getState(), 'x', getWindowSliderRange('individual', 'x').minM, extension)),
+        heightM: Math.max(getWindowSliderRange('overall', 'y').minM,
+            getMinimumOverallAxisSize(getState(), 'y', getWindowSliderRange('individual', 'y').minM, extension)),
     });
 
     function enqueue(task) {
@@ -730,7 +732,8 @@ export function createLayoutSizingManager({
             if (!cell) return;
 
             const currentActual = getCellActualAxisSize(before, cell, axis, extension);
-            const requested = Math.max(MIN_WINDOW_M, Number(requestedValue));
+            const { minM, maxM } = getWindowSliderRange('individual', axis);
+            const requested = Math.min(maxM, Math.max(minM, Number(requestedValue)));
             if (nearlyEqual(currentActual, requested, 1e-7)) return;
 
             const allTracks = before.gridTracks?.[axis] || [];
@@ -785,7 +788,9 @@ export function createLayoutSizingManager({
             if (!hasFiniteValue(requestedValue)) return;
             const tracks = nextState.gridTracks?.[axis] || [];
             if (!tracks.length) return;
-            const requested = Math.max(minimumValue, Number(requestedValue));
+            const maximumValue = getWindowSliderRange('overall', axis).maxM;
+            if (minimumValue > maximumValue + EPSILON) return;
+            const requested = Math.min(maximumValue, Math.max(minimumValue, Number(requestedValue)));
             const targetStructural = Math.max(
                 MIN_TRACK_M * tracks.length,
                 requested - extension * 2
@@ -797,7 +802,7 @@ export function createLayoutSizingManager({
             );
             const candidate = cloneState(nextState);
             candidate.gridTracks[axis] = applySizeMap(tracks, sizes);
-            if (stateMeetsMinimumWindowSize(candidate, axis, MIN_WINDOW_M, extension)) {
+            if (stateMeetsMinimumWindowSize(candidate, axis, getWindowSliderRange('individual', axis).minM, extension)) {
                 nextState = candidate;
             }
         };
@@ -831,7 +836,8 @@ export function createLayoutSizingManager({
             if (!cell) throw new Error(`Unknown window ${cellId}.`);
 
             const currentActual = getCellActualAxisSize(before, cell, axis, extension);
-            const requested = Math.max(MIN_WINDOW_M, Number(requestedValue));
+            const { minM, maxM } = getWindowSliderRange('individual', axis);
+            const requested = Math.min(maxM, Math.max(minM, Number(requestedValue)));
             if (nearlyEqual(currentActual, requested, 1e-7)) return;
 
             const currentId = String(cellId);
@@ -936,7 +942,9 @@ export function createLayoutSizingManager({
             if (!hasFiniteValue(requestedValue)) return;
             const tracks = nextState.gridTracks?.[axis] || [];
             if (!tracks.length) return;
-            const requested = Math.max(minimumValue, Number(requestedValue));
+            const maximumValue = getWindowSliderRange('overall', axis).maxM;
+            if (minimumValue > maximumValue + EPSILON) return;
+            const requested = Math.min(maximumValue, Math.max(minimumValue, Number(requestedValue)));
             const targetStructural = Math.max(
                 MIN_TRACK_M * tracks.length,
                 requested - extension * 2
@@ -948,7 +956,7 @@ export function createLayoutSizingManager({
             );
             const candidate = cloneState(nextState);
             candidate.gridTracks[axis] = applySizeMap(tracks, sizes);
-            if (stateMeetsMinimumWindowSize(candidate, axis, MIN_WINDOW_M, extension)) {
+            if (stateMeetsMinimumWindowSize(candidate, axis, getWindowSliderRange('individual', axis).minM, extension)) {
                 nextState = candidate;
             }
         };

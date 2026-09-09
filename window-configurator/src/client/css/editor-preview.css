@@ -1,0 +1,17 @@
+/* Isolate positioning only; the widgets above use the production window styles. */
+html, body { margin:0; width:100%; height:auto; min-height:0; overflow:hidden; background:transparent!important; }
+body.shared-ui-mounted #controls,
+body.shared-ui-mounted #selected-window-panel {
+  position:relative!important; inset:auto!important; width:100%!important; max-width:none!important;
+  max-height:none!important; height:auto!important; transform:none!important; margin:0!important;
+  opacity:1!important; visibility:visible!important; box-sizing:border-box;
+  box-shadow:none!important; transition:none!important; padding:16px!important;
+}
+body.shared-ui-mounted #selected-window-panel { margin-top:12px!important; }
+#preview-content { display:flow-root; padding:2px; }
+#preview-content[hidden], #aluminiumFinishControls[hidden], #overallWindowSizeControls[hidden], #selected-window-panel[hidden] { display:none!important; }
+#aluminiumFinishControls { margin-bottom:0; }
+#overallWindowSizeControls label { margin-bottom:14px; }
+#selected-window-panel .selected-window-size-value input[type="number"] { background:#f5f7f8!important; padding:1px 4px!important; }
+.finish-selected-name { overflow-wrap:anywhere; }
+button:focus-visible, input[type="range"]:focus-visible { outline:2px solid #0878c9; outline-offset:2px; }

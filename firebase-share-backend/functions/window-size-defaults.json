@@ -1,0 +1,22 @@
+{
+  "overall": {
+    "width": {
+      "minMm": 450,
+      "maxMm": 25000
+    },
+    "height": {
+      "minMm": 450,
+      "maxMm": 25000
+    }
+  },
+  "individual": {
+    "width": {
+      "minMm": 450,
+      "maxMm": 2500
+    },
+    "height": {
+      "minMm": 450,
+      "maxMm": 2500
+    }
+  }
+}

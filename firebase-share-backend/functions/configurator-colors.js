@@ -6,6 +6,7 @@ const { getFirestore, Timestamp } = require('firebase-admin/firestore');
 const WINDOW_DEFAULTS = require('./window-color-defaults.json');
 const PERGOLA_DEFAULTS = require('./pergola-color-defaults.json');
 const FENCE_DEFAULTS = require('./fence-color-defaults.json');
+const WINDOW_SIZE_DEFAULTS = require('./window-size-defaults.json');
 
 // The same verified-account allowlist as the existing internal sales dashboard.
 // Never authorize using an email, role, or admin flag supplied by the browser.
@@ -138,9 +139,53 @@ function validateGroups(groups, definition) {
   return result;
 }
 
+// Slider bounds are saved with the palette revision so a single publish is atomic.
+const WINDOW_SIZE_MIN_MM = 450;
+const WINDOW_SIZE_MAX_MM = 25000;
+function validateWindowSizeLimits(value) {
+    const exact = (object, keys) => object !== null && typeof object === 'object'
+        && !Array.isArray(object) && Object.keys(object).length === keys.length
+        && keys.every(key => Object.prototype.hasOwnProperty.call(object, key));
+    const fail = (message, field = '') => {
+        const error = new HttpsError('invalid-argument', message);
+        error.field = field;
+        throw error;
+    };
+    if (!exact(value, ['overall', 'individual'])) fail('Include both overall and individual window size limits.');
+    const result = {};
+    for (const scope of ['overall', 'individual']) {
+        if (!exact(value[scope], ['width', 'height'])) fail(`Include width and height limits for ${scope} sizes.`);
+        result[scope] = {};
+        for (const axis of ['width', 'height']) {
+            const range = value[scope][axis];
+            const field = `${scope}.${axis}`;
+            if (!exact(range, ['minMm', 'maxMm'])) fail(`Invalid ${scope} ${axis} range.`, field);
+            for (const key of ['minMm', 'maxMm']) {
+                if (!Number.isSafeInteger(range[key]) || range[key] < WINDOW_SIZE_MIN_MM || range[key] > WINDOW_SIZE_MAX_MM) {
+                    fail(`Use whole millimetres between ${WINDOW_SIZE_MIN_MM} and ${WINDOW_SIZE_MAX_MM}.`, `${field}.${key}`);
+                }
+            }
+            if (range.minMm >= range.maxMm) fail('The minimum must be smaller than the maximum.', `${field}.maxMm`);
+            result[scope][axis] = { minMm: range.minMm, maxMm: range.maxMm };
+        }
+    }
+    for (const axis of ['width', 'height']) {
+        if (result.individual[axis].maxMm > result.overall[axis].maxMm) {
+            fail(`Individual ${axis} cannot exceed the overall maximum.`, `individual.${axis}.maxMm`);
+        }
+    }
+    return result;
+}
+
+function windowSizeFields(definition, data = {}) {
+  return definition.id === 'window'
+    ? { windowSettingsVersion: 1, sizeLimits: validateWindowSizeLimits(data.sizeLimits ?? WINDOW_SIZE_DEFAULTS) }
+    : {};
+}
+
 function publicPalette(snapshot, definition) {
   if (!snapshot.exists) {
-    return { schemaVersion: 1, configuratorId: definition.id, revision: 0, groups: validateGroups(definition.defaults, definition), updatedAtMs: 0 };
+    return { schemaVersion: 1, configuratorId: definition.id, revision: 0, groups: validateGroups(definition.defaults, definition), updatedAtMs: 0, ...windowSizeFields(definition) };
   }
   const data = snapshot.data();
   if (data.schemaVersion !== 1 || !Number.isSafeInteger(data.revision) || data.revision < 1) {
@@ -153,6 +198,7 @@ function publicPalette(snapshot, definition) {
     revision: data.revision,
     groups: validateGroups(data.groups, definition),
     updatedAtMs: data.updatedAt?.toMillis?.() || 0,
+    ...windowSizeFields(definition, data),
   };
 }
 
@@ -171,13 +217,17 @@ exports.getConfiguratorColorEditor = onCall(ADMIN_OPTIONS, async request => {
 
 exports.saveConfiguratorColors = onCall(ADMIN_OPTIONS, async request => {
   const user = await requireEditorAdmin(request);
-  requireKeys(request.data, ['configuratorId', 'expectedRevision', 'groups'], 'Invalid palette update.');
+  const includesSizes = isObject(request.data) && Object.prototype.hasOwnProperty.call(request.data, 'sizeLimits');
+  const keys = ['configuratorId', 'expectedRevision', 'groups'];
+  if (includesSizes && request.data.configuratorId === 'window') keys.push('sizeLimits');
+  requireKeys(request.data, keys, 'Invalid configurator settings update.');
   const definition = requireConfigurator(request.data.configuratorId);
   const { expectedRevision } = request.data;
   if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0 || expectedRevision >= Number.MAX_SAFE_INTEGER) {
     throw new HttpsError('invalid-argument', 'A valid palette revision is required. Reload the editor.');
   }
   const groups = validateGroups(request.data.groups, definition);
+  const requestedSizeLimits = includesSizes ? validateWindowSizeLimits(request.data.sizeLimits) : null;
   const db = getFirestore();
   const ref = db.collection(COLLECTION).doc(definition.id);
   return db.runTransaction(async transaction => {
@@ -188,11 +238,15 @@ exports.saveConfiguratorColors = onCall(ADMIN_OPTIONS, async request => {
     }
     const revision = current.revision + 1;
     const updatedAt = Timestamp.now();
-    const data = { schemaVersion: 1, revision, groups, updatedAt, updatedBy: user.uid };
+    // Legacy color-only clients keep the current size settings, never reset them.
+    const sizeFields = definition.id === 'window'
+      ? { sizeLimits: requestedSizeLimits ?? current.sizeLimits }
+      : {};
+    const data = { schemaVersion: 1, revision, groups, updatedAt, updatedBy: user.uid, ...sizeFields };
     // The published document and its immutable audit snapshot are one atomic write.
     transaction.set(ref, data);
     transaction.create(ref.collection('history').doc(String(revision)), data);
-    return { schemaVersion: 1, configuratorId: definition.id, revision, groups, updatedAtMs: updatedAt.toMillis() };
+    return { schemaVersion: 1, configuratorId: definition.id, revision, groups, updatedAtMs: updatedAt.toMillis(), ...windowSizeFields(definition, data) };
   });
 });
 

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-configurator-id="window" data-window-settings-editor>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,7 +7,8 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="color-scheme" content="light">
   <title>Window configurator editor · 360Configurator</title>
-  <link rel="stylesheet" href="/shared-ui/styles/configuratorEditor.css?v=2">
+  <link rel="stylesheet" href="/shared-ui/styles/configuratorEditor.css?v=4">
+  <link rel="stylesheet" href="/shared-ui/styles/windowSettingsEditor.css?v=1">
 </head>
 <body>
   <header class="editor-header">
@@ -19,7 +20,7 @@
     <section class="intro">
       <p class="eyebrow">WINDOW SETTINGS</p>
       <h1>Window configurator editor</h1>
-      <p class="intro-copy">Manage the aluminium colors your customers can choose in the window configurator.</p>
+      <p class="intro-copy">Manage available colors and size slider limits for the window configurator.</p>
     </section>
     <section class="access-card" id="access-panel" aria-labelledby="access-title">
       <span class="access-icon" aria-hidden="true">360</span>
@@ -28,40 +29,58 @@
       <button type="button" id="sign-in" class="button button-primary" hidden>Sign in with Google</button>
       <button type="button" id="retry-access" class="button" hidden>Try again</button>
     </section>
-    <noscript><p class="notice">JavaScript is required to sign in and edit window colors.</p></noscript>
+    <noscript><p class="notice">JavaScript is required to sign in and edit window settings.</p></noscript>
     <!-- No editor data or controls are revealed until server-side authorization succeeds. -->
     <form id="editor" hidden novalidate>
       <fieldset id="editor-controls">
-        <legend class="sr-only">Window color settings</legend>
+        <legend class="sr-only">Window configurator settings</legend>
         <div class="editor-toolbar">
-          <p>Choose a finish below to edit its available colors.</p>
+          <p>Choose a settings menu. Preview changes before publishing.</p>
           <a id="open-configurator" href="/window-configurator/" target="_blank" rel="noopener" class="button">Open window configurator <span aria-hidden="true">↗</span></a>
         </div>
-        <div class="workspace">
-          <section class="palette-card" aria-labelledby="palette-title">
-            <div class="section-heading"><div><p class="eyebrow">ALUMINIUM FINISH</p><h2 id="palette-title">Available colors</h2></div><span class="count-badge" id="color-count"></span></div>
-            <div id="finish-tabs" class="finish-tabs" role="group" aria-label="Finish type"></div>
-            <div class="list-heading"><span>Color</span><span>Hex value</span><span>Display name</span></div>
-            <div id="color-rows" class="color-rows"></div>
-            <button id="add-color" type="button" class="button add-color"><span aria-hidden="true">＋</span> Add color</button>
-            <p class="helper">Keep at least one color per finish. Names are shown in the window’s color picker.</p>
-          </section>
-          <aside class="preview-card" aria-labelledby="preview-title">
-            <p class="eyebrow">PICKER PREVIEW</p><h2 id="preview-title">Color coated</h2>
-            <p class="helper">Select a swatch to preview its name. Unsaved changes are visible only here.</p>
-            <div class="preview-surface"><div id="preview-swatches" class="preview-swatches" role="group" aria-label="Preview colors"></div><p id="preview-name"></p></div>
-            <div class="publish-note"><h3>One palette, both sides</h3><p>The same color choices are available for inside and outside finishes. Their material properties stay unchanged.</p></div>
-            <p class="helper">After publishing, open or refresh the window configurator to see the updated palette.</p>
+        <div class="workspace window-settings-workspace">
+          <div class="settings-menus">
+            <details class="settings-menu" id="colors-menu" name="window-editor-menu" open>
+              <summary><span>Colors</span><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></summary>
+              <section class="palette-card menu-body" aria-labelledby="palette-title">
+                <div class="section-heading"><div><p class="eyebrow">ALUMINIUM FINISH</p><h2 id="palette-title">Available colors</h2></div><span class="count-badge" id="color-count"></span></div>
+                <div id="finish-tabs" class="finish-tabs" role="group" aria-label="Finish type"></div>
+                <div class="list-heading"><span>Color</span><span>Hex value</span><span>Display name</span></div>
+                <div id="color-rows" class="color-rows"></div>
+                <button id="add-color" type="button" class="button add-color"><span aria-hidden="true">＋</span> Add color</button>
+                <p class="helper">Keep at least one color per finish. The same choices are available for inside and outside finishes.</p>
+              </section>
+            </details>
+            <details class="settings-menu" id="sizes-menu" name="window-editor-menu">
+              <summary><span>Window sizes</span><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></summary>
+              <section class="menu-body" aria-labelledby="sizes-title">
+                <p class="eyebrow">SIZE SLIDER LIMITS</p><h2 id="sizes-title">Window sizes</h2>
+                <p class="helper">Set the minimum and maximum for each slider, in millimetres. The slider and its number field use the same limits.</p>
+                <div id="window-size-fields"></div>
+                <p id="size-validation-message" class="notice notice-error" role="status" aria-live="polite" hidden></p>
+                <p class="helper">The grid needs at least 450 mm per window. In a multi-window layout, geometry may raise the overall minimum or further restrict individual resizing.</p>
+                <p class="helper">These are slider limits, not manufacturing approvals. The existing 2,500 mm per-window cart limit and 130 kg opening-sash weight check are unchanged.</p>
+              </section>
+            </details>
+          </div>
+          <aside class="preview-card window-settings-preview" aria-labelledby="settings-preview-title">
+            <p class="eyebrow">CONFIGURATOR PREVIEW</p><h2 id="settings-preview-title">Colors</h2>
+            <p class="helper">Try the controls exactly as they appear in the configurator. This preview does not publish changes.</p>
+            <iframe id="window-settings-preview" title="Window configurator controls preview" src="/window-configurator/editor-preview.html?v=1" referrerpolicy="same-origin"></iframe>
+            <p id="preview-load-message" class="helper" role="status">Loading preview…</p>
+            <p class="helper">After publishing, open or refresh the window configurator to load the new settings.</p>
+            <!-- Retained hooks for the shared color editor; the visible preview uses the real window styles. -->
+            <div hidden><h2 id="preview-title"></h2><div id="preview-swatches"></div><p id="preview-name"></p></div>
           </aside>
         </div>
       </fieldset>
       <div id="editor-message" class="notice" role="status" aria-live="polite" hidden></div>
       <footer class="save-bar">
-        <div><strong id="dirty-label">No unpublished changes</strong><p id="published-label">Using built-in colors</p></div>
-        <div class="save-actions"><button type="button" id="reload" class="button">Reload published colors</button><button type="submit" id="publish" class="button button-primary" disabled>Save and publish</button></div>
+        <div><strong id="dirty-label">No unpublished changes</strong><p id="published-label">Using built-in settings</p></div>
+        <div class="save-actions"><button type="button" id="reload" class="button">Reload published settings</button><button type="submit" id="publish" class="button button-primary" disabled>Save and publish</button></div>
       </footer>
     </form>
   </main>
-  <script type="module" src="/shared-ui/src/configuratorEditor.js?v=2"></script>
+  <script type="module" src="/shared-ui/src/configuratorEditor.js?v=5"></script>
 </body>
 </html>
