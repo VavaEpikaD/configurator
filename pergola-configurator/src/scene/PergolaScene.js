@@ -505,12 +505,17 @@ export class PergolaScene {
     for (let index = 0; index < plankCount; index += 1) {
       const deckTile = 1.5;
       const lengthOffset = (index * 0.731) % deckTile;
-      // Keep row-to-row variation restrained. The photographic tile contains
-      // stronger grain bands in some vertical regions, so letting each plank
-      // jump freely across the whole tile creates visibly mismatched boards.
-      // We therefore vary mainly along the grain, while limiting cross-grain
-      // offsets to a narrow stable band with a small deterministic jitter.
-      const rowOffset = ((0.18 + ((((index * 0.173) % 1) - 0.5) * 0.06)) % deckTile + deckTile) % deckTile;
+      // Keep row-to-row variation smooth, but still allow the deck to sample
+      // the more expressive region of the photographic texture. The strongest
+      // grain band sits around the middle of the source image, so we centre
+      // the cross-grain offsets there and move through that region gradually
+      // instead of jumping each plank to an unrelated slice.
+      const rowCenter = 0.69;
+      const rowSwing = 0.16;
+      const rowFineSwing = 0.045;
+      const rowOffset = ((rowCenter
+        + Math.sin(index * 0.52) * rowSwing
+        + Math.sin(index * 1.61 + 0.8) * rowFineSwing) % deckTile + deckTile) % deckTile;
       const geometry = this.geometry.boardGeometry(
         platformWidth, 0.02, Math.max(0.01, pitch - 0.004),
         { offset: [lengthOffset, rowOffset] });
