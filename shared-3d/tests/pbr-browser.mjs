@@ -95,7 +95,7 @@ async function capture(page,name){
  return result;
 }
 try{
- browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_EXECUTABLE?{executablePath:process.env.CHROMIUM_EXECUTABLE}:{}),
+ browser=await chromium.launch({headless:process.env.HEADFUL_WEBGL!=='1',...(process.env.CHROMIUM_EXECUTABLE?{executablePath:process.env.CHROMIUM_EXECUTABLE}:{}),
   args:process.env.SOFTWARE_WEBGL==='1'?['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--no-sandbox']:[]});
  for(const tag of before?['before','after']:['after'])for(const name of ['window','pergola']){
   const page=await browser.newPage({viewport:{width:800,height:600}}),errors=[];

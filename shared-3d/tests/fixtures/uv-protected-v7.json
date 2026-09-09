@@ -1,0 +1,206 @@
+{
+  "version": "20260909-uv-8",
+  "baseline": "Step 7 over latest uploaded Window plus Steps 1–6",
+  "excludes": [
+    "uv"
+  ],
+  "threeRevision": "160",
+  "window": {
+    "exact": {
+      "single-default": {
+        "product": "9f3f5d00f1d5d0694bab242ba8f47c862f5224713d6b8a1a078154092b6e86cb",
+        "sections": "ccfe100a207a0d214bdd96056e1b225d4f0c49a4fbef1bed856508630314b115",
+        "fabrication": "9852598d35aaa2a201b586d0e6cc03fc8ca2be5a410e636a650982aeb8e39d0f"
+      },
+      "single-small": {
+        "product": "3db53440edcade2514e3c6bac535f784216228554214a30c8acdda795798cd19",
+        "sections": "ccfe100a207a0d214bdd96056e1b225d4f0c49a4fbef1bed856508630314b115",
+        "fabrication": "cfbc2c31d6849ea3d70942f56e99d81acdf445b639b612765202232a6599ed14"
+      },
+      "single-large": {
+        "product": "978a7d7b5d000841472b2f484ea7c267c430a72d64a4670227ed3cc68652ac58",
+        "sections": "ccfe100a207a0d214bdd96056e1b225d4f0c49a4fbef1bed856508630314b115",
+        "fabrication": "f35184070f7480300180a146e7853deb7dc7992f532c86d5ca4f1e365467c9be"
+      },
+      "glass-16": {
+        "product": "164d0d5cbf558e8b9501eafb34eb919895b4cbbe0134c883322bb7e9eb41d2c0",
+        "sections": "ccfe100a207a0d214bdd96056e1b225d4f0c49a4fbef1bed856508630314b115",
+        "fabrication": "9852598d35aaa2a201b586d0e6cc03fc8ca2be5a410e636a650982aeb8e39d0f"
+      },
+      "glass-29": {
+        "product": "141fa899e223ce384477a8d1b13827288004e232b002030a697f02fe03be68d1",
+        "sections": "ccfe100a207a0d214bdd96056e1b225d4f0c49a4fbef1bed856508630314b115",
+        "fabrication": "9852598d35aaa2a201b586d0e6cc03fc8ca2be5a410e636a650982aeb8e39d0f"
+      },
+      "turn-open": {
+        "product": "e72a85d65d550dc6872241256f71b0adbd2158a668b92436271c2f96c4fc61b1",
+        "sections": "ccfe100a207a0d214bdd96056e1b225d4f0c49a4fbef1bed856508630314b115",
+        "fabrication": "9852598d35aaa2a201b586d0e6cc03fc8ca2be5a410e636a650982aeb8e39d0f"
+      },
+      "tilt-open": {
+        "product": "220e863bff963fa104bd452b0866a29f6a23720957a1283636f7ebee11453907",
+        "sections": "ccfe100a207a0d214bdd96056e1b225d4f0c49a4fbef1bed856508630314b115",
+        "fabrication": "9852598d35aaa2a201b586d0e6cc03fc8ca2be5a410e636a650982aeb8e39d0f"
+      },
+      "left-handle": {
+        "product": "b7bf07a46ff88a24f43af8e95a83f50c8d502855d98c82447b7f3c39837691b9",
+        "sections": "ccfe100a207a0d214bdd96056e1b225d4f0c49a4fbef1bed856508630314b115",
+        "fabrication": "9852598d35aaa2a201b586d0e6cc03fc8ca2be5a410e636a650982aeb8e39d0f"
+      },
+      "exploded": {
+        "product": "34f22089af8f142993c7dd29792c590841f0e6dd0ba03717f5774d4e4d04b6ee",
+        "sections": "ccfe100a207a0d214bdd96056e1b225d4f0c49a4fbef1bed856508630314b115",
+        "fabrication": "9852598d35aaa2a201b586d0e6cc03fc8ca2be5a410e636a650982aeb8e39d0f"
+      },
+      "vertical-divider": {
+        "product": "d2e0d955886a60f4a681d1ca0d85d4301197f097f9c642410230d42708bd20ea",
+        "sections": "bd13db417aa6a06bb4e62bc043bc4613c9bebed30f939319352ac7006a2977b6",
+        "fabrication": "8b9320a845d7a1255dff63e3b1e8f9457ba7866e12118679cf4f684850292db6"
+      },
+      "horizontal-divider": {
+        "product": "7129a95fcaf44ac097574feb76053927d465b2be16bfd8d0409459d80ffbf38c",
+        "sections": "bd13db417aa6a06bb4e62bc043bc4613c9bebed30f939319352ac7006a2977b6",
+        "fabrication": "67fd98d49e9f937460891d3d19f50fab41b448e1d6a798b69ff1b7241895e02a"
+      },
+      "three-fixed": {
+        "product": "b9c95757d8adb1aad78b16bb71962cc11c164ff1fca15ac586eedeb7237ac111",
+        "sections": "bd13db417aa6a06bb4e62bc043bc4613c9bebed30f939319352ac7006a2977b6",
+        "fabrication": "6a04f1bd5a7ef6e5d6e8a02af94bc1a3fd905189d04afc4db6b0dad3270b7d96"
+      },
+      "two-sashes": {
+        "product": "2e69d102e044e6ce14d4e8dd0d021fc5cd49e204b1251297d4e043037edb0008",
+        "sections": "bd13db417aa6a06bb4e62bc043bc4613c9bebed30f939319352ac7006a2977b6",
+        "fabrication": "1fda51567e03f371f929ab4abfec022e288f55d808d05c1599dfd542fd55f9cc"
+      }
+    },
+    "detailed": {
+      "single-default": {
+        "product": "1de7bd718d0dbdd77f27f43575af4b2c5a43ab598d854fec529e18fba314586d",
+        "sections": "ccfe100a207a0d214bdd96056e1b225d4f0c49a4fbef1bed856508630314b115",
+        "fabrication": "9852598d35aaa2a201b586d0e6cc03fc8ca2be5a410e636a650982aeb8e39d0f"
+      },
+      "single-small": {
+        "product": "1d6aaea40d002e6bd911100e12ef8dce0cb494780bd835ae94e83080bbe6cfe9",
+        "sections": "ccfe100a207a0d214bdd96056e1b225d4f0c49a4fbef1bed856508630314b115",
+        "fabrication": "cfbc2c31d6849ea3d70942f56e99d81acdf445b639b612765202232a6599ed14"
+      },
+      "single-large": {
+        "product": "832fba26f1886a337d38ab1cf33df72892a6213583f32a18c9674ef313e5ebb5",
+        "sections": "ccfe100a207a0d214bdd96056e1b225d4f0c49a4fbef1bed856508630314b115",
+        "fabrication": "f35184070f7480300180a146e7853deb7dc7992f532c86d5ca4f1e365467c9be"
+      },
+      "glass-16": {
+        "product": "1953291aa29de8c09c9dabb44326bfe71ba3d7c00392a96912d5eafc2b93c0e7",
+        "sections": "ccfe100a207a0d214bdd96056e1b225d4f0c49a4fbef1bed856508630314b115",
+        "fabrication": "9852598d35aaa2a201b586d0e6cc03fc8ca2be5a410e636a650982aeb8e39d0f"
+      },
+      "glass-29": {
+        "product": "e8c1de2333ee025fd5ddeffa8960a74c80bf939494affee34b253cccc8e86d0e",
+        "sections": "ccfe100a207a0d214bdd96056e1b225d4f0c49a4fbef1bed856508630314b115",
+        "fabrication": "9852598d35aaa2a201b586d0e6cc03fc8ca2be5a410e636a650982aeb8e39d0f"
+      },
+      "turn-open": {
+        "product": "eddd709be5ec4b46dd568e82e81891459f3ba0e886dfe1d297e91d3f1b39374b",
+        "sections": "ccfe100a207a0d214bdd96056e1b225d4f0c49a4fbef1bed856508630314b115",
+        "fabrication": "9852598d35aaa2a201b586d0e6cc03fc8ca2be5a410e636a650982aeb8e39d0f"
+      },
+      "tilt-open": {
+        "product": "5e8202e51133039cae63c2fac931ab806dc9f62918119e91cda329fcebf86a07",
+        "sections": "ccfe100a207a0d214bdd96056e1b225d4f0c49a4fbef1bed856508630314b115",
+        "fabrication": "9852598d35aaa2a201b586d0e6cc03fc8ca2be5a410e636a650982aeb8e39d0f"
+      },
+      "left-handle": {
+        "product": "e164310f965117f9fe77e82691f47303c79ca8d54199227bf5f1d7bfb7122e08",
+        "sections": "ccfe100a207a0d214bdd96056e1b225d4f0c49a4fbef1bed856508630314b115",
+        "fabrication": "9852598d35aaa2a201b586d0e6cc03fc8ca2be5a410e636a650982aeb8e39d0f"
+      },
+      "exploded": {
+        "product": "ea01d2b0ecc152e00b5d61b5b410575f2e8cd01ac07dbf9aa08fd8957bdfb2e0",
+        "sections": "ccfe100a207a0d214bdd96056e1b225d4f0c49a4fbef1bed856508630314b115",
+        "fabrication": "9852598d35aaa2a201b586d0e6cc03fc8ca2be5a410e636a650982aeb8e39d0f"
+      },
+      "vertical-divider": {
+        "product": "7cb6c1733aeb61833add747f1c4339ad18a17807a45ac270c743b1f9c14a2421",
+        "sections": "bd13db417aa6a06bb4e62bc043bc4613c9bebed30f939319352ac7006a2977b6",
+        "fabrication": "8b9320a845d7a1255dff63e3b1e8f9457ba7866e12118679cf4f684850292db6"
+      },
+      "horizontal-divider": {
+        "product": "4821619ed0a51b0baa5567c232154587afe69947287bd4eeb9e82c042f262a32",
+        "sections": "bd13db417aa6a06bb4e62bc043bc4613c9bebed30f939319352ac7006a2977b6",
+        "fabrication": "67fd98d49e9f937460891d3d19f50fab41b448e1d6a798b69ff1b7241895e02a"
+      },
+      "three-fixed": {
+        "product": "b9c95757d8adb1aad78b16bb71962cc11c164ff1fca15ac586eedeb7237ac111",
+        "sections": "bd13db417aa6a06bb4e62bc043bc4613c9bebed30f939319352ac7006a2977b6",
+        "fabrication": "6a04f1bd5a7ef6e5d6e8a02af94bc1a3fd905189d04afc4db6b0dad3270b7d96"
+      },
+      "two-sashes": {
+        "product": "1abe7ebfec2cf57f72e36bc6fe2f2b541c771d8894d08e490d6e67f81bfde92a",
+        "sections": "bd13db417aa6a06bb4e62bc043bc4613c9bebed30f939319352ac7006a2977b6",
+        "fabrication": "1fda51567e03f371f929ab4abfec022e288f55d808d05c1599dfd542fd55f9cc"
+      }
+    }
+  },
+  "pergola": {
+    "exact": {
+      "default": "3ab8f19c7daff3b5fa92cbd8618a162728197d118a834445643a84aee9ab0733",
+      "lite-width": "72751d73e1317870e0167470162e00f088dff3cc4ef00af9cb16b04d4d7f0adc",
+      "lite-depth": "1905f879a75121436928bf22053430876d0aad2e4b94c23f99c5946aa3a7c709",
+      "comfort-width": "06692676bdbda8dbaf7f01067f39250f1e1ff7a96b52b6873afe8f4b996b355c",
+      "comfort-depth": "4c1aadf409ccdcc8edbc9b92c2d581ce406cab445d68eb8c385874d97ea2982b",
+      "premium-width": "3ab8f19c7daff3b5fa92cbd8618a162728197d118a834445643a84aee9ab0733",
+      "premium-depth": "d0739035e272441936ab3ea386ce5203992402abe684cc00afafeba6e9d49b18",
+      "dimensions-2000-2000-2200": "8c1dbd086eacfa4395ac0e9389b142c9339dab916dfd79e8fdf5a559de2c9fe3",
+      "dimensions-6000-6000-3000": "4e5894cddebb0100887049f837b18e288cbe1a68ca2951c438625cf8ba65eeff",
+      "dimensions-12000-9000-3200": "bda08ac7332ddc89fecace8f7f94e60bd3911bd8ceeff4d5d8a3a09c5e36cbd4",
+      "wall-front": "5dd51f3b4ff63d5951951e0a01e8cb89bb4931dbac25a3745038e59f458bbdc7",
+      "wall-back": "a857e4e97a0049e23d4f802f6b11d75198fe9b6f26d779b0b092ff99673dd4ea",
+      "wall-left": "524803dfaf780f1e96ccd8d36df7adbd33727c2b813b27c4b815c4a43387294a",
+      "wall-right": "c4ae3b76d5873d2905f6e7f84ef6816116037eff805179f26759b96e44ebdc08",
+      "sides-glass": "75b84e0c88f1ece2f15546bc209edf2a761aad7d63724a67a37faa23b7ece1fa",
+      "sides-privacy-wall": "fa1a1ec59de0976d6ef8beb8e6519cfb27e13cc54d61fbd4cdb6dd6ff60dd730",
+      "sides-screen": "a824085194ca0246ffa97a3486e970c6bef9cd97fe98f03d0b6683bbdef5e6c1",
+      "sides-motorized-screen": "a824085194ca0246ffa97a3486e970c6bef9cd97fe98f03d0b6683bbdef5e6c1",
+      "louvers-0": "58214470d9efbc8b92b50c5fb4449396cf4ffcf7b6c2ea9a1a1344859bf54f2a",
+      "louvers-45": "58b7147723b6069c8e07e5d04945ca01a4fcfd9662052c201f940b15fd9d0e6a",
+      "louvers-90": "9008c41ce63b352df4e742b83b14df8398fe733c60de3c83148f4e4a8b537f5f",
+      "drainage-none": "c95d6194eb88ca76d65ca5aa69737c33a153db5799de0863fb006dcac3da0982",
+      "manual": "5da06fa90ce9546aae1944ce447a8ea3068ab77e22bf5a7abcf0c90eb54b2306",
+      "perimeter-led": "f12d52e3d62aee4ae662abd2fe7fd931e3abe067a1353cb9498a9b9c9b941ffd",
+      "night-led": "f12d52e3d62aee4ae662abd2fe7fd931e3abe067a1353cb9498a9b9c9b941ffd",
+      "spotlights": "c028458462eb5f46cfe6519022d51aaf379c955c1d3cf5a6e9cc159fe9023796",
+      "outlet-eu": "a85bc95c6ed3b3e20835d98f33ed9a83a952e775e9d9175af6ec3a3d8198969a",
+      "outlet-us": "18020366624a887d7029d485f5f59ef3ba97465daf6027b03b8360a39c7f48df"
+    },
+    "detailed": {
+      "default": "92ce60b9a0e25527895e9842b7f07353985f8a11817a5fc9316b236f76abb5eb",
+      "lite-width": "2e3c7441958e7abd546755996cc99ea3953897c8bf4c842cbb1b0488107d9175",
+      "lite-depth": "c3f41a40dac9b5c875f162aede66bf5187b7c9ba4d52cdf672b609e050697db9",
+      "comfort-width": "4d8f84b30f2561c7e2c73a687de9df3ef10ab7f5ea5ff9fc7286e613a09a1160",
+      "comfort-depth": "107bf8c94eeb1786a8131ff4a13c7496644cab08bdd6db62d55a54119c1db5cb",
+      "premium-width": "92ce60b9a0e25527895e9842b7f07353985f8a11817a5fc9316b236f76abb5eb",
+      "premium-depth": "6e3847d13f4c987baa4046bd924513225b3b7cddf6fade5b7824bca56ac097c2",
+      "dimensions-2000-2000-2200": "a1a77fd7df8ee03882d17725c262dbf2625ce25df72b28b25755368b2eaa7f2a",
+      "dimensions-6000-6000-3000": "859b37290f4dc0fe3fd33ace8e4f2d48882fe3de9ead963eb4ccbf103237aa07",
+      "dimensions-12000-9000-3200": "45484f3b690e77ba0c224b45e950974e09f0eb4238cf42bb378b917e8a56daac",
+      "wall-front": "cf7927ce98a91308f0a1e1afb7ba3f36bb1e6311551f1a6e9c1ef1e93e649036",
+      "wall-back": "a23889e2eb464b91b6869ce1b518560b0ce1920c27c1483a8705a4293c0213d1",
+      "wall-left": "90f4515d6788a7ec969b7d7a1c974d3d6c2c7e4baeb13e6af8b6ff7ebcc28a8d",
+      "wall-right": "61200f47baae07225fa9bf367cbd01ce1aea620ba3c0444dd01af5a290836487",
+      "sides-glass": "6de7008280e67a5c3ec5b83a1ac6fb0939a086e7b6951120ce1587307752a243",
+      "sides-privacy-wall": "c71d4d0eed7767f9ec2e7cf5a8fa7eda5734f910ae6fc6e0aac88a6c9d01ca15",
+      "sides-screen": "fc3207df649a54d19cddd701943e8a4b8b130d4dbbb9127d73185571b878cec3",
+      "sides-motorized-screen": "fc3207df649a54d19cddd701943e8a4b8b130d4dbbb9127d73185571b878cec3",
+      "louvers-0": "a9d5e47c4b1f997098d1f902ee9ed6155ecf2f3b55e37d1b1d8daa4446a3b264",
+      "louvers-45": "4f247eae1e6829174545226fe8c6d9695d1e42541d2d2f0fb5526cd4e1c1ded2",
+      "louvers-90": "7a04ccdfeb5849f18ee22bc57ad5921a61d97f45608b92b718f2c41e8eed1934",
+      "drainage-none": "7d6b7a85ec7c597cd353219fa5d4822d357d7576e893848082a03433ad0924e3",
+      "manual": "8714c76dfe9dfe4ccb639efd11d2b91541ed838d8f490fe8a268e7604174781b",
+      "perimeter-led": "3aa796a5e62b69f521dae70321b4a869b9cd8bd75477bc969a361f3eeedbc556",
+      "night-led": "3aa796a5e62b69f521dae70321b4a869b9cd8bd75477bc969a361f3eeedbc556",
+      "spotlights": "fc4d03f5724264bb10e1d2c313f1ca8486a4371a82e6ae463a776127cc813585",
+      "outlet-eu": "089734f5705080547bbc79ff3999a4712ccd0571516230860d186dc0fecbddba",
+      "outlet-us": "8a12451ed73f6ae2327a40c47c571f6ba492902b87deee669b86446cd086efc0"
+    }
+  }
+}

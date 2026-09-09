@@ -20,7 +20,7 @@ export const MATERIAL_PRESETS = Object.freeze({
     ior: 1.5, transmission: 0.96, thickness: 0.006,
   }),
   'wood.deck': Object.freeze({
-    type: 'standard', color: '#ffffff', metalness: 0, roughness: 0.86, envMapIntensity: 0.28,
+    type: 'standard', color: '#ffffff', metalness: 0, roughness: 0.76, envMapIntensity: 0.28,
     texture: 'oak', textureSet: 'wood.deck', normalStrength: 0.12, assetNormalStrength: 0.14,
     tile: [2.4, 0.24], assetTile: [1.5, 1.5],
   }),

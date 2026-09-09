@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GeometryLibrary, getEdgeFinish } from '../../../shared-3d/src/index.js?v=6';
+import { GeometryLibrary, getEdgeFinish } from '../../../shared-3d/src/index.js?v=8';
 
 /** Pergola-specific mesh policy; all primitive generation lives in shared-3d. */
 export function createPergolaGeometry(library = null) {
@@ -14,13 +14,18 @@ export function createPergolaGeometry(library = null) {
     mesh,
     box(width, height, depth, material, options = {}) {
       const { edgeFinish = null, axis = 'auto', ...meshOptions } = options;
+      const grainAxis = axis === 'auto' ? ['x', 'y', 'z'][[width, height, depth].indexOf(Math.max(width, height, depth))] : axis;
       const source = edgeFinish
         ? geometry.create('profile.roundedRectangle', { width, height, depth, axis, ...getEdgeFinish(edgeFinish) })
         : geometry.create('primitive.box', { width, height, depth });
-      return mesh(source, material, meshOptions);
+      return mesh(source, material, {
+        ...(source.userData.surfaceUV?.preserve ? {} : { mapping: { mode: 'box', grainAxis } }), ...meshOptions,
+      });
     },
     cylinder(radius, height, material, radialSegments = 20) {
-      return mesh(geometry.create('primitive.cylinder', { radius, height, radialSegments }), material);
+      return mesh(geometry.create('primitive.cylinder', { radius, height, radialSegments }), material, {
+        mapping: { mode: 'cylindrical', grainAxis: 'y', radius },
+      });
     },
     panel(width, height, thickness, material, options = {}) {
       return mesh(geometry.create('panel.rectangular', { width, height, thickness }), material, {
@@ -34,7 +39,10 @@ export function createPergolaGeometry(library = null) {
         ? geometry.create('profile.roundedRectangle', { width, height, depth, axis: 'x',
           ...getEdgeFinish('wood.deck'), uvOffset: uv.offset ?? [0, 0] })
         : geometry.create('primitive.box', { width, height, depth });
-      return geometry.prepare(source, { uv: source.userData.surfaceUV?.preserve ? false : { grainAxis: 'x', ...uv } });
+      return geometry.prepare(source, {
+        ...(source.userData.surfaceUV?.preserve ? {} : { mapping: { mode: 'box', grainAxis: 'x', ...uv } }),
+        uv: source.userData.surfaceUV?.preserve ? false : true,
+      });
     },
   };
 }

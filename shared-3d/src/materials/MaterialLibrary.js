@@ -1,6 +1,6 @@
-import { MATERIAL_PRESETS } from './presets.js?v=6';
-import { PBRTextureSets } from './PBRTextureSets.js?v=6';
-import { PBR_TEXTURE_SETS, PBR_TEXTURE_VERSION } from './textureSets.js?v=6';
+import { MATERIAL_PRESETS } from './presets.js?v=7';
+import { PBRTextureSets } from './PBRTextureSets.js?v=7';
+import { PBR_TEXTURE_SETS, PBR_TEXTURE_VERSION } from './textureSets.js?v=7';
 import { SurfaceTextures } from './SurfaceTextures.js?v=4';
 import { getQualityProfile, normalizeQuality } from '../quality.js?v=2';
 

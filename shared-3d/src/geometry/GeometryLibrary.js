@@ -1,9 +1,11 @@
+import { captureSurfaceUVDeformation } from './surfaceDeformation.js?v=8';
 import { applySurfaceUVs } from './surfaceUVs.js?v=1';
+import { declareSurfaceMapping, copySurfaceMapping, applyGeometrySurfaceUVs, UV_MAPPING_VERSION } from './surfaceMapping.js?v=8';
 import { splitPositionGeometryAtScalarZero, clipPositionGeometryToScalarHalfspace } from './scalarGeometry.js?v=2';
 
 import { createRoundedPrismGeometry, createBeveledSolidGeometry } from './edgeFinishes.js?v=4';
 
-export const GEOMETRY_SYSTEM_VERSION = '20260908-corrective-4';
+export const GEOMETRY_SYSTEM_VERSION = '20260909-uv-8';
 
 function positive(value, name) {
   if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
@@ -138,13 +140,23 @@ export class GeometryLibrary {
     }
     const entry = this.builders.get(id);
     if (!entry) throw new Error(`Unknown geometry type: ${id}`);
-    return this.adopt(entry.builder(parameters, this.THREE), { kind: id, units, materialSlots: entry.materialSlots });
+    const result = this.adopt(entry.builder(parameters, this.THREE), { kind: id, units, materialSlots: entry.materialSlots });
+    if (result.userData.surfaceUV?.preserve) {
+      // The rounded-profile perimeter and existing handle unwraps are already
+      // authored in metres. Record that policy without reprojecting them.
+      declareSurfaceMapping(result, { mode: 'authored', grainAxis: result.userData.surfaceUV.grainAxis });
+    }
+    return result;
   }
 
   clone(geometry) {
     this.assertActive();
     if (!geometry?.isBufferGeometry) throw new TypeError('A BufferGeometry is required.');
-    return this.adopt(geometry.clone());
+    const result = geometry.clone();
+    result.userData = { ...result.userData };
+    copySurfaceMapping(geometry, result);
+    if (geometry.userData.surfaceUV) result.userData.surfaceUV = JSON.parse(JSON.stringify(geometry.userData.surfaceUV));
+    return this.adopt(result);
   }
 
   /**
@@ -152,7 +164,7 @@ export class GeometryLibrary {
    * vertices or normals. Recompute normals only when explicitly requested, so
    * hard CAD edges and authored smoothing remain intact.
    */
-  prepare(geometry, { uv = false, normals = 'preserve', normalizeNormals = false, units = 'metres' } = {}) {
+  prepare(geometry, { uv = false, mapping = null, normals = 'preserve', normalizeNormals = false, units = 'metres' } = {}) {
     this.assertActive();
     if (!geometry?.isBufferGeometry) throw new TypeError('A BufferGeometry is required.');
     if (!['preserve', 'recompute'].includes(normals)) throw new TypeError('Unknown normal policy.');
@@ -164,15 +176,21 @@ export class GeometryLibrary {
       geometry.computeVertexNormals();
     }
     if (normalizeNormals) geometry.normalizeNormals();
-    if (uv) applySurfaceUVs(this.THREE, geometry, uv === true ? {} : uv);
+    if (mapping) declareSurfaceMapping(geometry, mapping);
+    if (uv) {
+      if (geometry.userData.surfaceMapping) applyGeometrySurfaceUVs(this.THREE, geometry, {
+        ...geometry.userData.surfaceMapping, ...(uv === true ? {} : uv),
+      });
+      else applySurfaceUVs(this.THREE, geometry, uv === true ? {} : uv);
+    }
     geometry.computeBoundingBox();
     geometry.computeBoundingSphere();
     return geometry;
   }
 
   /** The injected Mesh constructor preserves Window's existing reuse adapter. */
-  mesh(geometry, material, { uv = false, castShadow = false, receiveShadow = false, name = '', role = null } = {}) {
-    this.prepare(geometry, { uv });
+  mesh(geometry, material, { uv = false, mapping = null, castShadow = false, receiveShadow = false, name = '', role = null } = {}) {
+    this.prepare(geometry, { uv, mapping });
     const mesh = new this.THREE.Mesh(geometry, material);
     // Window may return a pooled Mesh and dispose the candidate geometry during
     // construction. Track the ACTUAL surviving buffer rather than the candidate.
@@ -189,24 +207,40 @@ export class GeometryLibrary {
   splitAtScalarZero(geometry, resolver) {
     this.assertActive();
     const result = splitPositionGeometryAtScalarZero(this.THREE, geometry, resolver);
+    copySurfaceMapping(geometry, result);
     return this.adopt(result, { kind: 'profile.split', units: geometry.userData.sharedGeometry?.units ?? 'source' });
   }
   clipToScalarHalfspace(geometry, resolver) {
     this.assertActive();
     const result = clipPositionGeometryToScalarHalfspace(this.THREE, geometry, resolver);
+    copySurfaceMapping(geometry, result);
     return this.adopt(result, { kind: 'profile.clip', units: geometry.userData.sharedGeometry?.units ?? 'source' });
+  }
+
+  captureSurfaceUVDeformation(geometry, basePositions = null) {
+    this.assertActive();
+    return captureSurfaceUVDeformation(geometry, basePositions);
   }
 
   getDiagnostics() {
     const activeTypes = {}, edgeFinishes = {};
+    const uvMapping = { version: UV_MAPPING_VERSION, declared: 0, applied: 0, sourceTemplates: 0, automatic: 0, modes: {}, grainAxes: {} };
     for (const geometry of this.geometries) {
       const id = geometry.userData.sharedGeometry?.kind ?? 'custom.buffer';
       activeTypes[id] = (activeTypes[id] ?? 0) + 1;
       const method = geometry.userData.edgeFinish?.method;
       if (method) edgeFinishes[method] = (edgeFinishes[method] ?? 0) + 1;
+      const mapping = geometry.userData.surfaceMapping;
+      if (geometry.userData.sharedGeometry?.units === 'source') uvMapping.sourceTemplates++;
+      if (mapping) {
+        uvMapping.declared++;
+        uvMapping.modes[mapping.mode] = (uvMapping.modes[mapping.mode] ?? 0) + 1;
+        uvMapping.grainAxes[mapping.grainAxis] = (uvMapping.grainAxes[mapping.grainAxis] ?? 0) + 1;
+        if (geometry.userData.surfaceUV) uvMapping.applied++;
+      } else if (geometry.userData.surfaceUV) uvMapping.automatic++;
     }
     return { version: GEOMETRY_SYSTEM_VERSION, geometryCount: this.geometries.size,
-      registeredCount: this.registeredCount, activeTypes, edgeDetails: this.edgeDetails, edgeFinishes, registeredTypes: [...this.builders.keys()] };
+      registeredCount: this.registeredCount, activeTypes, uvMapping, edgeDetails: this.edgeDetails, edgeFinishes, registeredTypes: [...this.builders.keys()] };
   }
 
   dispose() {

@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-export function productGeometrySnapshot(root) {
+export function productGeometrySnapshot(root, { excludeAttributes = [] } = {}) {
   root.updateMatrixWorld(true);
   const hash = createHash('sha256'), meshes = [];
   root.traverse(object => {
@@ -9,6 +9,7 @@ export function productGeometrySnapshot(root) {
     geometry.computeBoundingBox();
     // Include every original buffer, not UUID/userData or lazy derived bounds.
     for (const key of Object.keys(geometry.attributes).sort()) {
+      if (excludeAttributes.includes(key)) continue;
       const attribute = geometry.attributes[key];
       hash.update(key); hash.update(JSON.stringify(Array.from(attribute.array)));
     }

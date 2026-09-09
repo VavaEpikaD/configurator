@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createSurfaceSystem, disposeObjectResources } from '../../../shared-3d/src/index.js?v=6';
+import { createSurfaceSystem, disposeObjectResources } from '../../../shared-3d/src/index.js?v=8';
 import { createPergolaGeometry } from './pergolaGeometry.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
@@ -503,9 +503,22 @@ export class PergolaScene {
     const plankCount = Math.max(2, Math.ceil(platformDepth / 0.16));
     const pitch = platformDepth / plankCount;
     for (let index = 0; index < plankCount; index += 1) {
+      const deckTile = 1.5;
+      const lengthOffset = (index * 0.731) % deckTile;
+      // Keep row-to-row variation smooth, but still allow the deck to sample
+      // the more expressive region of the photographic texture. The strongest
+      // grain band sits around the middle of the source image, so we centre
+      // the cross-grain offsets there and move through that region gradually
+      // instead of jumping each plank to an unrelated slice.
+      const rowCenter = 0.69;
+      const rowSwing = 0.16;
+      const rowFineSwing = 0.045;
+      const rowOffset = ((rowCenter
+        + Math.sin(index * 0.52) * rowSwing
+        + Math.sin(index * 1.61 + 0.8) * rowFineSwing) % deckTile + deckTile) % deckTile;
       const geometry = this.geometry.boardGeometry(
         platformWidth, 0.02, Math.max(0.01, pitch - 0.004),
-        { offset: [(index * 0.731) % 2.4, (index * 0.117) % 0.24] });
+        { offset: [lengthOffset, rowOffset] });
       const plank = this.geometry.mesh(geometry, this.deckPlankMaterial, { uv: false, castShadow: false });
       plank.position.set(0, -0.01, -platformDepth / 2 + (index + 0.5) * pitch);
       plank.receiveShadow = true;

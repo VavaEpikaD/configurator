@@ -12,6 +12,7 @@ import { productGeometrySnapshot } from './helpers/geometrySnapshot.mjs';
 import { createWindowModuleLoader } from './helpers/windowModules.mjs';
 const requireFromPergola = createRequire(new URL('../../pergola-configurator/package.json', import.meta.url));
 const THREE = await import(pathToFileURL(path.join(path.dirname(requireFromPergola.resolve('three')), 'three.module.js')).href);
+const protectedBaseline = JSON.parse(fs.readFileSync(new URL('./fixtures/uv-protected-v7.json', import.meta.url)));
 const baseline = JSON.parse(fs.readFileSync(new URL('./fixtures/pergola-geometry-v1.json', import.meta.url)));
 
 for (const { name, state } of pergolaCases(stateAPI)) test(`Pergola exact/no-edge baseline regression: ${name}`, () => {
@@ -24,7 +25,9 @@ for (const { name, state } of pergolaCases(stateAPI)) test(`Pergola exact/no-edg
   // Physical dimensions, topology, placements and shadow policies are asserted
   // on every engine; byte-for-byte checks additionally cover the captured r160.
   assert.deepEqual(actual.meshes, expected.meshes);
-  if (THREE.REVISION === baseline.threeRevision) assert.equal(actual.hash, expected.hash);
+  if (THREE.REVISION === protectedBaseline.threeRevision) {
+    assert.equal(productGeometrySnapshot(group, { excludeAttributes: ['uv'] }).hash, protectedBaseline.pergola.exact[name]);
+  }
   let unowned = 0;
   group.traverse(object => { if (object.isMesh && !geometry.geometries.has(object.geometry)) unowned++; });
   assert.equal(unowned, 0, 'Every generated product primitive must use the shared library.');
@@ -61,7 +64,7 @@ test('Window adapter uses native runtime and existing mesh-reuse constructor for
   const loader = createWindowModuleLoader({ meshReuse: true });
   const { createWindowGeometry } = await loader.import('window-configurator/src/client/js/window-geometry.js');
   const engine = await loader.import('window-configurator/src/client/js/three-mesh-reuse.js');
-  const { MaterialLibrary: WindowMaterials } = await loader.import('shared-3d/src/index.js?v=6');
+  const { MaterialLibrary: WindowMaterials } = await loader.import('shared-3d/src/index.js?v=8');
   const materials = new WindowMaterials(engine), adapter = createWindowGeometry();
   const mat = materials.create('aluminium.powderCoated');
   const pane = adapter.panel(1, 1.5, 0.024, materials.create('glass.clear'));

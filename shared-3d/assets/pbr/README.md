@@ -1,6 +1,6 @@
 # Local PBR asset provenance
 
-Release: `20260909-pbr-6`.
+Release: `20260909-pbr-deck-7`.
 
 These images are checked into the project and served from the same application
 as the configurator. There are no runtime texture-CDN requests or API keys.
