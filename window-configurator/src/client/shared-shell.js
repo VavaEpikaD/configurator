@@ -1,7 +1,7 @@
 import { convertCartMoneyAmount, mountStandaloneConfiguratorShell } from './shared-ui/src/standaloneShell.js?v=42';
 import { SharedUndoManager } from './shared-ui/src/history/undoManager.js?v=1';
 import { createShareUrl } from './shared-ui/src/shareState.js?v=5';
-import { resolveSharedTools } from './shared-ui/src/tools/registry.js?v=12';
+import { resolveSharedTools } from './shared-ui/src/tools/registry.js?v=13';
 import { applyWindowTranslations, resolveWindowLocale, windowT } from './js/i18n.js?v=1';
 import { requireTenantConfiguratorAccess } from './shared-ui/src/tenantBootstrap.js?v=1';
 
@@ -18,6 +18,7 @@ const CAMERA_VIEW_TEXT = Object.freeze({
 });
 
 let shell = null;
+let windowLayoutControlsVisible = true;
 
 function getCameraViewText() {
   return CAMERA_VIEW_TEXT[shell?.state?.locale] || CAMERA_VIEW_TEXT['en-US'];
@@ -32,6 +33,13 @@ function enableWindowSharedTools() {
    complete shared Tools launcher in this configurator. */
 body.shared-ui-mounted .shared-ui-host [data-shared-tools] {
   display: flex !important;
+}
+
+/* Window-only edit-control visibility. The layout overlay owns every +, merge
+   and double-vent button, so hiding the overlay removes the whole button set
+   without changing the configured window layout. */
+body.window-layout-controls-hidden .window-layout-overlay {
+  display: none !important;
 }
 `;
   document.head.appendChild(style);
@@ -53,6 +61,20 @@ function toggleWindowDimensions() {
   const visible = Boolean(api.toggle());
   shell?.setToolActive?.('dimensions', visible);
   return visible;
+}
+
+function setWindowLayoutControlsVisible(visible) {
+  windowLayoutControlsVisible = Boolean(visible);
+  if (!windowLayoutControlsVisible) {
+    document.querySelector('.window-type-wheel-close')?.click();
+  }
+  document.body.classList.toggle('window-layout-controls-hidden', !windowLayoutControlsVisible);
+  shell?.setToolActive?.('window-layout-controls', windowLayoutControlsVisible);
+  return windowLayoutControlsVisible;
+}
+
+function toggleWindowLayoutControls() {
+  return setWindowLayoutControlsVisible(!windowLayoutControlsVisible);
 }
 
 enableWindowSharedTools();
@@ -77,10 +99,11 @@ shell = mountStandaloneConfiguratorShell({
   },
   tools: {
     // Use the same Common UI dimensions and camera tools as the other
-    // configurators. Dimension guides are visible by default.
+    // configurators. Window edit buttons are an explicit Window-only opt-in.
     items: resolveSharedTools([
       { id: 'dimensions', active: true },
       'camera',
+      { id: 'window-layout-controls', active: true },
     ]),
     placement: { side: 'left', direction: 'down', offsetX: 12, offsetY: 12 },
   },
@@ -151,6 +174,7 @@ shell = mountStandaloneConfiguratorShell({
     onToolAction({ toolId }) {
       if (toolId === 'dimensions') toggleWindowDimensions();
       else if (toolId === 'camera') cycleWindowCameraView();
+      else if (toolId === 'window-layout-controls') toggleWindowLayoutControls();
     },
   },
 });
