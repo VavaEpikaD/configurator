@@ -14,6 +14,7 @@ const copy = value => JSON.parse(JSON.stringify(value));
 const source = await read('firebase-share-backend/functions/configurator-colors.js');
 const defaults = JSON.parse(await read('firebase-share-backend/functions/window-color-defaults.json'));
 const pergolaDefaults = JSON.parse(await read('firebase-share-backend/functions/pergola-color-defaults.json'));
+const fenceDefaults = JSON.parse(await read('firebase-share-backend/functions/fence-color-defaults.json'));
 const loaderSource = await read('window-configurator/src/client/js/finish-catalog-loader.js');
 const { mergeWindowFinishCatalog, loadWindowFinishCatalog } = await import(`data:text/javascript;base64,${Buffer.from(loaderSource).toString('base64')}`);
 const configSource = await read('window-configurator/src/client/js/config.js');
@@ -21,7 +22,7 @@ const factoryLiteral = configSource.slice(configSource.indexOf('Object.freeze({'
 const factory = vm.runInNewContext(factoryLiteral.replace(/;\s*$/, ''));
 
 function harness(configuratorId = 'window') {
-  const productDefaults = configuratorId === 'pergola' ? pergolaDefaults : defaults;
+  const productDefaults = { window: defaults, pergola: pergolaDefaults, fence: fenceDefaults }[configuratorId];
   const docs = new Map();
   const stats = { reads: 0, commits: 0, auth: 0 };
   let authUser = { uid: 'admin-uid', email: 'office@360design.ro', emailVerified: true, disabled: false };
@@ -67,6 +68,7 @@ function harness(configuratorId = 'window') {
     'firebase-admin/firestore': { getFirestore: () => db, Timestamp: { now: () => ({ toMillis: () => 1788945000000 }) } },
     './window-color-defaults.json': copy(defaults),
     './pergola-color-defaults.json': copy(pergolaDefaults),
+    './fence-color-defaults.json': copy(fenceDefaults),
   };
   const mod = { exports: {} };
   vm.runInNewContext('(function(require,module,exports){' + source + '\n})', { console: { error() {} } })(
@@ -569,21 +571,23 @@ async function releaseFixture(run) {
       await put(`${release}sitemap-${locale}.xml`, xml);
       if (locale === 'en') await put(`${release}sitemap.xml`, xml);
     }
-    for (const product of ['window', 'pergola']) await put(`${release}edit/${product}-configurator/index.html`, await read(`website/public/edit/${product}-configurator/index.html`));
+    for (const product of ['window', 'pergola', 'fence']) await put(`${release}edit/${product}-configurator/index.html`, await read(`website/public/edit/${product}-configurator/index.html`));
     await put(release + 'edit/index.html', await read('website/public/edit/index.html'));
     for (const file of ['styles/configuratorEditor.css', 'src/configuratorEditor.js']) await put(`shared-ui/${file}`, await read(`shared-ui/${file}`));
     await put('dist/window-configurator-build/index.html', '<html>Window build</html>');
     await put('pergola-configurator/dist/index.html', '<html>Pergola build</html>');
+    await put('fence-configurator/index.html', '<html>Fence source</html>');
     const validate = () => spawnSync(process.execPath, ['website/scripts/validate-static-release.mjs'], { cwd: temporary, encoding: 'utf8', timeout: 10000 });
     await run({ temporary, put, release, validate });
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }
 }
-test('website-only release validates both editors against the real composed-site mount paths', () => releaseFixture(async ({ validate }) => {
+test('website-only release validates all three editors against the real composed-site mount paths', () => releaseFixture(async ({ validate }) => {
   const result = validate(); assert.equal(result.status, 0, result.stdout + result.stderr);
 }));
 for (const [file, reference] of [
+  ['fence-configurator/index.html', '/fence-configurator/'],
   ['pergola-configurator/dist/index.html', '/pergola-configurator/'],
   ['dist/window-configurator-build/index.html', '/window-configurator/'],
   ['shared-ui/src/configuratorEditor.js', '/shared-ui/src/configuratorEditor.js'],
@@ -598,4 +602,242 @@ test('release mount support does not hide a misspelled pergola asset or unrelate
   await put(release + 'invalid.html', '<script src="/pergola-configurator/missing.js"></script><a href="/not-a-real-page/">Missing</a>');
   const result = validate(); assert.equal(result.status, 1);
   assert.ok(result.stderr.includes('/pergola-configurator/missing.js')); assert.ok(result.stderr.includes('/not-a-real-page/'));
+}));
+
+// Fence uses stable finish IDs (and their existing price/material treatments),
+// unlike pergola's plain hex selections. Saved finish display data is snapshotted.
+const fenceCatalog = await import(new URL('fence-configurator/js/finish-catalog.js?v=1', root));
+const fenceState = await import(new URL('fence-configurator/js/state.js?v=4', root));
+const fencePalette = (groups = copy(fenceDefaults), revision = 1) => ({ schemaVersion: 1, configuratorId: 'fence', revision, groups });
+const installFence = groups => fenceCatalog.initializeFenceFinishCatalog({ fetchImpl: async () => response(fencePalette(groups)), warn: quiet });
+
+test('fence defaults match the five original IDs, names, hex values and price multipliers', () => {
+  const sourceColors = Object.values(fenceCatalog.DEFAULT_FENCE_FINISHES);
+  assert.deepEqual(fenceDefaults.finish, sourceColors.map(({ id, name, color }) => ({ id, name, color })));
+  assert.deepEqual(sourceColors.map(finish => finish.multiplier), [1, 1.04, 1.05, 1.08, 1.18]);
+});
+test('fence-only editor response has one named finish group and no configurator list', async () => {
+  const h = harness('fence'); const result = await h.getConfiguratorColorEditor(h.request());
+  assert.deepEqual(copy(result.groups), fenceDefaults);
+  assert.deepEqual(copy(result.finishGroups), [{ id: 'finish', label: 'Fence finish', hasNames: true }]);
+  assert.equal(result.maxColorsPerGroup, 100); assert.equal(result.revision, 0);
+  assert.equal(result.configuratorId, 'fence'); assert.equal(result.configurators, undefined);
+});
+for (const [label, authUser] of [
+  ['ordinary customer', { email: 'customer@example.test' }],
+  ['unverified admin', { emailVerified: false }],
+  ['disabled admin', { disabled: true }],
+  ['revoked session', { tokensValidAfterTime: '2026-09-09T09:00:00Z' }],
+]) {
+  test(`fence ${label} cannot load or publish editor data`, async () => {
+    const h = harness('fence'); h.user(authUser);
+    await assert.rejects(h.getConfiguratorColorEditor(h.request())); await assert.rejects(h.save());
+    assert.equal(h.stats.reads, 0); assert.equal(h.stats.commits, 0);
+  });
+}
+test('fence rejects anonymous users, forged roles and non-editor origins', async () => {
+  const h = harness('fence');
+  await rejectsCode(h.save(copy(fenceDefaults), 0, { auth: null }), 'unauthenticated');
+  await rejectsCode(h.save(copy(fenceDefaults), 0, { rawRequest: { get: () => 'https://customer.360configurator.com' } }), 'permission-denied');
+  h.user({ email: 'customer@example.test' });
+  await rejectsCode(h.save(copy(fenceDefaults), 0, { auth: { uid: 'customer', token: { admin: true, email: 'office@360design.ro' } } }), 'permission-denied');
+  assert.equal(h.stats.reads, 0); assert.equal(h.stats.commits, 0);
+});
+test('fence add/delete/recolor/rename publishes exactly the edited palette and creates private audit history', async () => {
+  const h = harness('fence'); const groups = copy(fenceDefaults);
+  groups.finish.splice(1, 1);
+  groups.finish[0] = { ...groups.finish[0], color: '#ABCDEF', name: '  Renamed finish  ' };
+  groups.finish.push({ id: 'custom-blue', name: 'Blue', color: '#124578' });
+  const saved = await h.save(groups); const result = await h.publicGet();
+  assert.equal(saved.revision, 1); assert.deepEqual(copy(result.body), copy(saved));
+  assert.equal(saved.groups.finish[0].name, 'Renamed finish'); assert.equal(saved.groups.finish[0].color, '#abcdef');
+  assert.equal(saved.groups.finish.some(color => color.id === 'black'), false);
+  assert.deepEqual(copy((await h.getConfiguratorColorEditor(h.request())).groups), copy(saved.groups));
+  assert.equal(result.body.updatedBy, undefined); assert.equal(result.body.history, undefined);
+  assert.equal(h.docs.get('configuratorColorPalettes/fence/history/1').updatedBy, 'admin-uid');
+  assert.equal(h.docs.has('configuratorColorPalettes/window'), false); assert.equal(h.docs.has('configuratorColorPalettes/pergola'), false);
+});
+test('fence saves cannot overwrite window/pergola data or advance their revisions', async () => {
+  const h = harness('fence');
+  for (const [id, groups] of [['window', defaults], ['pergola', pergolaDefaults]]) {
+    await h.saveConfiguratorColors(h.request({ configuratorId: id, expectedRevision: 0, groups: copy(groups) }));
+  }
+  const before = copy([...h.docs.entries()]);
+  await h.save(); await h.save(copy(fenceDefaults), 1);
+  assert.deepEqual(copy([...h.docs.entries()].filter(([key]) => !key.startsWith('configuratorColorPalettes/fence'))), before);
+  await rejectsCode(h.save(defaults, 2), 'invalid-argument');
+  await rejectsCode(h.save(pergolaDefaults, 2), 'invalid-argument');
+  await rejectsCode(h.saveConfiguratorColors(h.request({ configuratorId: 'window', expectedRevision: 1, groups: fenceDefaults })), 'invalid-argument');
+});
+test('fence simultaneous saves conflict, and audit failure rolls back publishing', async () => {
+  const h = harness('fence'); const [a, b] = await Promise.allSettled([h.save(), h.save()]);
+  assert.equal(a.status, 'fulfilled'); assert.equal(b.status, 'rejected'); assert.equal(b.reason.code, 'aborted');
+  h.failAudit(); await assert.rejects(h.save(copy(fenceDefaults), 1), /Audit write failed/);
+  assert.equal((await h.publicGet()).body.revision, 1);
+});
+for (const [label, mutate] of [
+  ['empty finish group', g => { g.finish = []; }],
+  ['missing finish group', g => { delete g.finish; }],
+  ['foreign group', g => { g.frame = g.finish; }],
+  ['too many colors', g => { g.finish = Array.from({ length: 101 }, (_, n) => ({ id: `c-${n}`, name: 'Name', color: '#112233' })); }],
+  ['duplicate ID', g => { g.finish[1].id = g.finish[0].id; }],
+  ['path ID', g => { g.finish[0].id = '../window'; }],
+  ['invalid hex', g => { g.finish[0].color = 'red'; }],
+  ['CSS injection', g => { g.finish[0].color = '#123456;background:red'; }],
+  ['empty name', g => { g.finish[0].name = '   '; }],
+  ['long name', g => { g.finish[0].name = 'x'.repeat(121); }],
+  ['control character', g => { g.finish[0].name = 'bad\u0000name'; }],
+  ['price override', g => { g.finish[0].multiplier = 0; }],
+]) {
+  test(`fence ${label} is rejected by server and public loader`, async () => {
+    const h = harness('fence'); const groups = copy(fenceDefaults); mutate(groups);
+    await rejectsCode(h.save(groups), 'invalid-argument');
+    assert.throws(() => fenceCatalog.parseFenceFinishPalette(fencePalette(groups)));
+    assert.equal(h.stats.reads, 0); assert.equal(h.stats.commits, 0);
+  });
+}
+test('fence different finish IDs may use the same hex and remain independently selectable', async () => {
+  const h = harness('fence'); const groups = copy(fenceDefaults); groups.finish[1].color = groups.finish[0].color;
+  await h.save(groups); await installFence(groups);
+  const state = fenceState.createFenceState();
+  assert.ok(fenceCatalog.selectFenceFinish(state, 'black')); assert.equal(state.finish, 'black');
+  assert.equal(fenceCatalog.resolveFenceFinish(state).multiplier, 1.04);
+});
+test('fence public endpoint has no login requirement, is non-cacheable and refuses all write methods', async () => {
+  const h = harness('fence'); const result = await h.publicGet();
+  assert.equal(result.code, 200); assert.equal(h.stats.auth, 0);
+  assert.match(result.headers['Cache-Control'], /no-store/);
+  for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) assert.equal((await h.publicGet(method)).code, 405);
+  assert.equal(h.stats.commits, 0);
+});
+test('fence public loader uses one bounded anonymous, uncached GET and retains trusted price metadata', async () => {
+  const calls = []; const groups = copy(fenceDefaults);
+  groups.finish[1].name = 'Night black'; groups.finish[1].color = '#010203';
+  groups.finish.push({ id: 'custom-new', name: 'New color', color: '#fedcba' });
+  const colors = await fenceCatalog.loadFenceFinishCatalog({ fetchImpl: async (url, init) => { calls.push({ url, init }); return response(fencePalette(groups)); } });
+  assert.equal(calls.length, 1); assert.match(calls[0].url, /configuratorId=fence$/);
+  assert.equal(calls[0].init.method, 'GET'); assert.equal(calls[0].init.credentials, 'omit'); assert.equal(calls[0].init.cache, 'no-store');
+  assert.equal(calls[0].init.headers, undefined); assert.ok(calls[0].init.signal);
+  assert.equal(colors[1].name, 'Night black'); assert.equal(colors[1].labelKey, null); assert.equal(colors[1].multiplier, 1.04);
+  assert.equal(colors.at(-1).multiplier, 1); assert.equal(colors.at(-1).labelKey, null);
+});
+for (const [name, fetchImpl] of [
+  ['network error', async () => { throw new Error('offline'); }],
+  ['HTTP error', async () => ({ ok: false, status: 503 })],
+  ['malformed JSON', async () => ({ ok: true, text: async () => '<html>Proxy error</html>' })],
+  ['oversized body', async () => ({ ok: true, text: async () => 'x'.repeat(256001) })],
+  ['wrong product', async () => response(palette())],
+  ['invalid revision', async () => response(fencePalette(copy(fenceDefaults), -1))],
+]) {
+  test(`fence ${name} falls back to the complete original palette`, async () => {
+    const colors = await fenceCatalog.loadFenceFinishCatalog({ fetchImpl, warn: quiet });
+    assert.deepEqual(colors, Object.values(fenceCatalog.DEFAULT_FENCE_FINISHES));
+  });
+}
+test('fence timeout covers a hanging body and cannot apply a late palette', async () => {
+  let resolveBody; let signal;
+  const pending = fenceCatalog.initializeFenceFinishCatalog({ timeoutMs: 10, warn: quiet, fetchImpl: async (_url, init) => {
+    signal = init.signal; return { ok: true, text: () => new Promise(resolve => { resolveBody = resolve; }) };
+  } });
+  await pending; assert.equal(signal.aborted, true);
+  const groups = { finish: [{ id: 'late', name: 'Late', color: '#112233' }] };
+  resolveBody(JSON.stringify(fencePalette(groups))); await new Promise(resolve => setTimeout(resolve, 5));
+  assert.equal(fenceCatalog.getAvailableFenceFinishes().length, 5);
+  assert.equal(fenceCatalog.getAvailableFenceFinishes().some(color => color.id === 'late'), false);
+});
+test('fence built-in names stay localized but administrator names are not replaced by old translation keys', async () => {
+  await installFence(copy(fenceDefaults));
+  assert.equal(fenceCatalog.FINISHES.wood.labelKey, 'finish.wood');
+  const groups = copy(fenceDefaults); groups.finish[4].name = 'My oak finish'; await installFence(groups);
+  assert.equal(fenceCatalog.FINISHES.wood.labelKey, null); assert.equal(fenceCatalog.FINISHES.wood.name, 'My oak finish');
+});
+test('fence new/custom finishes survive normalization, capture and restore without changing dimensions or gate placements', async () => {
+  const groups = copy(fenceDefaults); groups.finish.push({ id: 'custom-blue', name: 'Custom blue', color: '#134567' }); await installFence(groups);
+  for (const layout of ['straight', 'l', 'u', 'closed', 'closed5']) {
+    const state = fenceState.createFenceState({ layout }); const metrics = fenceState.deriveFenceMetrics(state);
+    assert.ok(fenceCatalog.selectFenceFinish(state, 'custom-blue')); fenceState.normalizeFenceState(state);
+    const restored = fenceState.createFenceState(copy(state));
+    assert.equal(restored.finish, 'custom-blue'); assert.equal(fenceCatalog.resolveFenceFinish(restored).color, '#134567');
+    assert.deepEqual(fenceState.deriveFenceMetrics(restored), metrics);
+  }
+});
+test('saved fence snapshots retain their old display data after deletion/recoloring; deleted IDs are not offered', async () => {
+  const groups = { finish: [{ id: 'custom-blue', name: 'First blue', color: '#134567' }] }; await installFence(groups);
+  const saved = copy(fenceState.createFenceState());
+  await installFence({ finish: [{ id: 'custom-blue', name: 'Changed blue', color: '#abcdef' }] });
+  assert.equal(fenceCatalog.resolveFenceFinish(fenceState.createFenceState(saved)).color, '#134567');
+  assert.equal(fenceCatalog.resolveFenceFinish(fenceState.createFenceState()).color, '#abcdef');
+  await installFence(copy(fenceDefaults));
+  const restored = fenceState.createFenceState(saved);
+  assert.equal(restored.finish, 'custom-blue'); assert.equal(restored.finishSnapshot.name, 'First blue');
+  assert.equal(fenceCatalog.selectFenceFinish(restored, 'custom-blue'), false);
+  assert.equal(fenceCatalog.getAvailableFenceFinishes().some(f => f.id === 'custom-blue'), false);
+});
+test('fresh/reset fence configurations use an offered finish when anthracite is deleted; legacy shares still render', async () => {
+  await installFence({ finish: [{ id: 'new-green', name: 'Green', color: '#235634' }] });
+  assert.equal(fenceState.createFenceState().finish, 'new-green');
+  const old = fenceState.createFenceState({ finish: 'wood' });
+  assert.equal(old.finish, 'wood'); assert.equal(fenceCatalog.resolveFenceFinish(old).multiplier, 1.18);
+  assert.equal(fenceCatalog.getAvailableFenceFinishes().length, 1);
+});
+test('fence saved display data cannot inject pricing/material metadata, prototypes, CSS or HTML into attributes', async () => {
+  await installFence(copy(fenceDefaults));
+  const forged = fenceState.createFenceState({ finish: 'wood', finishSnapshot: { id: 'wood', name: '<img src=x onerror=alert(1)>', color: '#abcdef', multiplier: 0, material: 'gold' } });
+  const finish = fenceCatalog.resolveFenceFinish(forged);
+  assert.equal(finish.multiplier, 1.18); assert.equal(finish.material, undefined);
+  assert.deepEqual(Object.keys(forged.finishSnapshot).sort(), ['color', 'id', 'name']);
+  for (const invalid of ['__proto__', 'constructor', 'toString', '../bad']) {
+    assert.equal(fenceState.createFenceState({ finish: invalid }).finish, 'anthracite');
+  }
+  const bad = fenceState.createFenceState({ finish: 'wood', finishSnapshot: { id: 'wood', name: 'Wood', color: 'url(evil)' } });
+  assert.equal(fenceCatalog.resolveFenceFinish(bad).color, '#8a5734');
+});
+test('fence code loads published choices before state/UI, and price factors are compatible across state module versions', async () => {
+  const main = await read('fence-configurator/js/app.js');
+  assert.ok(main.indexOf('await initializeFenceFinishCatalog()') < main.indexOf('let state = createFenceState()'));
+  assert.match(main, /Object\.assign\(state, createFenceState\(\)\)/);
+  await installFence(copy(fenceDefaults));
+  const rendererState = await import(new URL('fence-configurator/js/state.js?v=5', root));
+  assert.equal(rendererState.FINISHES, fenceState.FINISHES);
+  assert.equal(fenceState.FINISHES.bronze.multiplier, 1.08);
+});
+test('fence 3D material path uses the saved/published color, keeps bronze properties and tints the original wood maps', async () => {
+  await installFence(copy(fenceDefaults));
+  const source = await read('fence-configurator/js/fenceFactory.js');
+  const tintSource = source.slice(source.indexOf('function woodFinishTint('), source.indexOf('\nconst POST_SIZE'));
+  const materialSource = source.slice(source.indexOf('  const finish = resolveFenceFinish(state);'), source.indexOf('  const darkMaterial'));
+  class Color {
+    constructor(hex) { const n = parseInt(hex.slice(1), 16); this.r = (n >> 16) / 255; this.g = ((n >> 8) & 255) / 255; this.b = (n & 255) / 255; }
+    setRGB(r, g, b) { Object.assign(this, { r, g, b }); return this; }
+  }
+  class Material {
+    constructor(options) { Object.assign(this, options); this.normalScale = { set() {} }; }
+  }
+  const material = vm.runInNewContext(`(state) => { ${tintSource}\n${materialSource}\nreturn finishMaterial; }`, {
+    THREE: { Color, MeshPhysicalMaterial: Material }, DEFAULT_FENCE_FINISHES: fenceCatalog.DEFAULT_FENCE_FINISHES,
+    resolveFenceFinish: fenceCatalog.resolveFenceFinish, surfaceTexture: path => path,
+  });
+  const wood = material(fenceState.createFenceState({ finish: 'wood' }));
+  assert.deepEqual([wood.color.r, wood.color.g, wood.color.b], [1, 1, 1]);
+  assert.match(wood.map, /fence-wood-color\.jpg$/); assert.match(wood.normalMap, /fence-wood-normal\.jpg$/);
+  const tinted = material(fenceState.createFenceState({ finish: 'wood', finishSnapshot: { id: 'wood', name: 'Edited wood', color: '#223344' } }));
+  assert.notDeepEqual([tinted.color.r, tinted.color.g, tinted.color.b], [1, 1, 1]); assert.equal(tinted.map, wood.map);
+  const bronze = material(fenceState.createFenceState({ finish: 'bronze' }));
+  assert.equal(bronze.color, '#5f544c'); assert.equal(bronze.roughness, 0.27); assert.equal(bronze.metalness, 0.14); assert.equal(bronze.clearcoat, 0.52);
+  const custom = material(fenceState.createFenceState({ finish: 'custom-saved', finishSnapshot: { id: 'custom-saved', name: 'Saved blue', color: '#123456' } }));
+  assert.equal(custom.color, '#123456'); assert.equal(custom.map, null); assert.equal(custom.metalness, 0.24);
+});
+test('dedicated fence page and named preview preserve server-gated access and link only to the fence configurator', async () => {
+  const html = await read('website/public/edit/fence-configurator/index.html');
+  assert.match(html, /data-configurator-id="fence"/); assert.match(html, /<form id="editor" hidden/);
+  assert.match(html, /noindex/); assert.match(html, /href="\/fence-configurator\/"/);
+  assert.doesNotMatch(html, /<select|pergola-configurator|window-configurator|Mill finish|Roof louvers/);
+  const ui = await read('fence-configurator/js/ui.js');
+  assert.match(ui, /getAvailableFenceFinishes\(\)/); assert.match(ui, /label\.textContent = name/);
+  assert.match(ui, /selectFenceFinish\(this\.state/);
+  assert.match(ui, /finish\.color === selection\.color/);
+});
+test('release validation still catches misspelled fence files instead of bypassing the fence mount', () => releaseFixture(async ({ release, put, validate }) => {
+  await put(release + 'fence-broken.html', '<script src="/fence-configurator/js/missing-color-loader.js"></script>');
+  const result = validate(); assert.equal(result.status, 1); assert.match(result.stderr, /missing-color-loader\.js/);
 }));

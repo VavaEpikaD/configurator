@@ -1,11 +1,13 @@
 import { readShareState } from '../../shared-ui/src/shareState.js?v=4';
-import { DEFAULT_FENCE_STATE, createFenceState, deriveFenceMetrics, normalizeFenceState } from './state.js?v=4';
+import { createFenceState, deriveFenceMetrics, normalizeFenceState } from './state.js?v=4';
 import { FenceScene } from './scene.js?v=20';
 import { FenceUI } from './ui.js?v=4';
 import { resolveFenceLocale } from './i18n.js?v=4';
+import { initializeFenceFinishCatalog } from './finish-catalog.js?v=1';
 import { requireTenantConfiguratorAccess } from '../../shared-ui/src/tenantBootstrap.js?v=1';
 
 await requireTenantConfiguratorAccess('fence');
+await initializeFenceFinishCatalog();
 
 const initialLocale = resolveFenceLocale(window.FENCE_CONFIGURATOR_SHARED_SHELL?.state?.locale);
 let state = createFenceState();
@@ -133,7 +135,7 @@ if (shellPreferences) setPreferences(shellPreferences);
 
 function resetConfiguration() {
   Object.keys(state).forEach((key) => delete state[key]);
-  Object.assign(state, structuredClone(DEFAULT_FENCE_STATE));
+  Object.assign(state, createFenceState());
   normalizeFenceState(state);
   setEnvironmentPanelOpen(false);
   rebuildNow({ fitCamera: true });

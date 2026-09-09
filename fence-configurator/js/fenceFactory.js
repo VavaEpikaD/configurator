@@ -1,5 +1,7 @@
 import * as THREE from 'three';
-import { FINISHES, calculateClosedFenceGeometry, calculateClosedFiveFenceGeometry, deriveFenceMetrics } from './state.js?v=5';
+import { calculateClosedFenceGeometry, calculateClosedFiveFenceGeometry, deriveFenceMetrics } from './state.js?v=5';
+
+import { DEFAULT_FENCE_FINISHES, resolveFenceFinish } from './finish-catalog.js?v=1';
 
 const TEXTURE_LOADER = new THREE.TextureLoader();
 const TEXTURE_CACHE = new Map();
@@ -15,6 +17,14 @@ function surfaceTexture(path, { color = false, repeatX = 1, repeatY = 1 } = {}) 
   if (color) texture.colorSpace = THREE.SRGBColorSpace;
   TEXTURE_CACHE.set(key, texture);
   return texture;
+}
+
+// White is the original wood texture's neutral multiplier. A relative tint
+// makes edits visible without replacing the wood grain, normals or roughness.
+function woodFinishTint(color) {
+  const tint = new THREE.Color(color);
+  const reference = new THREE.Color(DEFAULT_FENCE_FINISHES.wood.color);
+  return tint.setRGB(tint.r / reference.r, tint.g / reference.g, tint.b / reference.b);
 }
 
 const POST_SIZE = 0.085;
@@ -33,14 +43,14 @@ export function buildFenceAssembly(state) {
   const metrics = deriveFenceMetrics(state);
   const root = new THREE.Group();
   root.name = 'fence-configurator-assembly';
-  const finish = FINISHES[state.finish] ?? FINISHES.anthracite;
+  const finish = resolveFenceFinish(state);
   const isWood = state.finish === 'wood';
   const isBronze = state.finish === 'bronze';
   const woodColor = isWood ? surfaceTexture('/textures/pbr/fence-wood-color.jpg', { color: true }) : null;
   const woodNormal = isWood ? surfaceTexture('/textures/pbr/fence-wood-normal.jpg') : null;
   const woodRoughness = isWood ? surfaceTexture('/textures/pbr/fence-wood-roughness.jpg') : null;
   const finishMaterial = new THREE.MeshPhysicalMaterial({
-    color: isWood ? 0xffffff : finish.color,
+    color: isWood ? woodFinishTint(finish.color) : finish.color,
     map: woodColor,
     normalMap: woodNormal,
     roughnessMap: woodRoughness,

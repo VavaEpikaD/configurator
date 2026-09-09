@@ -1,0 +1,29 @@
+{
+  "finish": [
+    {
+      "id": "anthracite",
+      "name": "Anthracite",
+      "color": "#252d33"
+    },
+    {
+      "id": "black",
+      "name": "Black",
+      "color": "#0e1215"
+    },
+    {
+      "id": "white",
+      "name": "Traffic white",
+      "color": "#d8d7d2"
+    },
+    {
+      "id": "bronze",
+      "name": "Bronze grey",
+      "color": "#5f544c"
+    },
+    {
+      "id": "wood",
+      "name": "Wood tone",
+      "color": "#8a5734"
+    }
+  ]
+}

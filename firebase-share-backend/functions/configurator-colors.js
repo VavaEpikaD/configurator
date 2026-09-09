@@ -5,6 +5,7 @@ const { getAuth } = require('firebase-admin/auth');
 const { getFirestore, Timestamp } = require('firebase-admin/firestore');
 const WINDOW_DEFAULTS = require('./window-color-defaults.json');
 const PERGOLA_DEFAULTS = require('./pergola-color-defaults.json');
+const FENCE_DEFAULTS = require('./fence-color-defaults.json');
 
 // The same verified-account allowlist as the existing internal sales dashboard.
 // Never authorize using an email, role, or admin flag supplied by the browser.
@@ -36,6 +37,10 @@ const CONFIGURATORS = new Map([
       { id: 'anodized', label: 'Anodized', hasNames: true },
       { id: 'coated', label: 'Color coated', hasNames: true },
     ],
+  }],
+  ['fence', {
+    id: 'fence', defaults: FENCE_DEFAULTS, uniqueColors: false,
+    groups: [{ id: 'finish', label: 'Fence finish', hasNames: true }],
   }],
   ['pergola', {
     // Pergola selections use hex values, not preset IDs, so duplicate hex values
