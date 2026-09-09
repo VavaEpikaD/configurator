@@ -5,13 +5,13 @@ import {
     WINDOW_HEIGHT_MAX_M,
 } from './config.js';
 import { createComponentSelection } from './component-selection.js';
-import { createSceneContext } from './scene.js?v=pbr-6';
+import { createSceneContext } from './scene.js?v=uv-8';
 import { initializeUIControls } from './ui-controls.js?v=4';
-import { createWindowBuilder } from './window-builder.js?v=pbr-6';
-import { createMaterialManager } from './materials.js?v=pbr-6';
+import { createWindowBuilder } from './window-builder.js?v=uv-8';
+import { createMaterialManager } from './materials.js?v=uv-8';
 import { createARController } from './ar-controller.js';
 import { createCadReferenceController } from './cad-reference.js';
-import { createProfileController } from './profile-controller.js?v=pbr-6';
+import { createProfileController } from './profile-controller.js?v=uv-8';
 import { createAccessoryController } from './accessory-controller.js';
 import { createProfileSelectionController } from './profile-selection-controller.js';
 import {
@@ -19,7 +19,7 @@ import {
     getWindowLayoutRequest,
 } from './window-layout-controller.js?v=2';
 import { createLayoutSizingManager } from './layout-sizing-manager.js?v=3';
-import { createSegmentedResizeOptimizer } from './segmented-resize-optimizer.js?v=2';
+import { createSegmentedResizeOptimizer } from './segmented-resize-optimizer.js?v=uv-8';
 import { requireTenantConfiguratorAccess } from '../shared-ui/src/tenantBootstrap.js?v=1';
 import { readShareState } from '../shared-ui/src/shareState.js?v=4';
 
@@ -791,6 +791,7 @@ segmentedResizeOptimizer = createSegmentedResizeOptimizer({
     getWindowState: () => windowLayoutController?.getWindowState?.(),
     getIsExploded: () => windowBuilder?.getIsExploded?.() || false,
     edgeExtensionM: DEFAULT_WINDOW_EDGE_EXTENSION_M,
+    captureSurfaceUVDeformation: (geometry, basePositions) => surfaceSystem.geometry.captureSurfaceUVDeformation(geometry, basePositions),
 });
 
 windowSummaryController = createWindowSummaryController({

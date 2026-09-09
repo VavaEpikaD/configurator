@@ -1,14 +1,14 @@
 import * as THREE from 'three';
-import { createWindowGeometry } from './window-geometry.js?v=pbr-6';
+import { createWindowGeometry } from './window-geometry.js?v=uv-8';
 import { WINDOW_WIDTH_MAX_M, normalizeHexColour } from './config.js';
 import {
     PROFILE_CURVE_SEGMENTS,
     createRoundedRectShape,
-} from './geometry-utils.js?v=pbr-6';
+} from './geometry-utils.js?v=uv-8';
 import { getHouseDimensions } from './house-config.js';
 import { getProfileCatalogEntry, isDrainageCapProfile } from './profile-catalog.js';
 import { translateCadTransformSource } from './profile-coordinate-transform.js';
-import { createHouseBuilder } from './house-builder.js?v=pbr-6';
+import { createHouseBuilder } from './house-builder.js?v=uv-8';
 import {
     getDividerSegmentAlongCoordinate,
     getDividerCrossSectionMetrics,
@@ -825,7 +825,7 @@ export function createWindowBuilder({
         }
         geom.computeVertexNormals();
 
-        const mesh = geometry.mesh(geom, profile.material);
+        const mesh = geometry.profileMesh(geom, profile.material, 'z');
         mesh.castShadow = !captureMode;
         mesh.receiveShadow = !captureMode;
         return mesh;
@@ -945,7 +945,7 @@ export function createWindowBuilder({
 
         geom.deleteAttribute('normal');
         geom.computeVertexNormals();
-        const mesh = geometry.mesh(geom, profile.material);
+        const mesh = geometry.profileMesh(geom, profile.material, 'z');
         mesh.castShadow = !captureMode;
         mesh.receiveShadow = !captureMode;
         return mesh;
@@ -1349,7 +1349,7 @@ export function createWindowBuilder({
         geom.computeBoundingBox();
         geom.computeBoundingSphere();
 
-        const mesh = geometry.mesh(geom, profile.material);
+        const mesh = geometry.profileMesh(geom, profile.material, orientation === 'horizontal' ? 'x' : 'y');
         // Apply the layout position before registerExplode() captures basePos.
         // Repeated dividers used to be translated only afterwards, so the pose
         // animation reset every copy to (0, 0) and collapsed them into one.
@@ -1720,7 +1720,7 @@ export function createWindowBuilder({
         geom.computeBoundingBox();
         geom.computeBoundingSphere();
 
-        const mesh = geometry.mesh(geom, profile.material);
+        const mesh = geometry.profileMesh(geom, profile.material, isHorizontal ? 'x' : 'y');
         mesh.position.set(originX, originY, 0);
         mesh.castShadow = !captureMode;
         mesh.receiveShadow = !captureMode;

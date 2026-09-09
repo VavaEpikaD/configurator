@@ -4,6 +4,7 @@ import test from 'node:test';
 import { createWindowFixture } from './helpers/windowFixture.mjs';
 import { WINDOW_CASES, applyWindowCase } from './helpers/windowCases.mjs';
 import { productGeometrySnapshot } from './helpers/geometrySnapshot.mjs';
+const protectedBaseline = JSON.parse(fs.readFileSync(new URL('./fixtures/uv-protected-v7.json', import.meta.url)));
 const baseline = JSON.parse(fs.readFileSync(new URL('./fixtures/window-geometry-v1.json', import.meta.url)));
 
 for (const item of WINDOW_CASES) test(`Window exact/no-edge full-builder regression: ${item.name}`, async () => {
@@ -12,13 +13,22 @@ for (const item of WINDOW_CASES) test(`Window exact/no-edge full-builder regress
   applyWindowCase(fixture, item);
   const actual = { product: productGeometrySnapshot(fixture.builder.placementRoot),
     sections: productGeometrySnapshot(fixture.builder.sectionGroup), fabrication: fixture.builder.getFabricationSnapshot() };
-  assert.deepEqual(JSON.parse(JSON.stringify(actual)), baseline.cases[item.name]);
+  const expected = baseline.cases[item.name];
+  // UVs deliberately change in this release; all original mesh sizes,
+  // placements, shadow policies and fabrication data still match the old suite.
+  assert.deepEqual(JSON.parse(JSON.stringify(actual.product.meshes)), expected.product.meshes);
+  assert.deepEqual(JSON.parse(JSON.stringify(actual.sections.meshes)), expected.sections.meshes);
+  assert.deepEqual(JSON.parse(JSON.stringify(actual.fabrication)), expected.fabrication);
+  const protectedCase = protectedBaseline.window.exact[item.name];
+  for (const [key, group] of [['product', fixture.builder.placementRoot], ['sections', fixture.builder.sectionGroup]]) {
+    assert.equal(productGeometrySnapshot(group, { excludeAttributes: ['uv'] }).hash, protectedCase[key]);
+  }
   let unshared = 0;
   fixture.builder.placementRoot.traverse(object => { if (object.isMesh && !object.geometry.userData.sharedGeometry) unshared++; });
   assert.equal(unshared, 0);
   // Same state, second rebuild, with the builder's template cache retained.
   applyWindowCase(fixture, item);
-  assert.equal(productGeometrySnapshot(fixture.builder.placementRoot).hash, baseline.cases[item.name].product.hash);
+  assert.equal(productGeometrySnapshot(fixture.builder.placementRoot).hash, actual.product.hash);
   fixture.builder.clearTemplateGeometryCache(); fixture.materials.dispose();
 });
 

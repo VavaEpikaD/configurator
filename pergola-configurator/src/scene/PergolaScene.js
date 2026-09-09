@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createSurfaceSystem, disposeObjectResources } from '../../../shared-3d/src/index.js?v=6';
+import { createSurfaceSystem, disposeObjectResources } from '../../../shared-3d/src/index.js?v=8';
 import { createPergolaGeometry } from './pergolaGeometry.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
@@ -503,9 +503,10 @@ export class PergolaScene {
     const plankCount = Math.max(2, Math.ceil(platformDepth / 0.16));
     const pitch = platformDepth / plankCount;
     for (let index = 0; index < plankCount; index += 1) {
+      const deckTile = 1.5;
       const geometry = this.geometry.boardGeometry(
         platformWidth, 0.02, Math.max(0.01, pitch - 0.004),
-        { offset: [(index * 0.731) % 2.4, (index * 0.117) % 0.24] });
+        { offset: [(index * 0.731) % deckTile, (index * 0.413) % deckTile] });
       const plank = this.geometry.mesh(geometry, this.deckPlankMaterial, { uv: false, castShadow: false });
       plank.position.set(0, -0.01, -platformDepth / 2 + (index + 0.5) * pitch);
       plank.receiveShadow = true;

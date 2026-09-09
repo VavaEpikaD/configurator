@@ -1,6 +1,6 @@
 # PBR surface-set release
 
-Release: `20260909-pbr-6`. Baseline: accepted Step 5 contact shading plus the
+Release: `20260909-pbr-deck-7`. Baseline: accepted Step 5 contact shading plus the
 latest supplied `window-configurator.zip`. Scope remains Window and Pergola.
 
 ## Visible changes and protected behavior
@@ -113,7 +113,7 @@ WINDOW_VISUALS_API.getDiagnostics()
 PERGOLA_VISUALS_API.getDiagnostics()
 ```
 
-Expect top-level `version: "20260909-pbr-6"`. The `textureAssets` section reports
+Expect top-level `version: "20260909-pbr-deck-7"`. The `textureAssets` section reports
 `enabled`, `status`, `pendingSets`, `failedSets`, source-image/texture counts, and
 per-set size/roles/status/consumers. After loading, normal operation reports
 `status: "ready"`, `pendingSets: 0`, `failedSets: 0`. During loading a procedural

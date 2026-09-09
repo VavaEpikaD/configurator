@@ -176,7 +176,7 @@ function addScreen(geometry, container, transform, config, motorized, assets) {
     });
     container.add(cassetteAsset);
   } else {
-    const cassette = geometry.box(transform.span, 0.11, 0.12, cassetteMaterial);
+    const cassette = geometry.box(transform.span, 0.11, 0.12, cassetteMaterial, { axis: 'x' });
     cassette.position.set(0, transform.usableHeight / 2 - 0.055, 0);
     container.add(cassette);
   }
@@ -188,7 +188,7 @@ function addScreen(geometry, container, transform, config, motorized, assets) {
     fabric.position.set(0, transform.usableHeight / 2 - 0.11 - deployedHeight / 2, 0);
     container.add(fabric);
 
-    const bottomRail = geometry.box(transform.span - 0.06, 0.045, 0.045, cassetteMaterial);
+    const bottomRail = geometry.box(transform.span - 0.06, 0.045, 0.045, cassetteMaterial, { axis: 'x' });
     bottomRail.position.set(0, fabric.position.y - deployedHeight / 2, 0);
     container.add(bottomRail);
   }
@@ -380,7 +380,7 @@ function addSpotlights(geometry, group, state, coordinates, height, beamHeight, 
       ));
 
     rowPositions.forEach((z) => {
-      const rail = geometry.box(Math.max(0.18, safeMaxX - safeMinX + 0.18), 0.035, 0.045, railMaterial);
+      const rail = geometry.box(Math.max(0.18, safeMaxX - safeMinX + 0.18), 0.035, 0.045, railMaterial, { axis: 'x' });
       rail.position.set((safeMinX + safeMaxX) / 2, railY, z);
       group.add(rail);
     });
@@ -445,14 +445,14 @@ function addHeaterBrackets(geometry, group, segment, heaterPosition, height, bea
   hangerMaterial.color.offsetHSL(0, -0.03, 0.03);
 
   const alongX = segment.axis === 'horizontal';
-  const rail = geometry.box(alongX ? 0.76 : 0.045, rodThickness, alongX ? 0.045 : 0.76, hangerMaterial);
+  const rail = geometry.box(alongX ? 0.76 : 0.045, rodThickness, alongX ? 0.045 : 0.76, hangerMaterial, { axis: alongX ? 'x' : 'z' });
   rail.position.set(heaterPosition.x, heaterTop + 0.004, heaterPosition.z);
   group.add(rail);
 
   [-0.29, 0.29].forEach((offset) => {
     const x = heaterPosition.x + (alongX ? offset : 0);
     const z = heaterPosition.z + (alongX ? 0 : offset);
-    const rod = geometry.box(rodThickness, Math.max(0.03, beamBottom - heaterTop), rodThickness, hangerMaterial);
+    const rod = geometry.box(rodThickness, Math.max(0.03, beamBottom - heaterTop), rodThickness, hangerMaterial, { axis: 'y' });
     rod.position.set(x, (heaterTop + beamBottom) / 2, z);
     group.add(rod);
   });
