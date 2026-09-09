@@ -6022,27 +6022,21 @@ export function createWindowBuilder({
                     handleHitMeshes.push(plate);
                     handleBase.add(plate);
 
-                    const neckShape = new THREE.Shape();
-                    neckShape.lineTo(0, 0.01);
                     let centerX = 0;
                     let centerY = 0;
                     let radius = 0.01;
-                    let segments = 32;
-                    for (let i = 1; i <= segments; i++) {
-                        const angle = (i / segments) * Math.PI * 2;
-                        neckShape.lineTo(
-                            centerX + Math.sin(angle) * radius,
-                            centerY + Math.cos(angle) * radius
-                        );
-                    }
-                    const neckGeo = geometry.solidProfile(neckShape, {
-                        depth: 0.014,
-                        bevelEnabled: false,
-                        curveSegments: 24
-                    }, { edgeFinish: 'aluminium.handle' });
-                    neckGeo.center();
+                    let segments = 16;
+                    const neckGeo = geometry.library.create('primitive.cylinder', {
+                        radius,
+                        height: 0.014,
+                        radialSegments: 72,
+                        heightSegments: 1,
+                    });
+                    neckGeo.rotateX(Math.PI / 2);
                     neckGeo.translate(0, 0, -0.001);
-                    const neck = geometry.mesh(neckGeo, handleMat);
+                    const neck = geometry.mesh(neckGeo, handleMat, {
+                        mapping: { mode: 'cylindrical', grainAxis: 'z', radius },
+                    });
                     neck.position.set(0, 0, 0.006);
                     neck.castShadow = !captureMode;
                     neck.receiveShadow = !captureMode;
