@@ -44,6 +44,13 @@ export function mergeWindowFinishCatalog(defaults, payload) {
 }
 
 export async function loadWindowFinishCatalog(defaults, options = {}) {
+    if (Object.prototype.hasOwnProperty.call(options, 'payload')) {
+        try { return options.payload ? mergeWindowFinishCatalog(defaults, options.payload) : defaults; }
+        catch (error) {
+            (options.warn || console.warn)('Invalid published window colors; using built-in defaults.', error);
+            return defaults;
+        }
+    }
     // CAD/build/validation tools also import config.js, and must not contact
     // production. Dependency injection is limited to this explicit function API.
     if (typeof window === 'undefined' && !options.fetchImpl) return defaults;

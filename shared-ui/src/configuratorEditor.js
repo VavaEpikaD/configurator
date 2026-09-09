@@ -33,9 +33,13 @@ let activeGroup = definition.initialGroup;
 let previewId = '';
 let conflict = false;
 let unsubscribe;
+const settings = configuratorId === 'window' && element('window-size-fields')
+  ? (await import('./windowSettingsEditor.js?v=1')).createWindowSettingsEditor({ onChange: changed })
+  : null;
+const editingNoun = settings ? 'settings' : 'colors';
 
 function isDirty() {
-  return !!draft && !!published && JSON.stringify(draft) !== JSON.stringify(published.groups);
+  return !!draft && !!published && (JSON.stringify(draft) !== JSON.stringify(published.groups) || settings?.isDirty());
 }
 
 function message(text, isError = false) {
@@ -57,7 +61,7 @@ function syncActions() {
   if (published) {
     ui['published-label'].textContent = published.revision
       ? `Published revision ${published.revision}${published.updatedAtMs ? ` · ${new Date(published.updatedAtMs).toLocaleString()}` : ''}`
-      : 'Using the original built-in colors';
+      : `Using the original built-in ${editingNoun}`;
   }
   ui['add-color'].disabled = busy || !draft || draft[activeGroup].length >= maxColors;
 }
@@ -75,6 +79,7 @@ function lockEditor(error) {
   authorized = false;
   draft = null;
   published = null;
+  settings?.clear();
   ui['color-rows'].replaceChildren();
   ui['preview-swatches'].replaceChildren();
   showAccess('Admin access required', error.message, { login: !user });
@@ -118,6 +123,7 @@ function renderPreview() {
   });
   ui['preview-swatches'].replaceChildren(...buttons);
   ui['preview-name'].textContent = colors.find(color => color.id === previewId)?.name || 'Unnamed color';
+  settings?.preview({ groups: draft, activeGroup });
 }
 
 function changed() {
@@ -228,6 +234,7 @@ function renderEditor() {
 }
 
 function validateResponse(result) {
+  settings?.validateResponse(result);
   const invalid = () => { throw new Error('The published palette response is invalid. No changes were loaded.'); };
   if (result?.schemaVersion !== 1 || result.configuratorId !== configuratorId
       || !Number.isSafeInteger(result.revision) || result.revision < 0
@@ -268,6 +275,7 @@ async function loadPublished(expectedGeneration = generation) {
     }
     finishGroups = result.finishGroups;
     maxColors = result.maxColorsPerGroup;
+    settings?.load(result);
     published = clone(result);
     draft = clone(result.groups);
     conflict = false;
@@ -276,7 +284,7 @@ async function loadPublished(expectedGeneration = generation) {
     ui['access-panel'].hidden = true;
     ui.editor.hidden = false;
     renderEditor();
-    message('Published colors loaded.');
+    message(`Published ${editingNoun} loaded.`);
   } catch (error) {
     if (generation !== expectedGeneration) return;
     if (['PERMISSION_DENIED', 'UNAUTHENTICATED'].includes(error.code)) lockEditor(error);
@@ -305,6 +313,8 @@ function validateDraft() {
       }
       if (!error) { seen.add(color.color.toLowerCase()); continue; }
       activeGroup = group.id;
+      const menu = element('colors-menu');
+      if (menu) menu.open = true;
       renderGroup();
       const input = ui['color-rows'].children[index].querySelector(selector);
       input.setCustomValidity(error);
@@ -335,7 +345,7 @@ ui['add-color'].addEventListener('click', () => {
 });
 ui.editor.addEventListener('submit', async event => {
   event.preventDefault();
-  if (!authorized || loading || saving || !isDirty() || conflict || !validateDraft()) return;
+  if (!authorized || loading || saving || !isDirty() || conflict || !validateDraft() || (settings && !settings.validate())) return;
   const currentGeneration = generation;
   const groups = clone(draft);
   for (const colors of Object.values(groups)) for (const color of colors) {
@@ -343,18 +353,20 @@ ui.editor.addEventListener('submit', async event => {
     color.color = color.color.toLowerCase();
   }
   saving = true;
-  message('Publishing colors…');
+  message(`Publishing ${editingNoun}…`);
   syncActions();
   try {
     const result = await callConfiguratorColorAdmin('saveConfiguratorColors', {
       configuratorId, expectedRevision: published.revision, groups,
+      ...(settings ? { sizeLimits: settings.getValue() } : {}),
     });
     if (generation !== currentGeneration) return;
     validateResponse(result);
+    settings?.load(result);
     published = clone(result);
     draft = clone(result.groups);
     renderGroup();
-    message(`Published successfully. Open or refresh the ${definition.name} configurator to see these colors.`);
+    message(`Published successfully. Open or refresh the ${definition.name} configurator to see these ${editingNoun}.`);
   } catch (error) {
     if (generation === currentGeneration) handleError(error);
   } finally {
@@ -365,7 +377,7 @@ ui.editor.addEventListener('submit', async event => {
   }
 });
 ui.reload.addEventListener('click', () => {
-  if (isDirty() && !window.confirm('Discard your unpublished changes and reload the latest published colors?')) return;
+  if (isDirty() && !window.confirm(`Discard your unpublished changes and reload the latest published ${editingNoun}?`)) return;
   void loadPublished();
 });
 ui['retry-access'].addEventListener('click', () => void loadPublished());
@@ -400,13 +412,14 @@ try {
     conflict = false;
     draft = null;
     published = null;
+    settings?.clear();
     ui['account'].hidden = !user;
     ui['account-name'].textContent = user?.email || user?.displayName || '';
     ui['color-rows'].replaceChildren();
     ui['preview-swatches'].replaceChildren();
     syncActions();
     if (!user) {
-      showAccess('Admin access', error?.message || `Sign in with your authorized Google account to manage ${definition.name} colors.`, { login: true });
+      showAccess('Admin access', error?.message || `Sign in with your authorized Google account to manage ${definition.name} ${editingNoun}.`, { login: true });
       return;
     }
     showAccess('Checking admin access…', 'Verifying your account with the server.');

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <title>Window settings preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&amp;display=swap" rel="stylesheet">
+  <!-- Same styles and order as the actual configurator. This document loads no CAD, auth, or save code. -->
+  <link rel="stylesheet" href="./shared-ui/styles/standalone.css?v=26">
+  <link rel="stylesheet" href="./shared-shell.css?v=4">
+  <link rel="stylesheet" href="./css/styles.css?v=3">
+  <link rel="stylesheet" href="./css/editor-preview.css?v=1">
+</head>
+<body class="shared-ui-mounted">
+  <div id="preview-content" hidden>
+    <div id="controls">
+      <section id="aluminiumFinishControls" class="control-group">
+        <label>Aluminum finish</label>
+        <div class="finish-mode-row"><div class="finish-mode-toggle" role="group" aria-label="Inside and outside finish mode">
+          <button id="finishModeSame" type="button" class="finish-mode-btn active" aria-pressed="true">Uniform</button>
+          <button id="finishModeDifferent" type="button" class="finish-mode-btn" aria-pressed="false">Bicolor</button>
+        </div></div>
+<div class="finish-side-card" id="outsideFinishCard" >
+      <div class="finish-side-header"><span id="outsideFinishTitle">Inside / outside</span></div>
+      <div id="outsideFinishType" class="finish-type-toggle" role="group" aria-label="Outside finish type">
+        <button type="button" class="finish-type-btn" data-finish-type="mill">Mill finish</button>
+        <button type="button" class="finish-type-btn" data-finish-type="anodized">Anodized</button>
+        <button type="button" class="finish-type-btn" data-finish-type="coated">Color coated</button>
+      </div>
+      <div id="outsideFinishSwatches" class="finish-swatches" role="group" aria-label="Outside colors"></div>
+      <div id="outsideFinishName" class="finish-selected-name"></div>
+    </div>
+<div class="finish-side-card" id="insideFinishCard" hidden>
+      <div class="finish-side-header"><span id="insideFinishTitle">Inside</span></div>
+      <div id="insideFinishType" class="finish-type-toggle" role="group" aria-label="Inside finish type">
+        <button type="button" class="finish-type-btn" data-finish-type="mill">Mill finish</button>
+        <button type="button" class="finish-type-btn" data-finish-type="anodized">Anodized</button>
+        <button type="button" class="finish-type-btn" data-finish-type="coated">Color coated</button>
+      </div>
+      <div id="insideFinishSwatches" class="finish-swatches" role="group" aria-label="Inside colors"></div>
+      <div id="insideFinishName" class="finish-selected-name"></div>
+    </div>
+      </section>
+      <section id="overallWindowSizeControls" class="overall-layout-size-controls" hidden>
+        <label>Overall layout size</label>
+<div class="control-group window-size-control selected-window-size-control overall-window-size-control" id="overallWindowWidthControl" style="margin-bottom:10px;">
+      <div class="selected-window-size-heading">
+        <span class="selected-window-size-name">Width:</span>
+        <span class="selected-window-size-value"><input type="number" id="valOverallWidth" step="1" inputmode="numeric" aria-label="Overall layout width in millimetres"><span class="selected-window-size-unit">mm</span></span>
+      </div>
+      <div class="selected-window-size-row">
+        <button type="button" id="btnOverallWidthDec" class="handle-side-btn" aria-label="Decrease overall layout width">-</button>
+        <input type="range" id="overallWidthA" step="0.001" min="0.45" max="25" value="0.6" aria-label="Overall layout width">
+        <button type="button" id="btnOverallWidthInc" class="handle-side-btn" aria-label="Increase overall layout width">+</button>
+      </div>
+    </div>
+<div class="control-group window-size-control selected-window-size-control overall-window-size-control" id="overallWindowHeightControl" style="margin-bottom:0;padding-top:0;border-top:0;">
+      <div class="selected-window-size-heading">
+        <span class="selected-window-size-name">Height:</span>
+        <span class="selected-window-size-value"><input type="number" id="valOverallHeight" step="1" inputmode="numeric" aria-label="Overall layout height in millimetres"><span class="selected-window-size-unit">mm</span></span>
+      </div>
+      <div class="selected-window-size-row">
+        <button type="button" id="btnOverallHeightDec" class="handle-side-btn" aria-label="Decrease overall layout height">-</button>
+        <input type="range" id="overallHeightB" step="0.001" min="0.45" max="25" value="0.9" aria-label="Overall layout height">
+        <button type="button" id="btnOverallHeightInc" class="handle-side-btn" aria-label="Increase overall layout height">+</button>
+      </div>
+    </div>
+      </section>
+    </div>
+    <aside id="selected-window-panel" aria-label="Selected window" hidden>
+      <div class="selected-window-kicker">Selected window</div>
+      <div class="selected-window-title">Window <span id="selectedWindowNumber">1</span></div>
+<div class="control-group window-size-control selected-window-size-control" id="windowWidthControl">
+      <div class="selected-window-size-heading">
+        <span class="selected-window-size-name">Width:</span>
+        <span class="selected-window-size-value"><input type="number" id="valWidth" step="1" inputmode="numeric" aria-label="Window width in millimetres"><span class="selected-window-size-unit">mm</span></span>
+      </div>
+      <div class="selected-window-size-row">
+        <button type="button" id="btnWidthDec" class="handle-side-btn" aria-label="Decrease window width">-</button>
+        <input type="range" id="widthA" step="0.001" min="0.45" max="2.5" value="0.6" aria-label="Window width">
+        <button type="button" id="btnWidthInc" class="handle-side-btn" aria-label="Increase window width">+</button>
+      </div>
+    </div>
+<div class="control-group window-size-control selected-window-size-control" id="windowHeightControl">
+      <div class="selected-window-size-heading">
+        <span class="selected-window-size-name">Height:</span>
+        <span class="selected-window-size-value"><input type="number" id="valHeight" step="1" inputmode="numeric" aria-label="Window height in millimetres"><span class="selected-window-size-unit">mm</span></span>
+      </div>
+      <div class="selected-window-size-row">
+        <button type="button" id="btnHeightDec" class="handle-side-btn" aria-label="Decrease window height">-</button>
+        <input type="range" id="heightB" step="0.001" min="0.45" max="2.5" value="0.9" aria-label="Window height">
+        <button type="button" id="btnHeightInc" class="handle-side-btn" aria-label="Increase window height">+</button>
+      </div>
+    </div>
+    </aside>
+  </div>
+  <script type="module" src="./js/editor-preview.js?v=1"></script>
+</body>
+</html>

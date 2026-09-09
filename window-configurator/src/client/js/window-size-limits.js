@@ -1,3 +1,5 @@
+import { WINDOW_SLIDER_LIMITS } from './window-settings.js';
+import { WINDOW_SIZE_CONTROLS, applyWindowSliderBounds } from '../../../../shared-ui/src/windowSizeSettings.js?v=1';
 import { getGlazingBeadCode } from './config.js';
 import {
     WINDOW_PROFILE_MANUFACTURING_DATA,
@@ -290,143 +292,39 @@ export function validateWindowConfigurationForCart(snapshot = null) {
     return { valid: true, violation: null, message: '' };
 }
 
-function setControlMax(range, numberInput, maxM) {
-    const rangeMax = Number(maxM).toFixed(3);
-    const numberMax = String(Math.round(Number(maxM) * 1000));
-    if (range && range.max !== rangeMax) range.max = rangeMax;
-    if (numberInput && numberInput.max !== numberMax) numberInput.max = numberMax;
-}
-
-function setPairValue(range, numberInput, valueM) {
-    const rangeValue = Number(valueM).toFixed(3);
-    const numberValue = String(Math.round(Number(valueM) * 1000));
-    if (range && range.value !== rangeValue) range.value = rangeValue;
-    if (numberInput && numberInput.value !== numberValue) numberInput.value = numberValue;
-}
-
+// Slider settings are independent of the existing manufacturing/cart checks above.
 function installWindowSizeAndCartLimits() {
     if (globalThis.__WINDOW_SIZE_AND_CART_LIMITS_INSTALLED__) return;
     globalThis.__WINDOW_SIZE_AND_CART_LIMITS_INSTALLED__ = true;
-
-    const controls = {
-        selectedWidthRange: document.getElementById('widthA'),
-        selectedWidthValue: document.getElementById('valWidth'),
-        selectedHeightRange: document.getElementById('heightB'),
-        selectedHeightValue: document.getElementById('valHeight'),
-        overallWidthRange: document.getElementById('overallWidthA'),
-        overallWidthValue: document.getElementById('valOverallWidth'),
-        overallHeightRange: document.getElementById('overallHeightB'),
-        overallHeightValue: document.getElementById('valOverallHeight'),
-    };
-
-    function syncControlMaxima() {
-        setControlMax(
-            controls.selectedWidthRange,
-            controls.selectedWidthValue,
-            MAX_INDIVIDUAL_WINDOW_WIDTH_M
-        );
-        setControlMax(
-            controls.selectedHeightRange,
-            controls.selectedHeightValue,
-            MAX_INDIVIDUAL_WINDOW_HEIGHT_M
-        );
-        setControlMax(
-            controls.overallWidthRange,
-            controls.overallWidthValue,
-            MAX_OVERALL_LAYOUT_WIDTH_M
-        );
-        setControlMax(
-            controls.overallHeightRange,
-            controls.overallHeightValue,
-            MAX_OVERALL_LAYOUT_HEIGHT_M
-        );
-    }
-
-    function clampSizeTarget(target, range, numberInput, maximumM) {
-        const meters = target === numberInput
-            ? finite(target.value, MIN_WINDOW_M * 1000) / 1000
-            : finite(target.value, MIN_WINDOW_M);
-        const next = clamp(meters, MIN_WINDOW_M, maximumM);
-        setPairValue(range, numberInput, next);
-    }
-
-    function clampControlForTarget(target) {
+    const controls = WINDOW_SIZE_CONTROLS.map(control => ({
+        ...control,
+        range: document.getElementById(control.rangeId),
+        number: document.getElementById(control.valueId),
+    }));
+    const syncBounds = () => applyWindowSliderBounds(WINDOW_SLIDER_LIMITS);
+    const clampControl = target => {
         if (!(target instanceof HTMLInputElement)) return;
-        syncControlMaxima();
-        switch (target.id) {
-            case 'widthA':
-            case 'valWidth':
-                clampSizeTarget(
-                    target,
-                    controls.selectedWidthRange,
-                    controls.selectedWidthValue,
-                    MAX_INDIVIDUAL_WINDOW_WIDTH_M
-                );
-                break;
-            case 'heightB':
-            case 'valHeight':
-                clampSizeTarget(
-                    target,
-                    controls.selectedHeightRange,
-                    controls.selectedHeightValue,
-                    MAX_INDIVIDUAL_WINDOW_HEIGHT_M
-                );
-                break;
-            case 'overallWidthA':
-            case 'valOverallWidth':
-                clampSizeTarget(
-                    target,
-                    controls.overallWidthRange,
-                    controls.overallWidthValue,
-                    MAX_OVERALL_LAYOUT_WIDTH_M
-                );
-                break;
-            case 'overallHeightB':
-            case 'valOverallHeight':
-                clampSizeTarget(
-                    target,
-                    controls.overallHeightRange,
-                    controls.overallHeightValue,
-                    MAX_OVERALL_LAYOUT_HEIGHT_M
-                );
-                break;
-            default:
-                break;
-        }
-    }
-
-    // Sliders should remain constrained live while dragging. Number fields are
-    // deliberately NOT touched on `input`: the user must be able to replace the
-    // whole value naturally (for example 600 -> 2500) without each intermediate
-    // keystroke being clamped and written back into the field. Their existing
-    // configurator handlers commit on Enter, while `change` commits on blur.
+        const control = controls.find(entry => target === entry.range || target === entry.number);
+        if (!control || target.disabled) return;
+        syncBounds();
+        const meters = target === control.number ? Number(target.value) / 1000 : Number(target.value);
+        if (!Number.isFinite(meters) || target.value.trim() === '') return;
+        const min = Number(control.range.min);
+        const max = Number(control.range.max);
+        const value = clamp(meters, min, max);
+        control.range.value = value.toFixed(3);
+        if (control.number) control.number.value = String(Math.round(value * 1000));
+    };
+    // Allow typing intermediate numbers naturally; constrain only on commit.
     document.addEventListener('input', event => {
-        const target = event.target;
-        if (!(target instanceof HTMLInputElement) || target.type !== 'range') return;
-        clampControlForTarget(target);
+        if (event.target?.type === 'range') clampControl(event.target);
     }, true);
-    document.addEventListener('change', event => {
-        clampControlForTarget(event.target);
+    document.addEventListener('change', event => clampControl(event.target), true);
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Enter') clampControl(event.target);
     }, true);
-
-    // layout-sizing-manager runs its own handlers on the overall controls and
-    // historically enlarges the range max as the thumb approaches the end.
-    // Re-apply the real overall limits after those target handlers have run so
-    // 25 m is always the physical end of both slider tracks while dragging or
-    // committing a typed value. This bubble-phase sync does not alter the value.
-    const restoreOverallRangeMaxima = event => {
-        const target = event.target;
-        if (!(target instanceof HTMLInputElement)) return;
-        if (![
-            'overallWidthA',
-            'valOverallWidth',
-            'overallHeightB',
-            'valOverallHeight',
-        ].includes(target.id)) return;
-        syncControlMaxima();
-    };
-    document.addEventListener('input', restoreOverallRangeMaxima);
-    document.addEventListener('change', restoreOverallRangeMaxima);
+    document.addEventListener('input', syncBounds);
+    document.addEventListener('change', syncBounds);
 
     // The common Add to cart handler lives inside the shared configurator footer.
     // Validate during capture so an invalid window never reaches that handler.
@@ -448,17 +346,16 @@ function installWindowSizeAndCartLimits() {
     }, true);
 
     ['window-pricing-updated', 'window-shared-shell-ready', 'window-locale-applied']
-        .forEach(name => window.addEventListener(name, syncControlMaxima));
-
-    const selectedPanel = document.getElementById('selected-window-panel');
-    if (selectedPanel) {
-        new MutationObserver(syncControlMaxima).observe(selectedPanel, {
-            attributes: true,
-            attributeFilter: ['hidden'],
+        .forEach(name => window.addEventListener(name, syncBounds));
+    // Selection/restoration code can rewrite max attributes. Reapply settings
+    // without touching model state or number values, and only write changed attributes.
+    const observer = new MutationObserver(syncBounds);
+    for (const { range, number } of controls) {
+        for (const input of [range, number]) if (input) observer.observe(input, {
+            attributes: true, attributeFilter: ['min', 'max'],
         });
     }
-
-    syncControlMaxima();
+    syncBounds();
 }
 
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {

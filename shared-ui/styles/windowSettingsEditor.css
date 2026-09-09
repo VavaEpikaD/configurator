@@ -1,0 +1,50 @@
+/* Window editor only. Other configurator editors keep their existing layout. */
+html[data-window-settings-editor] .window-settings-workspace {
+  grid-template-columns:minmax(0, 1fr) minmax(310px, 396px);
+  align-items:start;
+}
+.settings-menus { min-width:0; display:grid; gap:14px; }
+.settings-menu { border:1px solid #dce3e7; border-radius:12px; background:#fff; overflow:hidden; }
+.settings-menu > summary {
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  list-style:none; padding:18px 22px; cursor:pointer; color:#27343d;
+  font-size:15px; font-weight:650; background:#f1f5f7;
+}
+.settings-menu > summary::-webkit-details-marker { display:none; }
+.settings-menu > summary:hover { background:#e8eef2; }
+.settings-menu > summary:focus-visible { outline:3px solid #0878c9; outline-offset:-3px; }
+.settings-menu > summary svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2.5; }
+.settings-menu[open] > summary svg { transform:rotate(180deg); }
+.settings-menu[open] { border-color:#b5d5e9; }
+html[data-window-settings-editor] .settings-menu .menu-body { border:0; border-radius:0; padding:24px; box-shadow:none; }
+html[data-window-settings-editor] .window-settings-preview { top:18px; }
+#window-settings-preview { width:100%; border:0; display:block; height:400px; background:#fff; border-radius:10px; }
+#window-size-fields { display:grid; gap:22px; margin:22px 0; }
+.size-limit-group { border:1px solid #dce3e7; border-radius:10px; padding:18px; min-width:0; }
+.size-limit-group h3 { font-size:14px; margin:0 0 5px; color:#27343d; }
+.size-limit-group > p { font-size:12px; color:#66737d; margin:0 0 14px; line-height:1.5; }
+.size-limit-head, .size-limit-row { display:grid; grid-template-columns:70px minmax(0, 1fr) minmax(0, 1fr); gap:12px; align-items:center; }
+.size-limit-head { margin-bottom:7px; font-size:11px; color:#66737d; }
+.size-limit-row { margin:10px 0; }
+.size-limit-row > span { font-size:13px; font-weight:600; }
+.size-limit-field { position:relative; min-width:0; }
+.size-limit-field input { width:100%; height:42px; box-sizing:border-box; padding:8px 32px 8px 10px; border:1px solid #d5dde2; border-radius:8px; background:#f5f7f8; color:#172027; font:inherit; font-size:14px; }
+.size-limit-field input:focus { outline:2px solid #0878c9; outline-offset:1px; }
+.size-limit-field input[aria-invalid="true"] { border-color:#b42318; }
+.size-limit-field input::-webkit-inner-spin-button { -webkit-appearance:none; }
+.size-limit-field input { appearance:textfield; -moz-appearance:textfield; }
+.size-limit-field .unit { position:absolute; right:10px; top:13px; font-size:11px; color:#66737d; pointer-events:none; }
+html[data-window-settings-editor] .notice { overflow-wrap:anywhere; }
+@media(max-width:980px) {
+  html[data-window-settings-editor] .window-settings-workspace { grid-template-columns:minmax(0,1fr); }
+  html[data-window-settings-editor] .window-settings-preview { position:static; }
+  #window-settings-preview { max-width:360px; margin:0 auto; }
+}
+@media(max-width:600px) {
+  .settings-menu > summary { padding:16px; }
+  html[data-window-settings-editor] .settings-menu .menu-body { padding:16px; }
+  .size-limit-group { padding:12px; }
+  .size-limit-row,.size-limit-head { grid-template-columns:50px minmax(0,1fr) minmax(0,1fr); gap:8px; }
+  .size-limit-field input { font-size:16px; padding-left:7px; padding-right:25px; }
+  .size-limit-field .unit { right:6px; font-size:10px; }
+}

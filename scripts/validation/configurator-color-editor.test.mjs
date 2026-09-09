@@ -15,6 +15,7 @@ const source = await read('firebase-share-backend/functions/configurator-colors.
 const defaults = JSON.parse(await read('firebase-share-backend/functions/window-color-defaults.json'));
 const pergolaDefaults = JSON.parse(await read('firebase-share-backend/functions/pergola-color-defaults.json'));
 const fenceDefaults = JSON.parse(await read('firebase-share-backend/functions/fence-color-defaults.json'));
+const sizeDefaults = JSON.parse(await read('firebase-share-backend/functions/window-size-defaults.json'));
 const loaderSource = await read('window-configurator/src/client/js/finish-catalog-loader.js');
 const { mergeWindowFinishCatalog, loadWindowFinishCatalog } = await import(`data:text/javascript;base64,${Buffer.from(loaderSource).toString('base64')}`);
 const configSource = await read('window-configurator/src/client/js/config.js');
@@ -69,6 +70,7 @@ function harness(configuratorId = 'window') {
     './window-color-defaults.json': copy(defaults),
     './pergola-color-defaults.json': copy(pergolaDefaults),
     './fence-color-defaults.json': copy(fenceDefaults),
+    './window-size-defaults.json': copy(sizeDefaults),
   };
   const mod = { exports: {} };
   vm.runInNewContext('(function(require,module,exports){' + source + '\n})', { console: { error() {} } })(
@@ -309,8 +311,8 @@ test('old edit URL is a history-replacing redirect, never a second editor', asyn
 });
 test('nested editor loads shared assets from the site root with the revised version', async () => {
   const html = await read('website/public/edit/window-configurator/index.html');
-  assert.match(html, /href="\/shared-ui\/styles\/configuratorEditor\.css\?v=2"/);
-  assert.match(html, /src="\/shared-ui\/src\/configuratorEditor\.js\?v=2"/);
+  assert.match(html, /href="\/shared-ui\/styles\/configuratorEditor\.css\?v=4"/);
+  assert.match(html, /src="\/shared-ui\/src\/configuratorEditor\.js\?v=5"/);
   assert.doesNotMatch(html, /(?:src|href)="(?:\.\.?\/)?shared-ui\//);
 });
 
@@ -573,8 +575,9 @@ async function releaseFixture(run) {
     }
     for (const product of ['window', 'pergola', 'fence']) await put(`${release}edit/${product}-configurator/index.html`, await read(`website/public/edit/${product}-configurator/index.html`));
     await put(release + 'edit/index.html', await read('website/public/edit/index.html'));
-    for (const file of ['styles/configuratorEditor.css', 'src/configuratorEditor.js']) await put(`shared-ui/${file}`, await read(`shared-ui/${file}`));
+    for (const file of ['styles/configuratorEditor.css', 'styles/windowSettingsEditor.css', 'src/configuratorEditor.js']) await put(`shared-ui/${file}`, await read(`shared-ui/${file}`));
     await put('dist/window-configurator-build/index.html', '<html>Window build</html>');
+    await put('dist/window-configurator-build/editor-preview.html', await read('window-configurator/src/client/editor-preview.html'));
     await put('pergola-configurator/dist/index.html', '<html>Pergola build</html>');
     await put('fence-configurator/index.html', '<html>Fence source</html>');
     const validate = () => spawnSync(process.execPath, ['website/scripts/validate-static-release.mjs'], { cwd: temporary, encoding: 'utf8', timeout: 10000 });
@@ -841,3 +844,250 @@ test('release validation still catches misspelled fence files instead of bypassi
   await put(release + 'fence-broken.html', '<script src="/fence-configurator/js/missing-color-loader.js"></script>');
   const result = validate(); assert.equal(result.status, 1); assert.match(result.stderr, /missing-color-loader\.js/);
 }));
+
+// Window settings extend the same protected, revisioned palette document.
+const sizeModelUrl = dataUrl(await read('shared-ui/src/windowSizeSettings.js'));
+const sizeModel = await import(sizeModelUrl);
+const sizeUpdate = (h, sizeLimits = copy(sizeDefaults), expectedRevision = 0, groups = copy(defaults), overrides = {}) =>
+  h.saveConfiguratorColors(h.request({ configuratorId: 'window', expectedRevision, groups, sizeLimits }, overrides));
+
+test('window size defaults match in browser/backend and existing palettes need no migration', async () => {
+  assert.deepEqual(copy(sizeModel.DEFAULT_WINDOW_SIZE_LIMITS), sizeDefaults);
+  const h = harness();
+  const editor = await h.getConfiguratorColorEditor(h.request());
+  assert.equal(editor.windowSettingsVersion, 1);
+  assert.deepEqual(copy(editor.sizeLimits), sizeDefaults);
+  assert.deepEqual(copy((await h.publicGet()).body.sizeLimits), sizeDefaults);
+  h.docs.set('configuratorColorPalettes/window', { schemaVersion: 1, revision: 5, groups: copy(defaults) });
+  const legacy = await h.getConfiguratorColorEditor(h.request());
+  assert.equal(legacy.revision, 5); assert.deepEqual(copy(legacy.sizeLimits), sizeDefaults);
+});
+test('colors and all four dimension ranges publish together with one revision and one audit snapshot', async () => {
+  const h = harness(); const limits = copy(sizeDefaults); const groups = copy(defaults);
+  limits.overall.width = { minMm: 900, maxMm: 9000 };
+  limits.overall.height = { minMm: 800, maxMm: 8000 };
+  limits.individual.width = { minMm: 600, maxMm: 3000 };
+  limits.individual.height = { minMm: 700, maxMm: 2400 };
+  groups.coated[0].name = 'Edited white';
+  const result = await sizeUpdate(h, limits, 0, groups);
+  assert.equal(result.revision, 1); assert.equal(h.stats.commits, 1);
+  assert.deepEqual(copy(result.sizeLimits), limits);
+  assert.equal(result.groups.coated[0].name, 'Edited white');
+  const record = h.docs.get('configuratorColorPalettes/window');
+  assert.deepEqual(copy(record), copy(h.docs.get('configuratorColorPalettes/window/history/1')));
+  assert.deepEqual(copy((await h.publicGet()).body.sizeLimits), limits);
+  assert.equal(Object.hasOwn((await h.publicGet()).body, 'updatedBy'), false);
+});
+test('legacy color-only window clients preserve previously published dimension limits', async () => {
+  const h = harness(); const limits = copy(sizeDefaults); limits.individual.width.minMm = 600;
+  await sizeUpdate(h, limits);
+  const groups = copy(defaults); groups.anodized[0].name = 'Renamed by older editor';
+  const result = await h.save(groups, 1);
+  assert.deepEqual(copy(result.sizeLimits), limits); assert.equal(result.revision, 2);
+  assert.equal(result.groups.anodized[0].name, 'Renamed by older editor');
+});
+test('a size publish and a stale color publish cannot overwrite one another', async () => {
+  const h = harness(); const limits = copy(sizeDefaults); limits.overall.width.maxMm = 8000;
+  const outcomes = await Promise.allSettled([sizeUpdate(h, limits), h.save()]);
+  assert.equal(outcomes.filter(o => o.status === 'fulfilled').length, 1);
+  assert.equal(outcomes.find(o => o.status === 'rejected').reason.code, 'aborted');
+  assert.equal(h.stats.commits, 1);
+  assert.deepEqual(copy((await h.publicGet()).body.sizeLimits), limits);
+});
+test('failed audit writing rolls back both size limits and colors', async () => {
+  const h = harness(); h.failAudit();
+  await assert.rejects(sizeUpdate(h)); assert.equal(h.docs.size, 0); assert.equal(h.stats.commits, 0);
+});
+for (const [label, mutate] of [
+  ['null', () => null], ['array', () => []], ['missing scope', value => { delete value.individual; return value; }],
+  ['unknown scope', value => ({ ...value, glass: {} })],
+  ['missing axis', value => { delete value.overall.height; return value; }],
+  ['unknown range field', value => { value.individual.width.stepMm = 5; return value; }],
+  ['equal endpoints', value => { value.individual.width.minMm = value.individual.width.maxMm; return value; }],
+  ['reversed endpoints', value => { value.individual.width.minMm = 2600; return value; }],
+  ['individual maximum above overall', value => { value.overall.width.maxMm = 2000; return value; }],
+  ['fractional value', value => { value.individual.height.minMm = 600.5; return value; }],
+  ['numeric string', value => { value.individual.height.minMm = '600'; return value; }],
+  ['boolean', value => { value.individual.height.minMm = true; return value; }],
+  ['blank', value => { value.individual.height.minMm = ''; return value; }],
+  ['below geometry floor', value => { value.individual.height.minMm = 449; return value; }],
+  ['above supported envelope', value => { value.overall.height.maxMm = 25001; return value; }],
+  ['NaN', value => { value.overall.height.maxMm = NaN; return value; }],
+  ['infinity', value => { value.overall.height.maxMm = Infinity; return value; }],
+]) {
+  test(`backend and browser reject invalid size limits: ${label}`, async () => {
+    const value = mutate(copy(sizeDefaults)); const h = harness();
+    assert.throws(() => sizeModel.validateWindowSizeLimits(value));
+    await rejectsCode(sizeUpdate(h, value), 'invalid-argument');
+    assert.equal(h.stats.commits, 0); assert.equal(h.stats.reads, 0);
+  });
+}
+for (const scope of ['overall', 'individual']) for (const axis of ['width', 'height']) {
+  test(`${scope} ${axis} has independent configurable min/max values`, async () => {
+    const h = harness(); const limits = copy(sizeDefaults);
+    limits[scope][axis].minMm = 678; limits[scope][axis].maxMm = scope === 'overall' ? 8765 : 2345;
+    const result = await sizeUpdate(h, limits);
+    assert.deepEqual(copy(result.sizeLimits), limits);
+  });
+}
+for (const configuratorId of ['pergola', 'fence']) {
+  test(`${configuratorId} cannot read/write window dimensions through its editor`, async () => {
+    const h = harness(configuratorId);
+    assert.equal(Object.hasOwn(await h.getConfiguratorColorEditor(h.request()), 'sizeLimits'), false);
+    await rejectsCode(h.saveConfiguratorColors(h.request({ configuratorId, expectedRevision: 0,
+      groups: copy(configuratorId === 'pergola' ? pergolaDefaults : fenceDefaults), sizeLimits: copy(sizeDefaults) })), 'invalid-argument');
+    assert.equal(h.stats.commits, 0);
+  });
+}
+test('size updates retain server-side admin and revocation authorization', async () => {
+  for (const user of [{ email: 'customer@example.test' }, { emailVerified: false }, { disabled: true }]) {
+    const h = harness(); h.user(user); await rejectsCode(sizeUpdate(h), 'permission-denied'); assert.equal(h.stats.commits, 0);
+  }
+  const h = harness(); await rejectsCode(sizeUpdate(h, copy(sizeDefaults), 0, copy(defaults), { auth: null }), 'unauthenticated');
+});
+test('malformed persisted dimensions do not leak invalid public settings', async () => {
+  const h = harness(); h.docs.set('configuratorColorPalettes/window', {
+    schemaVersion: 1, revision: 1, groups: copy(defaults), sizeLimits: { arbitrary: true },
+  });
+  assert.equal((await h.publicGet()).code, 503);
+});
+
+const settingsSource = await read('window-configurator/src/client/js/window-settings.js');
+const { loadPublishedWindowSettings } = await import(dataUrl(settingsSource.replace(
+  "'../../../../shared-ui/src/windowSizeSettings.js?v=1'", JSON.stringify(sizeModelUrl),
+)));
+test('public settings load one unauthenticated no-store response containing both colors and sizes', async () => {
+  let calls = 0;
+  const payload = { ...palette(), sizeLimits: copy(sizeDefaults) };
+  const result = await loadPublishedWindowSettings({ fetchImpl: async (url, options) => {
+    calls++; assert.match(url, /getConfiguratorColors\?configuratorId=window$/);
+    assert.equal(options.cache, 'no-store'); assert.equal(options.credentials, 'omit'); assert.equal(options.method, 'GET');
+    assert.equal(options.headers?.Authorization, undefined);
+    return response(payload);
+  } });
+  assert.equal(calls, 1); assert.deepEqual(result, payload);
+  assert.ok(await loadWindowFinishCatalog(factory, { payload: result, fetchImpl: () => { throw new Error('duplicate fetch'); } }));
+});
+test('an older deployed public palette still loads without dimension fields', async () => {
+  const result = await loadPublishedWindowSettings({ fetchImpl: async () => response(palette()) });
+  assert.ok(result.groups.coated.length); assert.equal(result.sizeLimits, undefined);
+});
+test('public dimension loader is offline in Node tooling and fails safely on invalid/time-out responses', async () => {
+  assert.equal(await loadPublishedWindowSettings(), null);
+  for (const fetchImpl of [
+    async () => ({ ok: false, status: 503 }),
+    async () => response({ ...palette(), configuratorId: 'pergola' }),
+    async () => response({ ...palette(), sizeLimits: {} }),
+    async () => ({ ok: true, text: async () => '<html>Error</html>' }),
+    async () => ({ ok: true, text: async () => 'a'.repeat(100001) }),
+    () => new Promise(() => {}),
+    async () => ({ ok: true, text: () => new Promise(() => {}) }),
+  ]) assert.equal(await loadPublishedWindowSettings({ fetchImpl, timeoutMs: 10, warn: quiet }), null);
+});
+test('slider bounds use millimetres in number fields and metres in range controls, without changing saved values', () => {
+  const elements = new Map();
+  for (const control of sizeModel.WINDOW_SIZE_CONTROLS) for (const id of [control.rangeId, control.valueId]) {
+    elements.set(id, { min: '', max: '', value: 'saved-value', dataset: {} });
+  }
+  const limits = copy(sizeDefaults); limits.individual.width = { minMm: 650, maxMm: 1800 };
+  sizeModel.applyWindowSliderBounds(limits, { getElementById: id => elements.get(id) });
+  assert.equal(elements.get('widthA').min, '0.650'); assert.equal(elements.get('widthA').max, '1.800');
+  assert.equal(elements.get('valWidth').min, '650'); assert.equal(elements.get('valWidth').max, '1800');
+  assert.ok([...elements.values()].every(element => element.value === 'saved-value'));
+  elements.get('overallWidthA').dataset.layoutMinimumM = '1.950';
+  sizeModel.applyWindowSliderBounds(limits, { getElementById: id => elements.get(id) });
+  assert.equal(elements.get('overallWidthA').min, '1.950');
+  assert.equal(elements.get('valOverallWidth').min, '1950');
+});
+
+// Exercise the real grid-sizing implementation with isolated controller/network boundaries.
+const managerSource = await read('window-configurator/src/client/js/layout-sizing-manager.js');
+async function sizingHarness(sizeLimits) {
+  const rangeModule = dataUrl(`const limits=${JSON.stringify(sizeLimits)}; export function getWindowSliderRange(scope, axis) {
+    const range=limits[scope][axis==='x'?'width':axis==='y'?'height':axis]; return { minM:range.minMm/1000, maxM:range.maxMm/1000 };
+  }`);
+  const { createLayoutSizingManager, getOverallLayoutDimensions } = await import(dataUrl(managerSource.replace("'./window-settings.js'", JSON.stringify(rangeModule))));
+  let state = {
+    gridTracks: { x: [{ start: 0, end: 1, sizeM: 1.487 }, { start: 1, end: 2, sizeM: 1.487 }], y: [{ start: 0, end: 1, sizeM: 1.474 }] },
+    windows: [{ id: 'left', rect: { x0: 0, x1: 1, y0: 0, y1: 1 } }, { id: 'right', rect: { x0: 1, x1: 2, y0: 0, y1: 1 } }],
+  };
+  const controller = {
+    getWindowState: () => state,
+    getConfigurationSnapshot: () => ({ windowState: state }),
+    applyConfiguration: async ({ windowState }) => { state = windowState; return { windowState }; },
+  };
+  const manager = createLayoutSizingManager({ controller, widthMaxM: 25, heightMaxM: 25 });
+  return { manager, state: () => state, dimensions: () => getOverallLayoutDimensions(state) };
+}
+const narrowLimits = () => ({
+  overall: { width: { minMm: 2000, maxMm: 4000 }, height: { minMm: 1000, maxMm: 3000 } },
+  individual: { width: { minMm: 700, maxMm: 2000 }, height: { minMm: 800, maxMm: 2000 } },
+});
+test('overall sizing respects published lower/upper bounds in preview and committed geometry', async () => {
+  const { manager, dimensions } = await sizingHarness(narrowLimits());
+  const preview = manager.previewOverall({ widthM: 100, heightM: .1 });
+  assert.ok(Math.abs(preview.gridTracks.x.reduce((sum, track) => sum + track.sizeM, .026) - 4) < 1e-6);
+  await manager.resizeOverall({ widthM: 100, heightM: .1 });
+  assert.deepEqual(dimensions(), { widthM: 4, heightM: 1 });
+  await manager.resizeOverall({ widthM: .1, heightM: 100 });
+  assert.deepEqual(dimensions(), { widthM: 2, heightM: 3 });
+});
+test('individual resizing respects published caps and keeps overall size and sibling minimums', async () => {
+  const { manager, state, dimensions } = await sizingHarness(narrowLimits());
+  await manager.resizeWindow('left', { widthM: 100 });
+  assert.ok(Math.abs(state().gridTracks.x[0].sizeM + .013 - 2) < 1e-6);
+  assert.equal(dimensions().widthM, 3);
+  await manager.resizeWindow('left', { widthM: .1 });
+  assert.ok(Math.abs(state().gridTracks.x[0].sizeM + .013 - .7) < 1e-6);
+  assert.equal(dimensions().widthM, 3);
+});
+test('multi-window geometry can raise the overall minimum without extending the published maximum', async () => {
+  const limits = narrowLimits(); limits.individual.width.minMm = 1800;
+  const { manager, dimensions } = await sizingHarness(limits);
+  assert.equal(manager.getMinimumDimensions().widthM, 3.6);
+  await manager.resizeOverall({ widthM: 1 }); assert.equal(dimensions().widthM, 3.6);
+});
+test('an impossible layout/minimum combination stays unchanged rather than silently widening the maximum', async () => {
+  const limits = narrowLimits(); limits.overall.width.maxMm = 2000; limits.individual.width.minMm = 1500;
+  const { manager, dimensions } = await sizingHarness(limits);
+  assert.equal(manager.getMinimumDimensions().widthM, 3);
+  await manager.resizeOverall({ widthM: 10 }); assert.equal(dimensions().widthM, 3);
+});
+test('window settings page has separate accessible menus and a same-style, isolated interactive preview', async () => {
+  const html = await read('website/public/edit/window-configurator/index.html');
+  assert.match(html, /<details[^>]+id="colors-menu"/); assert.match(html, /<details[^>]+id="sizes-menu"/);
+  assert.match(html, /id="window-size-fields"/); assert.match(html, /<iframe[^>]+title="Window configurator controls preview"/);
+  const preview = await read('window-configurator/src/client/editor-preview.html');
+  for (const control of sizeModel.WINDOW_SIZE_CONTROLS) {
+    assert.ok(preview.includes(`id="${control.rangeId}"`)); assert.ok(preview.includes(`id="${control.valueId}"`));
+  }
+  assert.match(preview, /\.\/shared-shell\.css\?v=4/); assert.match(preview, /\.\/css\/styles\.css\?v=3/);
+  assert.match(preview, /finish-mode-toggle/); assert.match(preview, /finish-type-toggle/); assert.match(preview, /finish-swatches/);
+  const script = await read('window-configurator/src/client/js/editor-preview.js');
+  assert.match(script, /event\.origin !== location\.origin \|\| event\.source !== window\.parent/);
+  assert.doesNotMatch(script, /saveConfiguratorColors|signInWithGoogle|innerHTML/);
+  const limits = await read('window-configurator/src/client/js/window-size-limits.js');
+  assert.match(limits, /MAX_INDIVIDUAL_WINDOW_WIDTH_M = 2\.5/);
+  assert.match(limits, /MAX_OPENING_SASH_WEIGHT_KG = 130/);
+});
+test('release validation catches a missing new window preview and its editor stylesheet', () => releaseFixture(async ({ temporary, validate }) => {
+  await rm(path.join(temporary, 'dist/window-configurator-build/editor-preview.html'));
+  await rm(path.join(temporary, 'shared-ui/styles/windowSettingsEditor.css'));
+  const result = validate(); assert.equal(result.status, 1);
+  assert.match(result.stderr, /window-configurator\/editor-preview\.html/);
+  assert.match(result.stderr, /shared-ui\/styles\/windowSettingsEditor\.css/);
+}));
+
+test('window settings schema imports resolve in source tooling and domain-root releases', async () => {
+  const schema = await read('shared-ui/src/windowSizeSettings.js');
+  for (const file of ['window-settings.js', 'window-size-limits.js', 'editor-preview.js']) {
+    const filename = `window-configurator/src/client/js/${file}`;
+    const source = await read(filename);
+    const specifier = source.match(/from '([^']*windowSizeSettings\.js[^']*)'/)?.[1];
+    assert.ok(specifier, filename);
+    assert.equal(await readFile(new URL(specifier, new URL(filename, root)), 'utf8'), schema);
+    for (const prefix of ['/window-configurator/js/', '/configurator-ferestre/js/', '/fenster-konfigurator/js/', '/js/']) {
+      assert.equal(new URL(specifier, `https://example.test${prefix}${file}`).pathname, '/shared-ui/src/windowSizeSettings.js');
+    }
+  }
+});
