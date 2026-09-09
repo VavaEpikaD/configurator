@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createWindowBuilder as createBaseWindowBuilder } from './window-builder.js?window-dimensions-base=2';
+import { createWindowBuilder as createBaseWindowBuilder } from './window-builder.js?window-dimensions-base=3';
 
 const DIMENSION_LINE_COLOUR = 0x38bdf8;
 const DIMENSION_OUTWARD_OFFSET_M = 0.09;
