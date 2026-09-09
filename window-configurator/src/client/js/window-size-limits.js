@@ -86,6 +86,48 @@ export function estimateOpeningSashWeightKg({
         + glassAreaSqm * glassMassPerSqm;
 }
 
+function maximumOpeningSashWidthForHeightM({
+    heightM,
+    sashProfileId = '575790',
+    glazingBeadCode = '573940',
+    glassWeightKgPerSqm = DEFAULT_GLASS_WEIGHT_KG_PER_SQM,
+} = {}) {
+    const height = Math.max(0, finite(heightM));
+    if (height <= 0) return null;
+
+    const weightAt = widthM => estimateOpeningSashWeightKg({
+        widthM,
+        heightM: height,
+        sashProfileId,
+        glazingBeadCode,
+        glassWeightKgPerSqm,
+    });
+
+    // If even the configurator's minimum width is over the leaf-weight limit,
+    // reducing width cannot solve the problem at this height.
+    if (weightAt(MIN_WINDOW_M) > MAX_OPENING_SASH_WEIGHT_KG + LIMIT_EPSILON) {
+        return null;
+    }
+
+    if (weightAt(MAX_INDIVIDUAL_WINDOW_WIDTH_M) <= MAX_OPENING_SASH_WEIGHT_KG + LIMIT_EPSILON) {
+        return MAX_INDIVIDUAL_WINDOW_WIDTH_M;
+    }
+
+    // Leaf weight grows monotonically with width, so binary search gives the
+    // largest width that still stays at or below 130 kg for the current height.
+    let low = MIN_WINDOW_M;
+    let high = MAX_INDIVIDUAL_WINDOW_WIDTH_M;
+    for (let iteration = 0; iteration < 48; iteration += 1) {
+        const middle = (low + high) / 2;
+        if (weightAt(middle) <= MAX_OPENING_SASH_WEIGHT_KG + LIMIT_EPSILON) {
+            low = middle;
+        } else {
+            high = middle;
+        }
+    }
+    return low;
+}
+
 function currentLocale() {
     return String(
         globalThis.window?.WINDOW_CONFIGURATOR_SHARED_SHELL?.state?.locale
@@ -99,27 +141,70 @@ function localizedViolationMessage(violation) {
     const number = violation.windowNumber;
     const widthMm = Math.round(violation.widthM * 1000);
     const heightMm = Math.round(violation.heightM * 1000);
-    const weightKg = violation.weightKg;
-
     const language = locale.startsWith('ro') ? 'ro' : (locale.startsWith('de') ? 'de' : 'en');
+
     if (violation.type === 'dimension') {
+        const tooWide = Boolean(violation.tooWide);
+        const tooTall = Boolean(violation.tooTall);
+        const maxWidthMm = Math.round(MAX_INDIVIDUAL_WINDOW_WIDTH_M * 1000);
+        const maxHeightMm = Math.round(MAX_INDIVIDUAL_WINDOW_HEIGHT_M * 1000);
+
+        if (tooTall && !tooWide) {
+            const reductionMm = Math.max(1, heightMm - maxHeightMm);
+            if (language === 'ro') {
+                return `Fereastra ${number} este prea înaltă: ${heightMm} mm. Înălțimea maximă este ${maxHeightMm} mm. Reduceți înălțimea cu cel puțin ${reductionMm} mm înainte de a o adăuga în coș.`;
+            }
+            if (language === 'de') {
+                return `Fenster ${number} ist zu hoch: ${heightMm} mm. Die maximale Höhe beträgt ${maxHeightMm} mm. Reduzieren Sie die Höhe um mindestens ${reductionMm} mm, bevor Sie das Fenster zum Warenkorb hinzufügen.`;
+            }
+            return `Window ${number} is too tall: ${heightMm} mm. Maximum height is ${maxHeightMm} mm. Reduce the height by at least ${reductionMm} mm before adding it to the cart.`;
+        }
+
+        if (tooWide && !tooTall) {
+            const reductionMm = Math.max(1, widthMm - maxWidthMm);
+            if (language === 'ro') {
+                return `Fereastra ${number} este prea lată: ${widthMm} mm. Lățimea maximă este ${maxWidthMm} mm. Reduceți lățimea cu cel puțin ${reductionMm} mm înainte de a o adăuga în coș.`;
+            }
+            if (language === 'de') {
+                return `Fenster ${number} ist zu breit: ${widthMm} mm. Die maximale Breite beträgt ${maxWidthMm} mm. Reduzieren Sie die Breite um mindestens ${reductionMm} mm, bevor Sie das Fenster zum Warenkorb hinzufügen.`;
+            }
+            return `Window ${number} is too wide: ${widthMm} mm. Maximum width is ${maxWidthMm} mm. Reduce the width by at least ${reductionMm} mm before adding it to the cart.`;
+        }
+
+        const widthReductionMm = Math.max(1, widthMm - maxWidthMm);
+        const heightReductionMm = Math.max(1, heightMm - maxHeightMm);
         if (language === 'ro') {
-            return `Fereastra ${number} depășește limita individuală de 2500 mm (${widthMm} × ${heightMm} mm). Micșorați fereastra înainte de a o adăuga în coș.`;
+            return `Fereastra ${number} este prea lată și prea înaltă (${widthMm} × ${heightMm} mm). Limita este ${maxWidthMm} × ${maxHeightMm} mm. Reduceți lățimea cu cel puțin ${widthReductionMm} mm și înălțimea cu cel puțin ${heightReductionMm} mm.`;
         }
         if (language === 'de') {
-            return `Fenster ${number} überschreitet die Einzelmaßgrenze von 2500 mm (${widthMm} × ${heightMm} mm). Verkleinern Sie das Fenster, bevor Sie es zum Warenkorb hinzufügen.`;
+            return `Fenster ${number} ist zu breit und zu hoch (${widthMm} × ${heightMm} mm). Zulässig sind maximal ${maxWidthMm} × ${maxHeightMm} mm. Reduzieren Sie die Breite um mindestens ${widthReductionMm} mm und die Höhe um mindestens ${heightReductionMm} mm.`;
         }
-        return `Window ${number} exceeds the 2500 mm individual size limit (${widthMm} × ${heightMm} mm). Reduce the window before adding it to the cart.`;
+        return `Window ${number} is too wide and too tall (${widthMm} × ${heightMm} mm). Maximum size is ${maxWidthMm} × ${maxHeightMm} mm. Reduce width by at least ${widthReductionMm} mm and height by at least ${heightReductionMm} mm.`;
     }
 
-    const formattedWeight = Number(weightKg).toFixed(1);
+    const formattedWeight = Number(violation.weightKg).toFixed(1);
+    const maximumWidthMm = Number.isFinite(violation.maximumWidthM)
+        ? Math.floor(violation.maximumWidthM * 1000 + 1e-9)
+        : null;
+
+    if (maximumWidthMm !== null) {
+        const minimumReductionMm = Math.max(1, widthMm - maximumWidthMm);
+        if (language === 'ro') {
+            return `Fereastra ${number} este prea grea: aproximativ ${formattedWeight} kg, peste limita de ${MAX_OPENING_SASH_WEIGHT_KG} kg. La înălțimea de ${heightMm} mm, lățimea trebuie să fie de maximum ${maximumWidthMm} mm. Reduceți lățimea cu cel puțin ${minimumReductionMm} mm.`;
+        }
+        if (language === 'de') {
+            return `Fenster ${number} ist zu schwer: geschätzt ${formattedWeight} kg, über dem Grenzwert von ${MAX_OPENING_SASH_WEIGHT_KG} kg. Bei ${heightMm} mm Höhe darf die Breite höchstens ${maximumWidthMm} mm betragen. Reduzieren Sie die Breite um mindestens ${minimumReductionMm} mm.`;
+        }
+        return `Window ${number} is too heavy: estimated ${formattedWeight} kg, above the ${MAX_OPENING_SASH_WEIGHT_KG} kg limit. At ${heightMm} mm high, the width must be ${maximumWidthMm} mm or less. Reduce the width by at least ${minimumReductionMm} mm.`;
+    }
+
     if (language === 'ro') {
-        return `Fereastra ${number} are aproximativ ${formattedWeight} kg. Canatul + bagheta de vitrare + sticla nu pot depăși 130 kg.`;
+        return `Fereastra ${number} este prea grea: aproximativ ${formattedWeight} kg, peste limita de ${MAX_OPENING_SASH_WEIGHT_KG} kg. La înălțimea de ${heightMm} mm, reducerea doar a lățimii până la minimul configuratorului nu este suficientă; reduceți și înălțimea.`;
     }
     if (language === 'de') {
-        return `Fenster ${number} wiegt geschätzt ${formattedWeight} kg. Flügel + Glasleiste + Glas dürfen 130 kg nicht überschreiten.`;
+        return `Fenster ${number} ist zu schwer: geschätzt ${formattedWeight} kg, über dem Grenzwert von ${MAX_OPENING_SASH_WEIGHT_KG} kg. Bei ${heightMm} mm Höhe reicht selbst die minimale Konfiguratorbreite nicht aus; reduzieren Sie auch die Höhe.`;
     }
-    return `Window ${number} is estimated at ${formattedWeight} kg. Sash + glazing bead + glass must not exceed 130 kg.`;
+    return `Window ${number} is too heavy: estimated ${formattedWeight} kg, above the ${MAX_OPENING_SASH_WEIGHT_KG} kg limit. At ${heightMm} mm high, even the configurator's minimum width is not enough; reduce the height as well.`;
 }
 
 function resolveLeafProfiles(snapshot = {}) {
@@ -154,17 +239,18 @@ export function validateWindowConfigurationForCart(snapshot = null) {
         const size = getWindowActualSizeInState(state, cell.id);
         const widthM = finite(size?.widthM);
         const heightM = finite(size?.heightM);
+        const tooWide = widthM > MAX_INDIVIDUAL_WINDOW_WIDTH_M + LIMIT_EPSILON;
+        const tooTall = heightM > MAX_INDIVIDUAL_WINDOW_HEIGHT_M + LIMIT_EPSILON;
 
-        if (
-            widthM > MAX_INDIVIDUAL_WINDOW_WIDTH_M + LIMIT_EPSILON
-            || heightM > MAX_INDIVIDUAL_WINDOW_HEIGHT_M + LIMIT_EPSILON
-        ) {
+        if (tooWide || tooTall) {
             const violation = {
                 type: 'dimension',
                 windowNumber: index + 1,
                 cellId: cell.id,
                 widthM,
                 heightM,
+                tooWide,
+                tooTall,
             };
             return {
                 valid: false,
@@ -180,6 +266,10 @@ export function validateWindowConfigurationForCart(snapshot = null) {
             ...leafProfiles,
         });
         if (weightKg > MAX_OPENING_SASH_WEIGHT_KG + LIMIT_EPSILON) {
+            const maximumWidthM = maximumOpeningSashWidthForHeightM({
+                heightM,
+                ...leafProfiles,
+            });
             const violation = {
                 type: 'weight',
                 windowNumber: index + 1,
@@ -187,6 +277,7 @@ export function validateWindowConfigurationForCart(snapshot = null) {
                 widthM,
                 heightM,
                 weightKg,
+                maximumWidthM,
             };
             return {
                 valid: false,
@@ -318,6 +409,25 @@ function installWindowSizeAndCartLimits() {
         clampControlForTarget(event.target);
     }, true);
 
+    // layout-sizing-manager runs its own handlers on the overall controls and
+    // historically enlarges the range max as the thumb approaches the end.
+    // Re-apply the real overall limits after those target handlers have run so
+    // 25 m is always the physical end of both slider tracks while dragging or
+    // committing a typed value. This bubble-phase sync does not alter the value.
+    const restoreOverallRangeMaxima = event => {
+        const target = event.target;
+        if (!(target instanceof HTMLInputElement)) return;
+        if (![
+            'overallWidthA',
+            'valOverallWidth',
+            'overallHeightB',
+            'valOverallHeight',
+        ].includes(target.id)) return;
+        syncControlMaxima();
+    };
+    document.addEventListener('input', restoreOverallRangeMaxima);
+    document.addEventListener('change', restoreOverallRangeMaxima);
+
     // The common Add to cart handler lives inside the shared configurator footer.
     // Validate during capture so an invalid window never reaches that handler.
     document.addEventListener('click', event => {
@@ -333,7 +443,7 @@ function installWindowSizeAndCartLimits() {
         globalThis.window?.WINDOW_CONFIGURATOR_SHARED_SHELL?.showFeedback?.(
             result.message,
             'error',
-            3200
+            5000
         );
     }, true);
 
