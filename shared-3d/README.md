@@ -1,6 +1,6 @@
 # Shared 3D rendering and geometry
 
-Current release: **`20260909-uv-8`**. Integrated into Window and Pergola only.
+Current release: **`20260909-contact-14`**. Integrated into Window and Pergola only.
 Other configurators and their rendering paths are not migrated by this release.
 
 The shared layer receives each application's Three.js namespace. It does not
@@ -23,7 +23,7 @@ Window's vendored engine and Pergola's declared engine remain separate.
   cameras, UI, manufacturing, opening/animation and app-specific lifetime.
 
 The current materials are `aluminium.powderCoated`, `aluminium.bare`,
-`aluminium.anodized`, `glass.clear`, procedural `wood.oak`, and photographic
+`aluminium.anodized`, `glass.clear`, Window-specific `glass.architectural`, procedural `wood.oak`, and photographic
 `wood.deck`. This is not yet the complete proposed material catalog.
 
 ## Release documentation
@@ -36,17 +36,19 @@ The current materials are `aluminium.powderCoated`, `aluminium.bare`,
 | [VALIDATION.md](VALIDATION.md) | Completed checks and exact local verification limits |
 | [GEOMETRY.md](GEOMETRY.md) | Shared geometry API, ownership, CAD unit policy and adapters |
 | [EDGE_FINISHES.md](EDGE_FINISHES.md) | Opt-in edge methods and protected manufacturing contours |
-| [CONTACT_SHADING.md](CONTACT_SHADING.md) | Contact-stage architecture, exclusions and failure handling |
+| [CONTACT_SHADING.md](CONTACT_SHADING.md) | Current Step 9 contact-stage filtering, exclusions and failure handling |
+| [CONTACT_STEP9_VALIDATION.md](CONTACT_STEP9_VALIDATION.md) | Current release validation and pinned-engine verification limits |
 
 Geometry/edge/contact documents retain their own feature-version references;
-the current top-level system version is the one above. The top-level and geometry versions are both `20260909-uv-8`; the PBR asset
-set remains `20260909-pbr-deck-7` because this release changes UV coordinates,
-not the accepted texture images or material calibration.
+the current top-level system version is the one above. Geometry remains `20260909-uv-8`,
+PBR assets remain `20260909-pbr-deck-7`, and the dedicated Window glazing
+reflections remain `20260909-glass-13`. This release changes contact rendering,
+not the accepted geometry, texture images or material calibration.
 
 ## Host integration
 
 ```js
-import { createSurfaceSystem } from './shared-3d/src/index.js?v=8';
+import { createSurfaceSystem } from './shared-3d/src/index.js?v=contact-14';
 
 const surfaces = createSurfaceSystem(THREE, {
   renderer, scene, shadowLights: [sun], quality: 'balanced',

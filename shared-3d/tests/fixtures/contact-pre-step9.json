@@ -1,0 +1,281 @@
+{
+  "baseline": "main13 + UV8 + deck rebalance + restored handle + glass13",
+  "cases": {
+    "window:single-default": {
+      "product": "63281d1dc1846129ee84edc50569ce38b5c99356e9d08b6f8a1505c6df1ab4c5",
+      "sections": "7f61fe6ff3de80c848184dd0a96340e504057c21c1f3ffaccbc69b16b4c10bba",
+      "fabrication": "9852598d35aaa2a201b586d0e6cc03fc8ca2be5a410e636a650982aeb8e39d0f",
+      "handles": 3
+    },
+    "window:single-small": {
+      "product": "d986953bfeb630f448b3964ea31793830f5848ba9f2c8b47aca77a3d86ef2ec9",
+      "sections": "7f61fe6ff3de80c848184dd0a96340e504057c21c1f3ffaccbc69b16b4c10bba",
+      "fabrication": "cfbc2c31d6849ea3d70942f56e99d81acdf445b639b612765202232a6599ed14",
+      "handles": 3
+    },
+    "window:single-large": {
+      "product": "5c56b484b2f955d2855e56b77c687b782d9fd96937c585f23fb4c6c061838176",
+      "sections": "7f61fe6ff3de80c848184dd0a96340e504057c21c1f3ffaccbc69b16b4c10bba",
+      "fabrication": "f35184070f7480300180a146e7853deb7dc7992f532c86d5ca4f1e365467c9be",
+      "handles": 3
+    },
+    "window:glass-16": {
+      "product": "1cea367c84d9b8dca8983df37698ca43e8bb648a930ef0a785dd6235d7d6160c",
+      "sections": "7f61fe6ff3de80c848184dd0a96340e504057c21c1f3ffaccbc69b16b4c10bba",
+      "fabrication": "9852598d35aaa2a201b586d0e6cc03fc8ca2be5a410e636a650982aeb8e39d0f",
+      "handles": 3
+    },
+    "window:glass-29": {
+      "product": "fa133422af70678655abe9ca265d8b3c35cea1f5a2429d4bd042a2c16b061442",
+      "sections": "7f61fe6ff3de80c848184dd0a96340e504057c21c1f3ffaccbc69b16b4c10bba",
+      "fabrication": "9852598d35aaa2a201b586d0e6cc03fc8ca2be5a410e636a650982aeb8e39d0f",
+      "handles": 3
+    },
+    "window:turn-open": {
+      "product": "48c197d7f12932f292ed23bd6af1d62ce13e3dd759ed0441ce4da9a7d2ee2c97",
+      "sections": "7f61fe6ff3de80c848184dd0a96340e504057c21c1f3ffaccbc69b16b4c10bba",
+      "fabrication": "9852598d35aaa2a201b586d0e6cc03fc8ca2be5a410e636a650982aeb8e39d0f",
+      "handles": 3
+    },
+    "window:tilt-open": {
+      "product": "ae504d011d35116f57c532218d1a7b3d9f9bbb248ece2f588ee9c8a344d6e507",
+      "sections": "7f61fe6ff3de80c848184dd0a96340e504057c21c1f3ffaccbc69b16b4c10bba",
+      "fabrication": "9852598d35aaa2a201b586d0e6cc03fc8ca2be5a410e636a650982aeb8e39d0f",
+      "handles": 3
+    },
+    "window:left-handle": {
+      "product": "f564f00333cce199b1a273c564c2a1ac937674873c0143442234ae000ac76fa1",
+      "sections": "7f61fe6ff3de80c848184dd0a96340e504057c21c1f3ffaccbc69b16b4c10bba",
+      "fabrication": "9852598d35aaa2a201b586d0e6cc03fc8ca2be5a410e636a650982aeb8e39d0f",
+      "handles": 3
+    },
+    "window:exploded": {
+      "product": "8b73df6890829ef103b1b6b8ded14c5d915fba19a5b24fa686b61082b5777150",
+      "sections": "7f61fe6ff3de80c848184dd0a96340e504057c21c1f3ffaccbc69b16b4c10bba",
+      "fabrication": "9852598d35aaa2a201b586d0e6cc03fc8ca2be5a410e636a650982aeb8e39d0f",
+      "handles": 3
+    },
+    "window:vertical-divider": {
+      "product": "14661a1d74927f27f65d2aa7a11e76d14cd5d883ce92606fcc7c04c63779abe4",
+      "sections": "dc4292cfc2a0c9d0976d54cda19d8f59e260ea598d7e8feb61b478dc47c9d58c",
+      "fabrication": "8b9320a845d7a1255dff63e3b1e8f9457ba7866e12118679cf4f684850292db6",
+      "handles": 3
+    },
+    "window:horizontal-divider": {
+      "product": "80d40eb9649e10748babc1542807f06b53611111555b36c624c1023d84beea44",
+      "sections": "dc4292cfc2a0c9d0976d54cda19d8f59e260ea598d7e8feb61b478dc47c9d58c",
+      "fabrication": "67fd98d49e9f937460891d3d19f50fab41b448e1d6a798b69ff1b7241895e02a",
+      "handles": 3
+    },
+    "window:three-fixed": {
+      "product": "a59ad7e340e3f04881a2f4df8f0f6cf041108b9690adf67df278766b2265a337",
+      "sections": "dc4292cfc2a0c9d0976d54cda19d8f59e260ea598d7e8feb61b478dc47c9d58c",
+      "fabrication": "6a04f1bd5a7ef6e5d6e8a02af94bc1a3fd905189d04afc4db6b0dad3270b7d96",
+      "handles": 0
+    },
+    "window:two-sashes": {
+      "product": "583f3f1e6c18f57b48c7b5ab6a80f0d7bbf91d150c75637585e9b9b3ea089f8d",
+      "sections": "dc4292cfc2a0c9d0976d54cda19d8f59e260ea598d7e8feb61b478dc47c9d58c",
+      "fabrication": "1fda51567e03f371f929ab4abfec022e288f55d808d05c1599dfd542fd55f9cc",
+      "handles": 6
+    },
+    "pergola:default": {
+      "product": "12b742345232461f80702b34d15c9cc8acb862400f51783b98cc8a2a902286df",
+      "materials": "fc93f90e10793d66fc08fbbed467d8006e85762884148b93cc1fa2e6b681c849"
+    },
+    "pergola:lite-width": {
+      "product": "f42988603406afe667c1a8a75bd5cd8e17e34629c24699aa332d772b8982417e",
+      "materials": "0c0fbea1c8620399f8d1fabf2756dc2a61395ab1ed45afb195a634a7dc1f9d49"
+    },
+    "pergola:lite-depth": {
+      "product": "7f475a6f067fd70caeac37f03b5fa457dfdff228db0c24a7b0cec72ddf1a7366",
+      "materials": "c2f9698178ea996cf9c6b5b17d52e5687fb52e4bdd967b30b5f85cf1982b41b2"
+    },
+    "pergola:comfort-width": {
+      "product": "38ad7468e2bd0342fe03638b27a3dd4414a07607bae35d0901963311315d12e2",
+      "materials": "f7f7f3b346c35bdb7c1475ba1fc5a75cc16691cd2c3055887d3ce1be279ae1b1"
+    },
+    "pergola:comfort-depth": {
+      "product": "b44063d8d603efea5e262b928499090ddd0c8d7220dc19a43a11a6b4acfd99ad",
+      "materials": "a409130fd359455311ce70b2608087c3ce9f564154fe07c2917da77d8ca981b9"
+    },
+    "pergola:premium-width": {
+      "product": "12b742345232461f80702b34d15c9cc8acb862400f51783b98cc8a2a902286df",
+      "materials": "fc93f90e10793d66fc08fbbed467d8006e85762884148b93cc1fa2e6b681c849"
+    },
+    "pergola:premium-depth": {
+      "product": "22ce3a17c416100202cbb447871fd6c62967f79a731ea4852e6edd87d346a064",
+      "materials": "6ee97a455924a9b71e8bed55f44f5ba0d4f09226ac24ce4367b11edf987b443f"
+    },
+    "pergola:dimensions-2000-2000-2200": {
+      "product": "9d5df895bee7f5eb33aec80035d6959ceb38e1cb785f0a99cec427655cc4cd6c",
+      "materials": "f41418732331838399bc3857755fda7510be7f34cf298eb59094bef89a765b49"
+    },
+    "pergola:dimensions-6000-6000-3000": {
+      "product": "ba360011bb9230c738b8dc8b51b51fa60c8f215e9a978ee9d26abc76d6cc7d87",
+      "materials": "ff26d6f4980fe1f871dc82c2621cfa0abf78687d4475bba685a8a0bce741730b"
+    },
+    "pergola:dimensions-12000-9000-3200": {
+      "product": "1b582d7c130f52b52d381282fd6079fece391b14b30f6f54c09e095a54ec8d0c",
+      "materials": "901bf2dfa2b22805e6d9cb55441c03de94661d25dbd8221a339d6d20baa1a93d"
+    },
+    "pergola:wall-front": {
+      "product": "93f30a63646937109fec7fb920d58f4894e3cac8eb5ed5adbd3066562a8684cf",
+      "materials": "5a33b61f1e90ffdf49fd4fec46a94184ac36caeaabec29dea9acca2605a285ff"
+    },
+    "pergola:wall-back": {
+      "product": "571f6948bd4f360d973a09a1eaecb01728f5063bef295dff493551257aa0994f",
+      "materials": "5a33b61f1e90ffdf49fd4fec46a94184ac36caeaabec29dea9acca2605a285ff"
+    },
+    "pergola:wall-left": {
+      "product": "a377723d8948ae9d740a603160607af04513894ee2f500522db4571fa7f2d137",
+      "materials": "5a33b61f1e90ffdf49fd4fec46a94184ac36caeaabec29dea9acca2605a285ff"
+    },
+    "pergola:wall-right": {
+      "product": "646f40c97191e1e1139bde7c538a60fbb6a46c4d50e23acb678c14083eb348bb",
+      "materials": "5a33b61f1e90ffdf49fd4fec46a94184ac36caeaabec29dea9acca2605a285ff"
+    },
+    "pergola:sides-glass": {
+      "product": "ff5668ff1fc372f8783878bdfcf86ce550d7e48b351458497b718a578e8279df",
+      "materials": "cf09e1829cc9ffeba7acefbb9b7ff62d3d04aac33d1704c0fcc0999197a19de0"
+    },
+    "pergola:sides-privacy-wall": {
+      "product": "c8596a50687305d4b8b091d5f0b33e957d8a7f33720f4a3a2988e538f5388ff1",
+      "materials": "2781eee6052eda0bb4094490bedd447e6b21a91658fdb3238c82e61314f02457"
+    },
+    "pergola:sides-screen": {
+      "product": "43b1c85cc45d77c0ccb0a81d76645762796fa8e9bcaca9141f668d95485c9fcf",
+      "materials": "ce44a6fad343c636f4bc44798e52d71def82ca109ef1167351d00b0914c23926"
+    },
+    "pergola:sides-motorized-screen": {
+      "product": "43b1c85cc45d77c0ccb0a81d76645762796fa8e9bcaca9141f668d95485c9fcf",
+      "materials": "831d489ffe0212d25fd026776d432e67406015f23b6ea22009a1d52e7eb9f79a"
+    },
+    "pergola:louvers-0": {
+      "product": "eddcdd5be6729ad2c02eaaf2a00b5d1eefa9fe1e59abc8e4aaad1d7b9ea9f749",
+      "materials": "fc93f90e10793d66fc08fbbed467d8006e85762884148b93cc1fa2e6b681c849"
+    },
+    "pergola:louvers-45": {
+      "product": "6145c43d93fab93de00889bb38c5240a2406e7d5f4c55cd3665ef4931ffdd77a",
+      "materials": "fc93f90e10793d66fc08fbbed467d8006e85762884148b93cc1fa2e6b681c849"
+    },
+    "pergola:louvers-90": {
+      "product": "42dbdf59c59b3c1f75b7b3215ce04708c9f22618de58c714024dd26a79046269",
+      "materials": "fc93f90e10793d66fc08fbbed467d8006e85762884148b93cc1fa2e6b681c849"
+    },
+    "pergola:drainage-none": {
+      "product": "814e337bc707f35e82d2a95f5b196967bf383f5ebc919e13f1f9be8548f9cfa8",
+      "materials": "51588e0f4bcd341523a382659ecb7769297a272e7528642f06016a1690234240"
+    },
+    "pergola:manual": {
+      "product": "b156989795fb6a92c2e07b558eb31c56356070a37c4782f7500ce1d3e2b7faef",
+      "materials": "de1d714a7f7d349714ce429e032fc7b5c00e60dee5eb2c2aa61dcce950302836"
+    },
+    "pergola:perimeter-led": {
+      "product": "92a86988076d9efd6c4572b5eb0c75a61f7b5b23ff1935d59096b868aadd4bcd",
+      "materials": "352491b84c72a6a588564779538368b2d67b862e192d382375f9c019cd6ed172"
+    },
+    "pergola:night-led": {
+      "product": "92a86988076d9efd6c4572b5eb0c75a61f7b5b23ff1935d59096b868aadd4bcd",
+      "materials": "352491b84c72a6a588564779538368b2d67b862e192d382375f9c019cd6ed172"
+    },
+    "pergola:spotlights": {
+      "product": "8e43cbf5de3113ba17532ba49dc6c4c240ce6b18bba447dfc8b63b56594a6b00",
+      "materials": "ffeada3ce6c65411da6ded4101b8070d66d27ccdec84b46d0a2e029647c5c240"
+    },
+    "pergola:outlet-eu": {
+      "product": "0c5cb768839840d0855e63011b42d9478f592811445def8b072d51324845fc64",
+      "materials": "255390d7c37972156f31d9dc59e40ebe7bc7af12e5782c00947affbd5f805816"
+    },
+    "pergola:outlet-us": {
+      "product": "19a9afbe355e642c116395f63b7b023763889373fec00f4ea3b0582ca0698ca4",
+      "materials": "6ad10f8314ee934b0c620cf2121fa2e0a4b667a4cd7dadbf0ebd3c525db151dd"
+    },
+    "accepted-optics": {
+      "aluminium.powderCoated": {
+        "color": "383e42",
+        "roughness": 0.58,
+        "metalness": 0,
+        "envMapIntensity": 0.72,
+        "transmission": 0,
+        "opacity": 1,
+        "ior": 0,
+        "thickness": 0,
+        "normalScale": [
+          0.136,
+          0.136
+        ]
+      },
+      "aluminium.bare": {
+        "color": "d6dade",
+        "roughness": 0.3,
+        "metalness": 1,
+        "envMapIntensity": 1.12,
+        "transmission": 0,
+        "opacity": 1,
+        "ior": 0,
+        "thickness": 0,
+        "normalScale": [
+          0.059500000000000004,
+          0.059500000000000004
+        ]
+      },
+      "aluminium.anodized": {
+        "color": "bfc5ca",
+        "roughness": 0.43,
+        "metalness": 0.85,
+        "envMapIntensity": 0.96,
+        "transmission": 0,
+        "opacity": 1,
+        "ior": 0,
+        "thickness": 0,
+        "normalScale": [
+          0.0425,
+          0.0425
+        ]
+      },
+      "glass.clear": {
+        "color": "ffffff",
+        "roughness": 0.045,
+        "metalness": 0,
+        "envMapIntensity": 1,
+        "transmission": 0.96,
+        "opacity": 1,
+        "ior": 1.5,
+        "thickness": 0.006,
+        "normalScale": [
+          1,
+          1
+        ]
+      },
+      "glass.architectural": {
+        "color": "ffffff",
+        "roughness": 0.025,
+        "metalness": 0,
+        "envMapIntensity": 1,
+        "transmission": 1,
+        "opacity": 1,
+        "ior": 1.5,
+        "thickness": 0.006,
+        "normalScale": [
+          1,
+          1
+        ]
+      },
+      "wood.deck": {
+        "color": "ffffff",
+        "roughness": 0.76,
+        "metalness": 0,
+        "envMapIntensity": 0.28,
+        "transmission": 0,
+        "opacity": 1,
+        "ior": 0,
+        "thickness": 0,
+        "normalScale": [
+          0.102,
+          0.102
+        ]
+      }
+    }
+  }
+}

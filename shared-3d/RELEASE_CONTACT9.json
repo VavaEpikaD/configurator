@@ -1,0 +1,115 @@
+{
+  "version": "20260909-contact-14",
+  "planStep": 9,
+  "basis": "latest delivered Window glass13 update over main13 + UV8 + deck rebalance + restored handle",
+  "files": [
+    {
+      "path": "commit_message.md",
+      "bytes": 597,
+      "sha256": "185ea3d61a9686e6b2a035e9a4b42112fac5053c7ed127ad1d012babf0276cb9",
+      "previousSha256": "c1a5b484001f59297c22b67c8de564677a3ae42580e4aeb8aa9fac9558a0f9be"
+    },
+    {
+      "path": "pergola-configurator/src/main.js",
+      "bytes": 2354,
+      "sha256": "2178e8ebda880e29f2e9867f851c0f67a4697024c73eda44dc211a602051c94f",
+      "previousSha256": "29bdc274eb811c8e1ad8ec4476a513c254e6c206b1a11bff81f7752557602e03"
+    },
+    {
+      "path": "pergola-configurator/src/scene/PergolaScene.js",
+      "bytes": 28261,
+      "sha256": "c495f506e4492f979c5765655ad5ea7ddcf3dd40e3e7b5a6dc05801d9182fb68",
+      "previousSha256": "f13150f6368f001c11dbb4804256391adce8fb03b15ea14fda7bdabc9b6bac0d"
+    },
+    {
+      "path": "shared-3d/CONTACT_SHADING.md",
+      "bytes": 4760,
+      "sha256": "93474b9c1244eb3f4260a2624800b290b2d5f2b93ea51350f8b7f656e4cbf9f2",
+      "previousSha256": "65104b74e94541dac3204fd17e84f6c0ece36b75eb85aa0d6eaf6a23e036ea79"
+    },
+    {
+      "path": "shared-3d/CONTACT_STEP9_VALIDATION.md",
+      "bytes": 3975,
+      "sha256": "7a0cd9844984d905fc8258e34cfd6e15403226684d92642af2923b0d8992858d",
+      "previousSha256": null
+    },
+    {
+      "path": "shared-3d/README.md",
+      "bytes": 4667,
+      "sha256": "91720401a3dc4ebbe9307c0fe5181683b29ee537fee64cb8794f794616f59918",
+      "previousSha256": "8c25086a8bc5cc93da23a68d6226287258081017b72743f0ace95b810a1fefea"
+    },
+    {
+      "path": "shared-3d/src/createSurfaceSystem.js",
+      "bytes": 6344,
+      "sha256": "c6ca87560ff74bc335ebaddd8628a4d7c80d25b6519c9ee947f578fd61537904",
+      "previousSha256": "81dc8aa1bf5fc4d04b0a2acd9b15260a8bf7beaadee6e341dffe86247cfa30f0"
+    },
+    {
+      "path": "shared-3d/src/index.js",
+      "bytes": 1543,
+      "sha256": "c24e359cace45a96d40ea0b73dd9b0d06f17dcff78c926e274378cc6bb3b3460",
+      "previousSha256": "690826498d4ead7090577d2b1ec9cef410abfe7d9a217e202d8ad3844c68c910"
+    },
+    {
+      "path": "shared-3d/src/rendering/ContactShading.js",
+      "bytes": 19722,
+      "sha256": "6239a3a3024314d938b6aec54fe177380482f631881c0330f1bd51e1540d10a0",
+      "previousSha256": "5a75b768201a7865f65c56ced5c5dce2617a4f13a3e612763de1ff744957bb6c"
+    },
+    {
+      "path": "shared-3d/src/rendering/contactShaders.js",
+      "bytes": 9439,
+      "sha256": "019abf4a68b34f967c4d76e76c99479cc4342512185fcaaffdedba8e541785b3",
+      "previousSha256": "72142353d6f1be1b81b10b199b6f52918edc9b4e13117eb13f94a7c124b70d5a"
+    },
+    {
+      "path": "shared-3d/tests/contact-browser.mjs",
+      "bytes": 15821,
+      "sha256": "1b72c7cfdcab56cb9367c4ab0768d6aca5826d87a67a1c920a1b4c005c54586a",
+      "previousSha256": "b5efb71d0cd555f1cc629ae63aa6af1ee1b0463ed47895b84046cc5c7149f504"
+    },
+    {
+      "path": "shared-3d/tests/contact-preservation.mjs",
+      "bytes": 4756,
+      "sha256": "b94045c0f9e5829f83b051d0d00476a8230bc36e373fe65e0ea4d49ba65e7a3d",
+      "previousSha256": null
+    },
+    {
+      "path": "shared-3d/tests/contact-shading.mjs",
+      "bytes": 20962,
+      "sha256": "6db8df9357163e3369031756f99703faa17dcedef398d3d5591cc3498219bf21",
+      "previousSha256": "6c629c0ec163a87398557173c2e407d27039bd4f001315b87e2f771a5a49c080"
+    },
+    {
+      "path": "shared-3d/tests/fixtures/contact-pre-step9.json",
+      "bytes": 11921,
+      "sha256": "875d1a88d671d17d4378e488f059ce380260dfdc2c165e3ede0021f472668020",
+      "previousSha256": null
+    },
+    {
+      "path": "shared-3d/tools/check_contact_release.mjs",
+      "bytes": 1199,
+      "sha256": "522b1a6acbfbb560b549eeab35559b9e5fb7fe2064285f638a016bf4c294c0e5",
+      "previousSha256": null
+    },
+    {
+      "path": "window-configurator/src/client/index.html",
+      "bytes": 37461,
+      "sha256": "265d77f753b1cb35247ba5cc73cb80587fc02fbf064b1ef66a8bec75f3ea4418",
+      "previousSha256": "03278aeca0afa6782280dead72ff8d0b578aca458cea7a631b4a88812b5f9f47"
+    },
+    {
+      "path": "window-configurator/src/client/js/main.js",
+      "bytes": 46298,
+      "sha256": "751e310e624f49938c2f2c2243fa6209fae7d9405264b10a53611204f8fadd38",
+      "previousSha256": "58c8dc868faba6ce3522df0c42a596265d47b8b2afedc8858b8254e8ec4d116d"
+    },
+    {
+      "path": "window-configurator/src/client/js/scene.js",
+      "bytes": 6875,
+      "sha256": "fae092ec92aff96c5842f0995c9503b30bae876427d3071397910ebe43ba79a2",
+      "previousSha256": "26f461551ffc4fcf7c130b97a588ab337da3e73d417f8cdd90ef7b5de820a937"
+    }
+  ]
+}

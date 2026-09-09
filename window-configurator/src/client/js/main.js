@@ -5,7 +5,7 @@ import {
     WINDOW_HEIGHT_MAX_M,
 } from './config.js';
 import { createComponentSelection } from './component-selection.js';
-import { createSceneContext } from './scene.js?v=glass-13';
+import { createSceneContext } from './scene.js?v=contact-14';
 import { initializeUIControls } from './ui-controls.js?v=4';
 import { createWindowBuilder } from './window-builder.js?v=handle-fix-12';
 import { createMaterialManager } from './materials.js?v=glass-13';

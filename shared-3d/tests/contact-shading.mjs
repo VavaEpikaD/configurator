@@ -50,12 +50,12 @@ test('contact buffers honor quality, framebuffer size, orientation and compact b
   assert.throws(() => contactTargetSize(NaN, 100, getQualityProfile('balanced').contactShading));
 });
 
-test('contact render adds two auxiliary passes and restores all scene/renderer state', () => {
+test('contact render adds three auxiliary passes and restores all scene/renderer state', () => {
   const f = fixture(); const initial = lightingValues(f.material), pos = Array.from(f.mesh.geometry.attributes.position.array);
   const background = f.scene.background, beforeCompile = f.material.onBeforeCompile;
   f.stage.render(f.camera);
-  assert.equal(f.renders.length, 3); assert.equal(f.renders[0].visible[0].material.isMeshDepthMaterial, true);
-  assert.equal(f.renders[2].visible[0].material, f.material); assert.equal(f.renderer.target, null);
+  assert.equal(f.renders.length, 4); assert.equal(f.renders[0].visible[0].material.isMeshDepthMaterial, true);
+  assert.equal(f.renders[3].visible[0].material, f.material); assert.equal(f.renderer.target, null);
   assert.equal(f.renderer.autoClear, false); assert.equal(f.renderer.alpha, .4); assert.equal(f.renderer.color.getHexString(), '445566');
   assert.equal(f.renderer.shadowMap.autoUpdate, true); assert.equal(f.renderer.shadowMap.needsUpdate, true);
   assert.equal(f.scene.background, background); assert.equal(f.scene.overrideMaterial, null);
@@ -66,7 +66,7 @@ test('contact render adds two auxiliary passes and restores all scene/renderer s
   f.stage.dispose(); assert.equal(f.material.onBeforeCompile, beforeCompile); assert.equal(f.listeners.size, 0);
 });
 
-test('glass, transparent screens, overlays, mixed material meshes and hidden objects do not occlude', () => {
+test('glass, transparent screens, overlays and hidden objects do not occlude; opaque mixed slots remain', () => {
   const f = fixture(), library = new MaterialLibrary(THREE);
   const materials = [library.create('glass.clear'), new THREE.MeshStandardMaterial({ transparent: true, opacity: .5 }),
     new THREE.MeshStandardMaterial({ depthWrite: false }), new THREE.MeshStandardMaterial({ depthTest: false }),
@@ -76,7 +76,10 @@ test('glass, transparent screens, overlays, mixed material meshes and hidden obj
   objects.push(new THREE.Mesh(new THREE.BoxGeometry(), [f.material, materials[0]]));
   const hidden = new THREE.Mesh(new THREE.BoxGeometry(), f.material); hidden.visible = false; objects.push(hidden);
   objects.forEach(o => f.scene.add(o)); f.stage.render(f.camera);
-  assert.equal(f.renders[0].visible.length, 1); assert.equal(f.stage.getDiagnostics().occluderMeshes, 1);
+  assert.equal(f.renders[0].visible.length, 2); assert.equal(f.stage.getDiagnostics().occluderMeshes, 2);
+  assert.equal(f.stage.getDiagnostics().mixedMaterialMeshes, 1);
+  const mixed = f.renders[0].visible[1].material;
+  assert.equal(mixed[0].isMeshDepthMaterial, true); assert.equal(mixed[1].visible, false);
   assert.ok(objects.slice(0, -1).every(o => o.visible)); assert.equal(hidden.visible, false);
   for (const material of materials) assert.equal(isContactOccluderMaterial(material), false);
   assert.equal(f.stage.receivers.has(materials[0]), false);
@@ -106,7 +109,7 @@ test('material hook preserves existing hooks, maps and AO chunk while touching o
   assert.ok(shader.fragmentShader.includes('#include <aomap_fragment>'));
   assert.ok(shader.fragmentShader.includes('reflectedLight.indirectDiffuse *= cContactAmount'));
   assert.ok(!shader.fragmentShader.includes('reflectedLight.directDiffuse *='));
-  assert.equal(f.material.customProgramCacheKey(), 'original-program|360-contact-5');
+  assert.equal(f.material.customProgramCacheKey(), 'original-program|360-contact-14');
   f.stage.dispose(); assert.equal(f.material.onBeforeCompile, original); assert.equal(f.material.customProgramCacheKey, key);
 });
 
@@ -121,7 +124,7 @@ test('same-quality frames reuse buffers; high/portrait resize reallocates; low r
   const f = fixture(); f.stage.render(f.camera); const target = f.stage.depthTarget;
   for (let i = 0; i < 5; i++) f.stage.render(f.camera);
   assert.equal(f.stage.depthTarget, target); assert.equal(f.stage.getDiagnostics().allocationCount, 1);
-  f.stage.setQuality(getQualityProfile('high').contactShading); f.renderer.width = 600; f.renderer.height = 1000;
+  f.stage.setQuality(getQualityProfile('high').contactShading); f.renderer.width = 600; f.renderer.height = 1000; f.renderer.viewport.set(0, 0, 600, 1000);
   f.stage.render(f.camera); assert.deepEqual(f.stage.getDiagnostics().bufferSize, [450, 750]);
   const before = f.renders.length; f.stage.setQuality(getQualityProfile('low').contactShading); f.stage.render(f.camera);
   assert.equal(f.renders.length, before + 1); assert.equal(f.stage.getDiagnostics().targetCount, 0);
@@ -184,4 +187,108 @@ test('context loss bypasses passes; restoration clears stale targets and rebuild
 test('contact options reject non-finite/unsafe radii or excessive darkening', () => {
   for (const params of [{ radius: NaN }, { radius: 0 }, { radius: -1 }, { intensity: Infinity }, { maxDarkening: .9 }])
     assert.throws(() => new ContactShading(THREE, params));
+});
+
+test('filtered AO is a separate read target, never a texture feedback loop', () => {
+  const f = fixture(); f.stage.render(f.camera);
+  assert.equal(f.stage.getDiagnostics().targetCount, 3);
+  assert.equal(f.stage.getDiagnostics().filter, 'depth-guided-bilateral-3x3');
+  assert.equal(f.stage.getDiagnostics().closeRadiusMetres, .016);
+  assert.equal(f.stage.uniforms.cContactAO.value, f.stage.filteredTarget.texture);
+  assert.equal(f.stage.screen.filterMaterial.uniforms.cRawAO.value, f.stage.aoTarget.texture);
+  assert.equal(f.renders[1].target, f.stage.aoTarget);
+  assert.equal(f.renders[2].target, f.stage.filteredTarget);
+  assert.equal(f.renders[1].visible[0].material, f.stage.screen.material);
+  assert.equal(f.renders[2].visible[0].material, f.stage.screen.filterMaterial);
+  assert.notEqual(f.renders[2].target.texture, f.stage.screen.filterMaterial.uniforms.cRawAO.value);
+  f.stage.dispose();
+});
+
+test('filter-pass failure restores the model and releases every buffer exactly once', () => {
+  const f = fixture(), originalRender = f.renderer.render, released = [];
+  f.renderer.render = function(scene, camera) {
+    if (this.target && this.target === f.stage.filteredTarget) throw new Error('Injected denoise failure');
+    return originalRender.call(this, scene, camera);
+  };
+  f.stage.allocate(400, 300);
+  for (const resource of [f.stage.depthTarget, f.stage.aoTarget, f.stage.filteredTarget,
+      f.stage.screen.material, f.stage.screen.filterMaterial, f.stage.screen.geometry]) {
+    resource.addEventListener('dispose', () => released.push(resource));
+  }
+  const warn = console.warn; console.warn = () => {};
+  try { f.stage.render(f.camera); } finally { console.warn = warn; }
+  assert.equal(f.stage.getDiagnostics().status, 'fallback');
+  assert.match(f.stage.error, /denoise/);
+  assert.equal(f.stage.getDiagnostics().targetCount, 0);
+  assert.equal(new Set(released).size, 6); assert.equal(released.length, 6);
+  assert.equal(f.mesh.material, f.material); assert.equal(f.renderer.getRenderTarget(), null);
+  assert.equal(f.renderer.autoClear, false); assert.equal(f.renderer.shadowMap.autoUpdate, true);
+  assert.equal(f.stage.receivers.size, 0); f.stage.dispose(); assert.equal(released.length, 6);
+});
+
+test('mixed solid/glass material arrays keep draw groups, transforms and glass properties unchanged', () => {
+  const f = fixture(); const glass = new THREE.MeshPhysicalMaterial({ transmission: 1, metalness: 0, roughness: .01 });
+  const frame = f.material, geometry = new THREE.BoxGeometry(.3, .4, .005);
+  const array = [frame, glass, frame, glass, glass, frame];
+  const mesh = new THREE.Mesh(geometry, array); f.scene.add(mesh);
+  const groups = JSON.stringify(geometry.groups), positions = geometry.attributes.position.array.slice();
+  const originalHook = glass.onBeforeCompile;
+  f.stage.render(f.camera);
+  const duringDepth = f.renders[0].visible.find(entry => entry.object === mesh).material;
+  assert.equal(duringDepth.length, 6);
+  for (const i of [1, 3, 4]) assert.equal(duringDepth[i].visible, false);
+  for (const i of [0, 2, 5]) assert.equal(duringDepth[i].isMeshDepthMaterial, true);
+  assert.equal(mesh.material, array); assert.equal(glass.onBeforeCompile, originalHook);
+  assert.equal(glass.transmission, 1); assert.equal(glass.metalness, 0);
+  assert.equal(JSON.stringify(geometry.groups), groups); assert.deepEqual(geometry.attributes.position.array, positions);
+  assert.equal(f.stage.receivers.has(glass), false);
+  f.stage.dispose(); geometry.dispose(); glass.dispose();
+});
+
+test('partial viewports bypass contact shading without disabling the normal view', () => {
+  const f = fixture(); f.stage.render(f.camera);
+  f.renderer.viewport.set(40, 10, 400, 300); const count = f.renders.length;
+  f.stage.render(f.camera);
+  assert.equal(f.renders.length, count + 1); assert.equal(f.stage.status, 'viewport-bypass');
+  assert.equal(f.stage.uniforms.cContactEnabled.value, 0);
+  f.renderer.viewport.set(0, 0, 800, 600); f.stage.render(f.camera); assert.equal(f.stage.status, 'active');
+  // WebGLRenderer stores its default viewport in CSS pixels.
+  f.renderer.getPixelRatio = () => 2; f.renderer.width = 1600; f.renderer.height = 1200;
+  f.stage.render(f.camera); assert.equal(f.stage.status, 'active'); f.stage.dispose();
+});
+
+test('an incompatible beauty hook leaves no retained filters after the fallback render', () => {
+  const f = fixture(); f.stage.render(f.camera);
+  const bad = { uniforms: {}, fragmentShader: 'void main() {}' };
+  f.material.onBeforeCompile(bad, f.renderer);
+  f.stage.render(f.camera);
+  assert.equal(f.stage.status, 'fallback'); assert.equal(f.stage.getDiagnostics().targetCount, 0);
+  assert.equal(f.stage.receivers.size, 0); assert.equal(f.stage.depthMaterials.size, 0);
+  f.stage.dispose();
+});
+
+test('Low releases mixed-slot placeholders as well as all auxiliary render resources', () => {
+  const f = fixture(); const glass = new THREE.MeshPhysicalMaterial({ transmission: 1 });
+  f.mesh.material = [f.material, glass]; f.stage.render(f.camera);
+  const skip = f.stage.skipDepth; let disposed = 0; skip.addEventListener('dispose', () => disposed++);
+  f.stage.setQuality(getQualityProfile('low').contactShading);
+  assert.equal(disposed, 1); assert.equal(f.stage.skipDepth, null); assert.equal(f.stage.getDiagnostics().targetCount, 0);
+  f.stage.dispose(); assert.equal(disposed, 1); glass.dispose();
+});
+
+test('partial filter allocation does not leak the already created shader or fullscreen geometry', () => {
+  const resources = [], record = resource => { resources.push(resource); resource.disposals=0; resource.addEventListener('dispose',()=>resource.disposals++); };
+  const engine = { ...THREE,
+    WebGLRenderTarget: class extends THREE.WebGLRenderTarget { constructor(...args) { super(...args); record(this); } },
+    PlaneGeometry: class extends THREE.PlaneGeometry { constructor(...args) { super(...args); record(this); } },
+    ShaderMaterial: class extends THREE.ShaderMaterial { constructor(parameters) {
+      if (parameters.uniforms.cRawAO) throw new Error('Injected filter allocation failure');
+      super(parameters); record(this);
+    } },
+  };
+  const f = fixture({ engine }); const warn = console.warn; console.warn = () => {};
+  try { f.stage.render(f.camera); } finally { console.warn = warn; }
+  assert.equal(f.stage.status, 'fallback'); assert.equal(f.stage.getDiagnostics().targetCount, 0);
+  assert.equal(resources.length, 5); assert.ok(resources.every(r=>r.disposals===1));
+  f.stage.dispose(); assert.ok(resources.every(r=>r.disposals===1));
 });
