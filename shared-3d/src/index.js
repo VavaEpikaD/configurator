@@ -1,8 +1,8 @@
-export { MaterialLibrary } from './materials/MaterialLibrary.js?v=7';
-export { MATERIAL_PRESETS } from './materials/presets.js?v=7';
+export { MaterialLibrary } from './materials/MaterialLibrary.js?v=glass-13';
+export { MATERIAL_PRESETS } from './materials/presets.js?v=glass-13';
 export { applySurfaceUVs } from './geometry/surfaceUVs.js?v=1';
 export { QUALITY_PROFILES, normalizeQuality, getQualityProfile } from './quality.js?v=2';
-export { createSurfaceSystem, SURFACE_SYSTEM_VERSION } from './createSurfaceSystem.js?v=8';
+export { createSurfaceSystem, SURFACE_SYSTEM_VERSION } from './createSurfaceSystem.js?v=glass-13';
 export { GeometryLibrary, GEOMETRY_SYSTEM_VERSION } from './geometry/GeometryLibrary.js?v=8';
 export { createRoundedRectangleShape, simplifySectionShape, simplifyClosedContour } from './geometry/sectionShapes.js?v=2';
 export { splitTriangleAtScalarZero, splitPositionGeometryAtScalarZero, clipPositionGeometryToScalarHalfspace } from './geometry/scalarGeometry.js?v=2';

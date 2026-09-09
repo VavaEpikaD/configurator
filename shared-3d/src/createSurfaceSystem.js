@@ -1,14 +1,15 @@
 import { GeometryLibrary } from './geometry/GeometryLibrary.js?v=8';
-import { MaterialLibrary } from './materials/MaterialLibrary.js?v=7';
+import { MaterialLibrary } from './materials/MaterialLibrary.js?v=glass-13';
+import { GlazingEnvironment } from './environment/GlazingEnvironment.js?v=glass-13';
 import { NeutralEnvironment } from './environment/NeutralEnvironment.js?v=1';
 import { getQualityProfile, normalizeQuality } from './quality.js?v=2';
 
 import { ContactShading } from './rendering/ContactShading.js?v=5';
 
-export const SURFACE_SYSTEM_VERSION = '20260909-uv-8';
+export const SURFACE_SYSTEM_VERSION = '20260909-glass-13';
 
 /** No renderer is created here. The host retains its camera, controls, scene and lifetime. */
-export function createSurfaceSystem(THREE, { renderer, scene, shadowLights = [], quality = 'balanced', capture = false, contactShading = {} } = {}) {
+export function createSurfaceSystem(THREE, { renderer, scene, shadowLights = [], quality = 'balanced', capture = false, contactShading = {}, glazingReflections = false } = {}) {
   if (!renderer || !scene) throw new TypeError('A renderer and scene are required.');
   const library = new MaterialLibrary(THREE, {
     quality: capture ? 'low' : quality,
@@ -16,6 +17,7 @@ export function createSurfaceSystem(THREE, { renderer, scene, shadowLights = [],
   });
   const geometry = new GeometryLibrary(THREE);
   const environment = new NeutralEnvironment(THREE, renderer, scene);
+  const glazingEnvironment = new GlazingEnvironment(THREE, renderer, library, { enabled: !capture && glazingReflections === true });
   const contact = new ContactShading(THREE, {
     renderer, scene, ...(contactShading || {}), enabled: !capture && contactShading !== false && contactShading?.enabled !== false,
   });
@@ -69,13 +71,18 @@ export function createSurfaceSystem(THREE, { renderer, scene, shadowLights = [],
         environmentError = error?.message || String(error);
         console.warn('Shared 3D reflection environment could not be updated.', error);
       }
+      glazingEnvironment.setQuality(profile);
       renderer.shadowMap.needsUpdate = true;
       renderer.domElement.dataset.visualQuality = profile.quality;
       return true;
     },
     // The host retains its loop, camera and labels. Do not monkey-patch renderer.render.
     render(camera, { contactShading: enabled = true } = {}) {
-      if (!disposed) contact.render(camera, { enabled });
+      if (!disposed) {
+        // Rebuild once after context restore, never every frame or camera move.
+        glazingEnvironment.setQuality(currentProfile);
+        contact.render(camera, { enabled });
+      }
     },
     // Day/night remains a configurator decision; prevent daylight reflections at night.
     setEnvironmentIntensity(value) {
@@ -93,12 +100,13 @@ export function createSurfaceSystem(THREE, { renderer, scene, shadowLights = [],
       });
     },
     getDiagnostics() {
-      return { version: SURFACE_SYSTEM_VERSION, threeRevision: THREE.REVISION, requestedQuality, profile: currentProfile ? { ...currentProfile, contactShading: { ...currentProfile.contactShading } } : null, environment: !!environment.target, environmentWidth: environment.width, environmentError, contactShading: contact.getDiagnostics(), geometry: geometry.getDiagnostics(), ...library.getDiagnostics() };
+      return { version: SURFACE_SYSTEM_VERSION, threeRevision: THREE.REVISION, requestedQuality, profile: currentProfile ? { ...currentProfile, contactShading: { ...currentProfile.contactShading } } : null, environment: !!environment.target, environmentWidth: environment.width, environmentError, glazingReflections: glazingEnvironment.getDiagnostics(), contactShading: contact.getDiagnostics(), geometry: geometry.getDiagnostics(), ...library.getDiagnostics() };
     },
     dispose() {
       if (disposed) return;
       disposed = true;
       contact.dispose();
+      glazingEnvironment.dispose();
       environment.dispose();
       geometry.dispose();
       library.dispose();
