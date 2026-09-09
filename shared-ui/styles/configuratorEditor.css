@@ -697,3 +697,40 @@ h2 {
     scroll-behavior:auto!important;
   }
 }
+
+
+/* Pergola has five groups and named tiles, rather than window finish swatches. */
+html[data-configurator-id="pergola"] .finish-tabs {
+  flex-wrap:wrap;
+}
+html[data-configurator-id="pergola"] .finish-tabs button {
+  flex:1 1 100px;
+}
+html[data-configurator-id="pergola"] .preview-swatches {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+html[data-configurator-id="pergola"] .preview-swatch {
+  width:100%;
+  height:auto;
+  min-height:76px;
+  padding:8px;
+  background:#fff;
+  color:#26374b;
+}
+html[data-configurator-id="pergola"] .preview-swatch::before {
+  content:"";
+  display:block;
+  width:100%;
+  height:26px;
+  border-radius:4px;
+  background:var(--swatch-color);
+  border:1px solid #dce3eb;
+  margin-bottom:6px;
+}
+html[data-configurator-id="pergola"] .preview-swatch span {
+  display:block;
+  font-size:11px;
+  line-height:1.4;
+  overflow-wrap:anywhere;
+}

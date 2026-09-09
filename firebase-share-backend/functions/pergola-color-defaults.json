@@ -1,0 +1,152 @@
+{
+  "frame": [
+    {
+      "id": "jet-black",
+      "name": "Jet black",
+      "color": "#111619"
+    },
+    {
+      "id": "anthracite",
+      "name": "Anthracite",
+      "color": "#26343c"
+    },
+    {
+      "id": "stone-grey",
+      "name": "Stone grey",
+      "color": "#7f8588"
+    },
+    {
+      "id": "architectural-white",
+      "name": "Architectural white",
+      "color": "#e7e8e5"
+    },
+    {
+      "id": "bronze",
+      "name": "Bronze",
+      "color": "#7b5a3d"
+    },
+    {
+      "id": "olive",
+      "name": "Olive",
+      "color": "#566247"
+    }
+  ],
+  "louvers": [
+    {
+      "id": "graphite",
+      "name": "Graphite",
+      "color": "#323b40"
+    },
+    {
+      "id": "cool-grey",
+      "name": "Cool grey",
+      "color": "#64727b"
+    },
+    {
+      "id": "soft-white",
+      "name": "Soft white",
+      "color": "#d7d8d5"
+    },
+    {
+      "id": "warm-bronze",
+      "name": "Warm bronze",
+      "color": "#8a7564"
+    }
+  ],
+  "screens": [
+    {
+      "id": "graphite-mesh",
+      "name": "Graphite mesh",
+      "color": "#253139"
+    },
+    {
+      "id": "anthracite-mesh",
+      "name": "Anthracite mesh",
+      "color": "#34444c"
+    },
+    {
+      "id": "stone-grey-mesh",
+      "name": "Stone grey mesh",
+      "color": "#67757d"
+    },
+    {
+      "id": "sand-mesh",
+      "name": "Sand mesh",
+      "color": "#9b9184"
+    },
+    {
+      "id": "pearl-mesh",
+      "name": "Pearl mesh",
+      "color": "#d2d0c9"
+    },
+    {
+      "id": "bronze-mesh",
+      "name": "Bronze mesh",
+      "color": "#5c4c40"
+    }
+  ],
+  "privacy-wall": [
+    {
+      "id": "jet-black",
+      "name": "Jet black",
+      "color": "#111619"
+    },
+    {
+      "id": "anthracite",
+      "name": "Anthracite",
+      "color": "#26343c"
+    },
+    {
+      "id": "cool-grey",
+      "name": "Cool grey",
+      "color": "#657078"
+    },
+    {
+      "id": "soft-white",
+      "name": "Soft white",
+      "color": "#d8d9d6"
+    },
+    {
+      "id": "bronze",
+      "name": "Bronze",
+      "color": "#806751"
+    },
+    {
+      "id": "olive",
+      "name": "Olive",
+      "color": "#58634e"
+    }
+  ],
+  "led": [
+    {
+      "id": "warm-2700-k",
+      "name": "Warm 2700 K",
+      "color": "#ffd27d"
+    },
+    {
+      "id": "warm-3000-k",
+      "name": "Warm 3000 K",
+      "color": "#fff1b4"
+    },
+    {
+      "id": "neutral-4000-k",
+      "name": "Neutral 4000 K",
+      "color": "#fff7dc"
+    },
+    {
+      "id": "cool-white",
+      "name": "Cool white",
+      "color": "#dfeeff"
+    },
+    {
+      "id": "ice-blue",
+      "name": "Ice blue",
+      "color": "#9fc7ff"
+    },
+    {
+      "id": "sunset",
+      "name": "Sunset",
+      "color": "#ff9c82"
+    }
+  ]
+}

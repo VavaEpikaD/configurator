@@ -1,6 +1,15 @@
 import { observeGoogleAuth, signInWithGoogle, signOutGoogle } from './firebaseAuth.js';
 import { callConfiguratorColorAdmin } from './configuratorColorApi.js';
 
+// Each dedicated page chooses exactly one product. Older window pages have no
+// data attribute and continue to work with their existing versioned script URL.
+const EDITORS = Object.freeze({
+  window: { name: 'window', groups: ['mill', 'anodized', 'coated'], initialGroup: 'coated', uniqueColors: false },
+  pergola: { name: 'pergola', groups: ['frame', 'louvers', 'screens', 'privacy-wall', 'led'], initialGroup: 'frame', uniqueColors: true },
+});
+const configuratorId = document.documentElement.dataset.configuratorId || 'window';
+if (!Object.prototype.hasOwnProperty.call(EDITORS, configuratorId)) throw new Error('Unsupported editor page.');
+const definition = EDITORS[configuratorId];
 const element = id => document.getElementById(id);
 const ui = Object.fromEntries([
   'account', 'account-name', 'sign-out', 'access-panel', 'access-title', 'access-message',
@@ -19,7 +28,7 @@ let published = null;
 let draft = null;
 let finishGroups = [];
 let maxColors = 100;
-let activeGroup = 'coated';
+let activeGroup = definition.initialGroup;
 let previewId = '';
 let conflict = false;
 let unsubscribe;
@@ -93,6 +102,11 @@ function renderPreview() {
     button.setAttribute('aria-label', color.name || 'Unnamed color');
     button.setAttribute('aria-pressed', String(color.id === previewId));
     button.title = color.name || 'Unnamed color';
+    if (configuratorId === 'pergola') {
+      const label = document.createElement('span');
+      label.textContent = color.name || 'Unnamed color';
+      button.append(label);
+    }
     button.addEventListener('click', () => {
       previewId = color.id;
       // Preserve keyboard focus by updating the existing swatches in place.
@@ -154,7 +168,7 @@ function renderRows() {
     remove.type = 'button';
     remove.className = 'delete-color';
     remove.textContent = '×';
-    remove.title = colors.length === 1 ? 'Keep at least one color in this finish.' : 'Delete color';
+    remove.title = colors.length === 1 ? 'Keep at least one color in this group.' : 'Delete color';
     remove.setAttribute('aria-label', `Delete ${color.name || `color ${index + 1}`}`);
     remove.disabled = colors.length <= 1;
     picker.addEventListener('input', () => {
@@ -213,10 +227,26 @@ function renderEditor() {
 }
 
 function validateResponse(result) {
-  if (result.schemaVersion !== 1 || result.configuratorId !== 'window'
+  const invalid = () => { throw new Error('The published palette response is invalid. No changes were loaded.'); };
+  if (result?.schemaVersion !== 1 || result.configuratorId !== configuratorId
       || !Number.isSafeInteger(result.revision) || result.revision < 0
-      || !result.groups || !['mill', 'anodized', 'coated'].every(id => Array.isArray(result.groups[id]) && result.groups[id].length > 0)) {
-    throw new Error('The published palette response is invalid. No changes were loaded.');
+      || !result.groups || Array.isArray(result.groups)
+      || Object.keys(result.groups).length !== definition.groups.length) invalid();
+  for (const id of definition.groups) {
+    const colors = result.groups[id];
+    if (!Array.isArray(colors) || !colors.length || colors.length > 100) invalid();
+    const ids = new Set();
+    const hexValues = new Set();
+    for (const color of colors) {
+      if (!color || typeof color.id !== 'string' || !/^[a-z0-9][a-z0-9_-]{0,63}$/.test(color.id)
+          || ids.has(color.id) || typeof color.color !== 'string' || !validHex(color.color)
+          || typeof color.name !== 'string' || !color.name.trim() || color.name.length > 120
+          || /[\u0000-\u001f\u007f]/.test(color.name)) invalid();
+      const hex = color.color.toLowerCase();
+      if (definition.uniqueColors && hexValues.has(hex)) invalid();
+      ids.add(color.id);
+      hexValues.add(hex);
+    }
   }
 }
 
@@ -226,10 +256,15 @@ async function loadPublished(expectedGeneration = generation) {
   syncActions();
   ui['retry-access'].disabled = true;
   try {
-    const result = await callConfiguratorColorAdmin('getConfiguratorColorEditor', { configuratorId: 'window' });
+    const result = await callConfiguratorColorAdmin('getConfiguratorColorEditor', { configuratorId });
     if (generation !== expectedGeneration) return;
     validateResponse(result);
-    if (!Array.isArray(result.finishGroups)) throw new Error('The window finish catalog is incomplete.');
+    if (!Array.isArray(result.finishGroups) || result.finishGroups.length !== definition.groups.length
+        || !result.finishGroups.every((group, index) => group?.id === definition.groups[index]
+          && typeof group.label === 'string' && group.label.length > 0 && group.hasNames === true)
+        || !Number.isSafeInteger(result.maxColorsPerGroup) || result.maxColorsPerGroup < 1 || result.maxColorsPerGroup > 100) {
+      throw new Error('The color group catalog is incomplete.');
+    }
     finishGroups = result.finishGroups;
     maxColors = result.maxColorsPerGroup;
     published = clone(result);
@@ -257,23 +292,38 @@ async function loadPublished(expectedGeneration = generation) {
 
 function validateDraft() {
   for (const group of finishGroups) {
-    const index = draft[group.id].findIndex(color => !validHex(color.color) || !color.name.trim() || color.name.length > 120 || /[\u0000-\u001f\u007f]/.test(color.name));
-    if (index === -1) continue;
-    activeGroup = group.id;
-    renderGroup();
-    const row = ui['color-rows'].children[index];
-    const input = row.querySelector(!validHex(draft[group.id][index].color) ? '.hex-input' : '.name-input');
-    input.setCustomValidity(input.classList.contains('hex-input') ? 'Enter a six-digit hex color, such as #383e42.' : 'Enter a color name of 1–120 characters without control characters.');
-    input.reportValidity();
-    message(`Check the highlighted color in ${group.label}. Nothing was published.`, true);
-    return false;
+    const seen = new Set();
+    for (const [index, color] of draft[group.id].entries()) {
+      let selector = '.hex-input';
+      let error = '';
+      if (!validHex(color.color)) error = 'Enter a six-digit hex color, such as #383e42.';
+      else if (definition.uniqueColors && seen.has(color.color.toLowerCase())) error = 'Use a different hex value; this color already exists in this group.';
+      else if (!color.name.trim() || color.name.length > 120 || /[\u0000-\u001f\u007f]/.test(color.name)) {
+        selector = '.name-input';
+        error = 'Enter a color name of 1–120 characters without control characters.';
+      }
+      if (!error) { seen.add(color.color.toLowerCase()); continue; }
+      activeGroup = group.id;
+      renderGroup();
+      const input = ui['color-rows'].children[index].querySelector(selector);
+      input.setCustomValidity(error);
+      input.reportValidity();
+      message(`Check the highlighted color in ${group.label}. Nothing was published.`, true);
+      return false;
+    }
   }
   return true;
 }
 
 ui['add-color'].addEventListener('click', () => {
   if (!authorized || draft[activeGroup].length >= maxColors) return;
-  const color = { id: `custom-${crypto.randomUUID()}`, color: '#ffffff', name: 'New color' };
+  let hex = '#ffffff';
+  if (definition.uniqueColors) {
+    const used = new Set(draft[activeGroup].map(color => color.color.toLowerCase()));
+    let value = 0xffffff;
+    while (used.has(hex)) hex = `#${(--value).toString(16).padStart(6, '0')}`;
+  }
+  const color = { id: `custom-${crypto.randomUUID()}`, color: hex, name: 'New color' };
   draft[activeGroup].push(color);
   previewId = color.id;
   renderRows();
@@ -296,14 +346,14 @@ ui.editor.addEventListener('submit', async event => {
   syncActions();
   try {
     const result = await callConfiguratorColorAdmin('saveConfiguratorColors', {
-      configuratorId: 'window', expectedRevision: published.revision, groups,
+      configuratorId, expectedRevision: published.revision, groups,
     });
     if (generation !== currentGeneration) return;
     validateResponse(result);
     published = clone(result);
     draft = clone(result.groups);
     renderGroup();
-    message('Published successfully. Open or refresh the window configurator to see these colors.');
+    message(`Published successfully. Open or refresh the ${definition.name} configurator to see these colors.`);
   } catch (error) {
     if (generation === currentGeneration) handleError(error);
   } finally {
@@ -355,7 +405,7 @@ try {
     ui['preview-swatches'].replaceChildren();
     syncActions();
     if (!user) {
-      showAccess('Admin access', error?.message || 'Sign in with your authorized Google account to manage window colors.', { login: true });
+      showAccess('Admin access', error?.message || `Sign in with your authorized Google account to manage ${definition.name} colors.`, { login: true });
       return;
     }
     showAccess('Checking admin access…', 'Verifying your account with the server.');
