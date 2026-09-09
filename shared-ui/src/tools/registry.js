@@ -25,6 +25,7 @@ const TOOL_ICONS = Object.freeze({
   camera: `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5h3l1.4-2h7.2l1.4 2h3a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 20 19.5H4A1.5 1.5 0 0 1 2.5 18v-8A1.5 1.5 0 0 1 4 8.5Z"/><circle cx="12" cy="14" r="3.4"/><path d="M18.5 11h.01"/></svg>`,
   technicalEdges: `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 21 12 12 21 3 12 12 3Z"/><path d="M7.8 12h8.4M12 7.8v8.4"/></svg>`,
   explode: `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m8.5 6.5 3.5-2 3.5 2-3.5 2-3.5-2ZM4.5 12l3.5-2 3.5 2-3.5 2-3.5-2ZM12.5 12l3.5-2 3.5 2-3.5 2-3.5-2ZM8.5 17.5l3.5-2 3.5 2-3.5 2-3.5-2Z"/></svg>`,
+  windowLayoutControls: `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.8 12s3.4-5.7 9.2-5.7 9.2 5.7 9.2 5.7-3.4 5.7-9.2 5.7S2.8 12 2.8 12Z"/><circle cx="12" cy="12" r="2.8"/></svg>`,
 });
 
 export const SHARED_TOOL_DEFINITIONS = Object.freeze({
@@ -77,6 +78,13 @@ export const SHARED_TOOL_DEFINITIONS = Object.freeze({
     label: 'Exploded view',
     icon: TOOL_ICONS.explode,
     defaults: { amount: 0 },
+  }),
+  'window-layout-controls': freezeTool({
+    id: 'window-layout-controls',
+    action: 'toggle-window-layout-controls',
+    label: 'Window edit buttons',
+    icon: TOOL_ICONS.windowLayoutControls,
+    defaults: { visible: true },
   }),
 });
 
