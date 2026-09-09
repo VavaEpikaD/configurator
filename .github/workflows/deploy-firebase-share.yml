@@ -48,7 +48,7 @@ jobs:
 
       - name: Validate Firebase function source
         working-directory: firebase-share-backend/functions
-        run: node --check index.js && node --check quotation.js && node --check profile.js && node --check sales-dashboard.js && node --check entry.js
+        run: node --check index.js && node --check quotation.js && node --check profile.js && node --check sales-dashboard.js && node --check configurator-colors.js && node --check entry.js
 
       - name: Validate Tier-1 tenant authentication integration
         run: node scripts/validation/validate_tenant_auth_domains.mjs
@@ -80,17 +80,20 @@ jobs:
       - name: Validate internal sales dashboard
         run: node scripts/validation/validate_sales_dashboard.mjs
 
+      - name: Validate configurator color editor
+        run: node --test scripts/validation/configurator-color-editor.test.mjs
+
       - name: Validate expected Firebase exports
         working-directory: firebase-share-backend/functions
         run: >-
-          node -e "const f=require('./entry.js'); const expected=['enforceSharedConfigurationQuota','createSharedConfiguration','getShareProtectionStatus','saveUserConfiguration','listUserConfigurations','getUserConfiguration','deleteUserConfiguration','getUserCart','mutateUserCart','submitContact','createDomainAuthHandoff','redeemDomainAuthHandoff','provisionTenant','listTenants','getTenant','updateTenant','getTenantPlans','getPublicTenantPlans','resolveTenantPlanChange','setTenantSubscriptionState','recordConfiguratorAnalyticsEvent','getPlatformAnalytics','getTenantDashboard','updateTenantDashboard','cancelTenantPlanChange','requestCartQuotation','getUserProfile','updateUserProfile','exportUserProfileData','deleteUserAccount','getSalesDashboardUsers','getSalesDashboardUserDetails','getSalesDashboardDemoRequests','createSalesDashboardConfigurationLink','attachDemoRequestUser']; const missing=expected.filter((name)=>typeof f[name]!=='function'); if(missing.length){console.error('Missing Firebase exports:', missing.join(', ')); process.exit(1);} console.log('Firebase exports OK:', expected.join(', '));"
+          node -e "const f=require('./entry.js'); const expected=['enforceSharedConfigurationQuota','createSharedConfiguration','getShareProtectionStatus','saveUserConfiguration','listUserConfigurations','getUserConfiguration','deleteUserConfiguration','getUserCart','mutateUserCart','submitContact','createDomainAuthHandoff','redeemDomainAuthHandoff','provisionTenant','listTenants','getTenant','updateTenant','getTenantPlans','getPublicTenantPlans','resolveTenantPlanChange','setTenantSubscriptionState','recordConfiguratorAnalyticsEvent','getPlatformAnalytics','getTenantDashboard','updateTenantDashboard','cancelTenantPlanChange','requestCartQuotation','getUserProfile','updateUserProfile','exportUserProfileData','deleteUserAccount','getSalesDashboardUsers','getSalesDashboardUserDetails','getSalesDashboardDemoRequests','createSalesDashboardConfigurationLink','attachDemoRequestUser','getConfiguratorColorEditor','saveConfiguratorColors','getConfiguratorColors']; const missing=expected.filter((name)=>typeof f[name]!=='function'); if(missing.length){console.error('Missing Firebase exports:', missing.join(', ')); process.exit(1);} console.log('Firebase exports OK:', expected.join(', '));"
 
       - name: Deploy share functions
         working-directory: firebase-share-backend
         run: >-
           npx --yes firebase-tools@latest deploy
           --project "${GCP_PROJECT_ID}"
-          --only functions:enforceSharedConfigurationQuota,functions:createSharedConfiguration,functions:getShareProtectionStatus,functions:saveUserConfiguration,functions:listUserConfigurations,functions:getUserConfiguration,functions:deleteUserConfiguration,functions:getUserCart,functions:mutateUserCart,functions:submitContact,functions:createDomainAuthHandoff,functions:redeemDomainAuthHandoff,functions:provisionTenant,functions:listTenants,functions:getTenant,functions:updateTenant,functions:getTenantPlans,functions:getPublicTenantPlans,functions:resolveTenantPlanChange,functions:setTenantSubscriptionState,functions:recordConfiguratorAnalyticsEvent,functions:getPlatformAnalytics,functions:getTenantDashboard,functions:updateTenantDashboard,functions:cancelTenantPlanChange,functions:requestCartQuotation,functions:getUserProfile,functions:updateUserProfile,functions:exportUserProfileData,functions:deleteUserAccount,functions:getSalesDashboardUsers,functions:getSalesDashboardUserDetails,functions:getSalesDashboardDemoRequests,functions:createSalesDashboardConfigurationLink,functions:attachDemoRequestUser
+          --only functions:enforceSharedConfigurationQuota,functions:createSharedConfiguration,functions:getShareProtectionStatus,functions:saveUserConfiguration,functions:listUserConfigurations,functions:getUserConfiguration,functions:deleteUserConfiguration,functions:getUserCart,functions:mutateUserCart,functions:submitContact,functions:createDomainAuthHandoff,functions:redeemDomainAuthHandoff,functions:provisionTenant,functions:listTenants,functions:getTenant,functions:updateTenant,functions:getTenantPlans,functions:getPublicTenantPlans,functions:resolveTenantPlanChange,functions:setTenantSubscriptionState,functions:recordConfiguratorAnalyticsEvent,functions:getPlatformAnalytics,functions:getTenantDashboard,functions:updateTenantDashboard,functions:cancelTenantPlanChange,functions:requestCartQuotation,functions:getUserProfile,functions:updateUserProfile,functions:exportUserProfileData,functions:deleteUserAccount,functions:getSalesDashboardUsers,functions:getSalesDashboardUserDetails,functions:getSalesDashboardDemoRequests,functions:createSalesDashboardConfigurationLink,functions:attachDemoRequestUser,functions:getConfiguratorColorEditor,functions:saveConfiguratorColors,functions:getConfiguratorColors
           --non-interactive
 
       - name: Deploy Firestore rules, TTL and index exemptions

@@ -1,3 +1,4 @@
+import { loadWindowFinishCatalog } from './finish-catalog-loader.js';
 import { getLegacyProfileSetIds } from './profile-catalog.js';
 import {
     resolveGlazingBeadProfileId,
@@ -13,7 +14,7 @@ export const WINDOW_HEIGHT_MAX_M = 2.5;
 export const HOUSE_WIDTH_SWITCH_M = 1.2;
 export const HOUSE_HEIGHT_SWITCH_M = (WINDOW_HEIGHT_MIN_M + WINDOW_HEIGHT_MAX_M) / 2;
 
-export const ALUMINIUM_FINISH_CATALOG = Object.freeze({
+const DEFAULT_ALUMINIUM_FINISH_CATALOG = Object.freeze({
     mill: Object.freeze({
         label: 'Mill finish',
         material: Object.freeze({ metalness: 0.82, roughness: 0.28, shininess: 105 }),
@@ -54,6 +55,11 @@ export const ALUMINIUM_FINISH_CATALOG = Object.freeze({
         ]),
     }),
 });
+
+// Resolve the published palette before consumers construct selections, materials,
+// or URL/shared-configuration state. Node-side tooling stays offline; network
+// failures in the browser fall back to the original, dimension-independent data.
+export const ALUMINIUM_FINISH_CATALOG = await loadWindowFinishCatalog(DEFAULT_ALUMINIUM_FINISH_CATALOG);
 
 export const FIXED_PROFILE_COLOURS = Object.freeze({
     epdm: '#20242a',

@@ -9,4 +9,5 @@ module.exports = {
   ...require('./profile.js'),
   ...require('./sales-dashboard.js'),
   ...require('./profile-update.js'),
+  ...require('./configurator-colors.js'),
 };
