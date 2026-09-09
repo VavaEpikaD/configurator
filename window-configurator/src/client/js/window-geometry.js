@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GeometryLibrary, disposeObjectResources, getEdgeFinish } from '../shared-3d/src/index.js?v=6';
+import { GeometryLibrary, disposeObjectResources, getEdgeFinish } from '../shared-3d/src/index.js?v=8';
 
 /** Window owns CAD transforms, profile choice, join rules and assembly placement. */
 export function createWindowGeometry(library = null, { captureMode = false } = {}) {
@@ -22,6 +22,14 @@ export function createWindowGeometry(library = null, { captureMode = false } = {
                 : geometry.create('profile.extrusion', { shape, settings });
         },
         clone: source => geometry.clone(source),
+        // Called only after the CAD adapter has transformed and cut the section
+        // into metres. Never infer an extrusion axis from its final AABB.
+        profileMesh(source, material, grainAxis, options = {}) {
+            return geometry.mesh(source, material, {
+                uv: surfaceUV(material), mapping: { mode: 'extrusion', grainAxis },
+                castShadow: shadows, receiveShadow: shadows, ...options,
+            });
+        },
         mesh(source, material, options = {}) {
             return geometry.mesh(source, material, {
                 uv: source.userData.surfaceUV?.preserve ? false : surfaceUV(material), castShadow: shadows, receiveShadow: shadows, ...options,

@@ -1,6 +1,6 @@
 # Shared 3D rendering and geometry
 
-Current release: **`20260909-pbr-6`**. Integrated into Window and Pergola only.
+Current release: **`20260909-uv-8`**. Integrated into Window and Pergola only.
 Other configurators and their rendering paths are not migrated by this release.
 
 The shared layer receives each application's Three.js namespace. It does not
@@ -14,7 +14,9 @@ Window's vendored engine and Pergola's declared engine remain separate.
 - `PBRTextureSets`: asynchronous, atomic asset loading, source-image reuse,
   metre-scale texture variants and lifecycle cleanup.
 - `GeometryLibrary`: explicit geometry factories, shape/section helpers,
-  dimension-preserving edge finishes, UV preparation and buffer ownership.
+  dimension-preserving edge finishes, geometry-owned UV mapping and buffer ownership.
+- `surfaceMapping`: explicit metre-space box/extrusion/planar/cylindrical mapping,
+  with authored-UV preservation and no material mutation.
 - `createSurfaceSystem`: common output/tone mapping, quality budgets, reflection
   environment, contact shading and read-only diagnostic data.
 - Configurator adapters: product dimensions, CAD transforms, joins, assembly,
@@ -28,6 +30,7 @@ The current materials are `aluminium.powderCoated`, `aluminium.bare`,
 
 | Document | Purpose |
 | --- | --- |
+| [UV_MAPPING.md](UV_MAPPING.md) | Step 6 geometry-owned texture orientation/scale, adapters and live-resize behavior |
 | [PBR_SURFACES.md](PBR_SURFACES.md) | Current assets, loader, quality tiers, extension examples, install and diagnostics |
 | [assets/pbr/README.md](assets/pbr/README.md) | Texture sources, CC0 provenance, actual resolutions and reproducibility |
 | [VALIDATION.md](VALIDATION.md) | Completed checks and exact local verification limits |
@@ -36,13 +39,14 @@ The current materials are `aluminium.powderCoated`, `aluminium.bare`,
 | [CONTACT_SHADING.md](CONTACT_SHADING.md) | Contact-stage architecture, exclusions and failure handling |
 
 Geometry/edge/contact documents retain their own feature-version references;
-the current top-level system version is the one above. A nested geometry version
-of `20260908-corrective-4` is expected: this release does not change geometry.
+the current top-level system version is the one above. The top-level and geometry versions are both `20260909-uv-8`; the PBR asset
+set remains `20260909-pbr-deck-7` because this release changes UV coordinates,
+not the accepted texture images or material calibration.
 
 ## Host integration
 
 ```js
-import { createSurfaceSystem } from './shared-3d/src/index.js?v=6';
+import { createSurfaceSystem } from './shared-3d/src/index.js?v=8';
 
 const surfaces = createSurfaceSystem(THREE, {
   renderer, scene, shadowLights: [sun], quality: 'balanced',
@@ -55,6 +59,7 @@ const postGeometry = surfaces.geometry.create('profile.roundedRectangle', {
 });
 const post = surfaces.geometry.mesh(postGeometry, paint, {
   castShadow: true, receiveShadow: true,
+  // Rounded members already carry authored metre-space perimeter UVs.
 });
 scene.add(post);
 // Within the host's own animation loop:
@@ -64,8 +69,9 @@ surfaces.render(camera);
 ```
 
 Do not share mutable material instances to share a finish: create/clone managed
-materials and let their texture sources be reused. UV scale and grain direction
-remain explicit. Geometry quality never changes manufacturing dimensions.
+materials and let their texture sources be reused. UV scale and grain direction are geometry-owned and explicit. A material defines
+its physical tile size; geometry defines which local axis is the extrusion/grain
+direction. Geometry quality never changes manufacturing dimensions.
 
 ## Tests
 
@@ -73,6 +79,7 @@ From the project root:
 
 ```sh
 npm run check:shared-3d
+npm run check:shared-3d:uv
 npm run check:shared-3d:pbr
 npm run check:shared-3d:pbr-browser
 npm run check:shared-3d:contact-browser

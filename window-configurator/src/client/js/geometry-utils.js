@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createRoundedRectangleShape, simplifySectionShape } from '../shared-3d/src/index.js?v=6';
+import { createRoundedRectangleShape, simplifySectionShape } from '../shared-3d/src/index.js?v=8';
 
 // CAD/DXF exports contain circles and rounded profile edges as hundreds of
 // tiny straight SVG segments. A sub-0.05 mm contour tolerance is visually

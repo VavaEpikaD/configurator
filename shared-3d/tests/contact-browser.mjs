@@ -84,7 +84,7 @@ async function matchedPair(page, name) {
   results.push({name,...metrics,contactShading:on.diagnostics.contactShading});
 }
 try {
-  browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_EXECUTABLE?{executablePath:process.env.CHROMIUM_EXECUTABLE}:{}),
+  browser=await chromium.launch({headless:process.env.HEADFUL_WEBGL!=='1',...(process.env.CHROMIUM_EXECUTABLE?{executablePath:process.env.CHROMIUM_EXECUTABLE}:{}),
     args:process.env.SOFTWARE_WEBGL==='1'?['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--no-sandbox']:[]});
   // A flat sloping receiver must not gain false relief/noise from depth sampling.
   {

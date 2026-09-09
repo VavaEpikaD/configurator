@@ -1,6 +1,6 @@
 // Literal new URL() paths are intentional: Vite emits these local images; Window
 // keeps this same module tree in its static build. No root-domain URL assumption.
-export const PBR_TEXTURE_VERSION = '20260909-pbr-6';
+export const PBR_TEXTURE_VERSION = '20260909-pbr-deck-7';
 export const PBR_TEXTURE_SETS = Object.freeze({
   'powder.fine': {
     detail: { size: 256, flipY: false, maps: {

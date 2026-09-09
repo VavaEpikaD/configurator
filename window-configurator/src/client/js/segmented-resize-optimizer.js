@@ -222,6 +222,7 @@ export function createSegmentedResizeOptimizer({
     mainGroup,
     getWindowState,
     getIsExploded = () => false,
+    captureSurfaceUVDeformation = () => null,
     edgeExtensionM = DEFAULT_EDGE_EXTENSION_M,
     protectedEndM = DEFAULT_PROTECTED_END_M,
 } = {}) {
@@ -255,11 +256,13 @@ export function createSegmentedResizeOptimizer({
                 return;
             }
             const center = worldBox.getCenter(new THREE.Vector3());
+            const basePositions = new Float32Array(position.array);
             meshes.push({
                 mesh: object,
                 geometry: object.geometry,
                 position,
-                basePositions: new Float32Array(position.array),
+                basePositions,
+                surfaceUVDeformation: captureSurfaceUVDeformation(object.geometry, basePositions),
                 matrixWorld: object.matrixWorld.clone(),
                 inverseMatrixWorld: object.matrixWorld.clone().invert(),
                 worldCenter: center,
@@ -289,6 +292,7 @@ export function createSegmentedResizeOptimizer({
             if (!position || position.array.length !== record.basePositions.length) continue;
             position.array.set(record.basePositions);
             position.needsUpdate = true;
+            record.surfaceUVDeformation?.restore();
             record.geometry.computeBoundingBox();
             record.geometry.computeBoundingSphere();
         }
@@ -358,6 +362,7 @@ export function createSegmentedResizeOptimizer({
             }
 
             position.needsUpdate = true;
+            record.surfaceUVDeformation?.update();
             // The straight middle is transformed affinely. End/joint zones are
             // translated rigidly, so normals remain valid; only culling/raycast
             // bounds need to be refreshed during the interactive preview.
