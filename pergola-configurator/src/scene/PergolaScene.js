@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createSurfaceSystem, disposeObjectResources } from '../../../shared-3d/src/index.js?v=contact-14';
+import { createSurfaceSystem, disposeObjectResources } from '../../../shared-3d/src/index.js?v=perf-15';
 import { createPergolaGeometry } from './pergolaGeometry.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
@@ -668,13 +668,16 @@ export class PergolaScene {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
+    this.surfaceSystem.invalidate(); // setSize clears the canvas even at unchanged dimensions.
     this.labelRenderer.setSize(width, height);
   }
 
   animate() {
+    if (document.hidden) { this.animationFrame = requestAnimationFrame(this.animate); return; }
     this.controls.update();
-    this.surfaceSystem.render(this.camera);
-    this.labelRenderer.render(this.scene, this.camera);
+    if (this.surfaceSystem.render(this.camera, { onDemand: true })) {
+      this.labelRenderer.render(this.scene, this.camera);
+    }
     this.animationFrame = requestAnimationFrame(this.animate);
   }
 

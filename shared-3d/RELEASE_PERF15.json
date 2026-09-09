@@ -1,0 +1,126 @@
+{
+  "version": "20260909-perf-15",
+  "baseline": "main(13) plus accepted UV/deck/handle/glass/contact-14 overlays",
+  "files": [
+    {
+      "path": "commit_message.md",
+      "bytes": 693,
+      "sha256": "2c24fde4a9c8cc16455025f8f762d293963f13fbb993eeb9d8d9cc289e6af417"
+    },
+    {
+      "path": "package.json",
+      "bytes": 4046,
+      "sha256": "f63c616b35f622a071f4197d858e0cdc122972080e0aadad11c3fe5b223ca2c6"
+    },
+    {
+      "path": "pergola-configurator/src/main.js",
+      "bytes": 2351,
+      "sha256": "0286290bf427db8736701406d45ec69e2e35fd2e5a1b754cc39dd32c14b1fa53"
+    },
+    {
+      "path": "pergola-configurator/src/scene/PergolaScene.js",
+      "bytes": 28484,
+      "sha256": "52b866e99efd6add2637f84294103b5dd0e814215739c46f38b729121849c5ff"
+    },
+    {
+      "path": "shared-3d/PERFORMANCE.md",
+      "bytes": 7691,
+      "sha256": "4639b1078170a5f92f9788840ae8231adc2e35bcf7ec4c1c9fd8d05ecd1a63d5"
+    },
+    {
+      "path": "shared-3d/PERFORMANCE_RESULTS.json",
+      "bytes": 4767,
+      "sha256": "443372a37c6a788c74843970e87c5140cb0f7b3b7562edebd99d7c585e92551b"
+    },
+    {
+      "path": "shared-3d/PERFORMANCE_VALIDATION.md",
+      "bytes": 6721,
+      "sha256": "a49eceeea4534c8da583860b2c4583caeaf14c9831dd1761c01263e521cb21dc"
+    },
+    {
+      "path": "shared-3d/README.md",
+      "bytes": 5099,
+      "sha256": "f8b39df1f195f856ae47a71ad40532e07aff1cac028a5211d6bf62c98c815e23"
+    },
+    {
+      "path": "shared-3d/src/createSurfaceSystem.js",
+      "bytes": 8232,
+      "sha256": "7731ae6d44523bea0cf39280f01c8d74b5c4f5ae631a9af57c7b130f0a90468c"
+    },
+    {
+      "path": "shared-3d/src/index.js",
+      "bytes": 1638,
+      "sha256": "1176e093d87306942408a4d198a64b55feb02974216a2d558f2afffa071c8268"
+    },
+    {
+      "path": "shared-3d/src/rendering/ContactShading.js",
+      "bytes": 21941,
+      "sha256": "830ae6e2d3359780164106427bc38a6c5582ab953e9f7f838c95d42622129082"
+    },
+    {
+      "path": "shared-3d/src/rendering/RenderPerformance.js",
+      "bytes": 5768,
+      "sha256": "397ce14b798ec61c260d71d4aedcd78c48425b8a43d58622a3d45e50c609c195"
+    },
+    {
+      "path": "shared-3d/src/rendering/SceneRevision.js",
+      "bytes": 11043,
+      "sha256": "b227db004bd281ea32e97579f973de57a2ee9091242d3a378b0e3b6576475d86"
+    },
+    {
+      "path": "shared-3d/src/rendering/contactShaders.js",
+      "bytes": 9381,
+      "sha256": "bfc8df7307772a3c222d072670cbc10656876e76e76174f4942d551841f9d410"
+    },
+    {
+      "path": "shared-3d/tests/contact-shading.mjs",
+      "bytes": 22003,
+      "sha256": "a733001c32c109fc6a0eefe48328a3e11bf0d8fd198691eb02c8e347d2378d7c"
+    },
+    {
+      "path": "shared-3d/tests/performance-browser.mjs",
+      "bytes": 15190,
+      "sha256": "ed8edb48cd3d1714795c4e462cf970a7bbfa866124e9abf12fa1482f20c1188e"
+    },
+    {
+      "path": "shared-3d/tests/render-performance.mjs",
+      "bytes": 9154,
+      "sha256": "58e152cd88afc276f0bf737d561d6b6fad54fef32cc11711f9d0eb19505587bf"
+    },
+    {
+      "path": "shared-3d/tools/check_performance_release.mjs",
+      "bytes": 1083,
+      "sha256": "fc9f89a81e4ec79f294fded0c6e95ac41e81cdc3038ed9d48fabc95f9c1bf90c"
+    },
+    {
+      "path": "window-configurator/src/client/index.html",
+      "bytes": 37553,
+      "sha256": "280c79535e31aa8c528ee47333f445ef07d91282001585c342d0a52320e9092f"
+    },
+    {
+      "path": "window-configurator/src/client/js/main.js",
+      "bytes": 46454,
+      "sha256": "f16081bf31f565ce5f0e6e564c1f2122cfa2d775406032c32f19af0630950267"
+    },
+    {
+      "path": "window-configurator/src/client/js/scene.js",
+      "bytes": 6950,
+      "sha256": "9ad332419eaa2a18aa5a7b2585970ce1a54e18dc2ecff49f90452c1036503658"
+    },
+    {
+      "path": "window-configurator/src/client/js/window-builder-dimensions.js",
+      "bytes": 7036,
+      "sha256": "91911b565d7fe7460abbd747766f01bfc0e29c93e220de2895736f6b02e68955"
+    },
+    {
+      "path": "window-configurator/src/client/js/window-builder.js",
+      "bytes": 294792,
+      "sha256": "003a1beb927c1fcec6e7f41987c84dac5992af68e605b8113435de03ec9c19f2"
+    },
+    {
+      "path": "window-configurator/src/client/js/window-layout-overlay.js",
+      "bytes": 15704,
+      "sha256": "591326c8f857a22850e9a68ae3ea210737d228a8e81931c42fde67f55213bf3e"
+    }
+  ]
+}

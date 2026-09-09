@@ -5,9 +5,9 @@ import {
     WINDOW_HEIGHT_MAX_M,
 } from './config.js';
 import { createComponentSelection } from './component-selection.js';
-import { createSceneContext } from './scene.js?v=contact-14';
+import { createSceneContext } from './scene.js?v=perf-15';
 import { initializeUIControls } from './ui-controls.js?v=4';
-import { createWindowBuilder } from './window-builder.js?v=handle-fix-12';
+import { createWindowBuilder } from './window-builder.js?v=perf-15';
 import { createMaterialManager } from './materials.js?v=glass-13';
 import { createARController } from './ar-controller.js';
 import { createCadReferenceController } from './cad-reference.js';
@@ -31,7 +31,7 @@ window.WINDOW_CONFIGURATOR_SELF_RESTORES_SHARE = true;
 window.WINDOW_CONFIGURATOR_INITIAL_SHARE_RESTORED = false;
 import { resolveLegacyProfileSelection } from './profile-compatibility.js';
 import { createProfileSelectionSignature } from './profile-composition.js';
-import { createWindowLayoutOverlay } from './window-layout-overlay.js';
+import { createWindowLayoutOverlay } from './window-layout-overlay.js?v=perf-15';
 import {
     DEFAULT_WINDOW_EDGE_EXTENSION_M,
     FIXED_WINDOW_TYPE,
@@ -1038,15 +1038,16 @@ window.WINDOW_CONFIGURATOR_API = {
 
 // ANIMATION & LOOP
 function renderFrame(_time, xrFrame) {
+    if (!isARMode && document.hidden) return;
     windowBuilder.updatePoseAnimation();
 
     if (isARMode) {
         arController.updateARPlacement(xrFrame);
     } else if (!captureMode) {
         controls.update();
-        windowLayoutOverlay?.update();
     }
-    surfaceSystem.render(camera);
+    const rendered = surfaceSystem.render(camera, { onDemand: !isARMode && !captureMode, now: _time });
+    if (rendered && !isARMode && !captureMode) windowLayoutOverlay?.update();
 }
 
 

@@ -15,15 +15,14 @@ function stopPointerPropagation(element) {
     });
 }
 
-function projectLocalPoint({ point, camera, mainGroup, container }) {
+function projectLocalPoint({ point, camera, mainGroup, container, rect = null, transformsReady = false }) {
     if (!camera || !mainGroup || !container) return null;
-    camera.updateMatrixWorld();
-    mainGroup.updateWorldMatrix(true, false);
+    if (!transformsReady) { camera.updateMatrixWorld(); mainGroup.updateWorldMatrix(true, false); }
     const world = point.clone();
     mainGroup.localToWorld(world);
     const projected = world.project(camera);
     if (projected.z < -1 || projected.z > 1) return null;
-    const rect = container.getBoundingClientRect();
+    rect ||= container.getBoundingClientRect();
     return {
         x: (projected.x * 0.5 + 0.5) * rect.width,
         y: (-projected.y * 0.5 + 0.5) * rect.height,
@@ -58,6 +57,7 @@ export function createWindowLayoutOverlay({
     let controls = [];
     let wheel = null;
     let wheelAnchorDefinition = null;
+    let projectionBatch = null;
 
     function closeWheel() {
         wheel?.remove();
@@ -185,6 +185,13 @@ export function createWindowLayoutOverlay({
     }
 
     function getOuterEdgeBounds() {
+        if (projectionBatch?.bounds) return projectionBatch.bounds;
+        const bounds = computeOuterEdgeBounds();
+        if (projectionBatch) projectionBatch.bounds = bounds;
+        return bounds;
+    }
+
+    function computeOuterEdgeBounds() {
         if (mainGroup) {
             mainGroup.updateWorldMatrix(true, true);
             const inverseRootMatrix = new THREE.Matrix4().copy(mainGroup.matrixWorld).invert();
@@ -313,7 +320,7 @@ export function createWindowLayoutOverlay({
     function screenPointForControl(definition) {
         if (!definition) return null;
         const point = localPointForControl(definition);
-        const screen = projectLocalPoint({ point, camera, mainGroup, container });
+        const screen = projectLocalPoint({ point, camera, mainGroup, container, rect: projectionBatch?.rect, transformsReady: !!projectionBatch });
         if (!screen) return null;
 
         // A lone merge control stays exactly on the projected divider centre.
@@ -364,6 +371,12 @@ export function createWindowLayoutOverlay({
             rebuildControls(state);
         }
 
+        // One layout read and one bounds calculation per overlay refresh, not
+        // a read/layout flush plus a full CAD traversal for every add button.
+        camera.updateMatrixWorld();
+        mainGroup.updateWorldMatrix(true, true);
+        projectionBatch = { rect: container.getBoundingClientRect(), bounds: null };
+        try {
         controls.forEach(({ definition, button }) => {
             const screen = screenPointForControl(definition);
             if (!screen) {
@@ -375,13 +388,14 @@ export function createWindowLayoutOverlay({
             button.style.top = `${screen.y}px`;
         });
         updateWheelPosition();
+        } finally { projectionBatch = null; }
     }
 
     function handleLocaleChange() {
         root.setAttribute('aria-label', windowT(getWindowLocale(), 'layout.overlayAria'));
         closeWheel();
         const state = getWindowLayoutState?.();
-        if (state?.topology) rebuildControls(state);
+        if (state?.topology) { rebuildControls(state); update(); }
     }
 
     globalThis.window?.addEventListener('window-locale-applied', handleLocaleChange);

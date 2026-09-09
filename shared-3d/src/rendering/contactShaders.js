@@ -21,6 +21,7 @@ uniform float cIntensity;
 uniform float cMaxDarkening;
 uniform float cOrthographic;
 uniform int cSamples;
+uniform vec2 cKernel[24];
 float depthAt(vec2 uv) { return unpackRGBAToDepth(texture2D(cDepth, uv)); }
 vec3 positionAt(vec2 uv, float depth) {
   vec4 p = cInverseProjection * vec4(uv * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
@@ -50,14 +51,14 @@ void main() {
   // Fixed per-pixel pattern: no temporal noise/history or stale accumulation.
   float rotation = fract(sin(dot(floor(vUv / cTexel), vec2(12.9898, 78.233))) * 43758.5453) * 6.2831853;
   float sum = 0.0;
+  float cr = cos(rotation), sr = sin(rotation);
+  mat2 rotateSample = mat2(cr, sr, -sr, cr);
   for (int i = 0; i < 24; i++) {
     if (i >= cSamples) break;
     // Interleave close contacts and the full envelope in the same sample budget.
     // The earlier single wide disk often missed narrow seals and profile recesses.
     float sampleRadius = mod(float(i), 2.0) < 0.5 ? 0.4 : 1.0;
-    float distanceScale = sqrt((floor(float(i) * 0.5) + 0.5) / ceil(float(cSamples) * 0.5));
-    float angle = rotation + float(i) * 2.39996323;
-    vec2 sampleUV = vUv + vec2(cos(angle), sin(angle)) * radiusUV * distanceScale * sampleRadius;
+    vec2 sampleUV = vUv + (rotateSample * cKernel[i]) * radiusUV;
     if (any(lessThan(sampleUV, cTexel * 0.5)) || any(greaterThan(sampleUV, vec2(1.0) - cTexel * 0.5))) continue;
     // Reconstruct at the fetched depth texel's centre, not an arbitrary UV
     // inside that texel. Otherwise even a flat floor acquires false relief.
