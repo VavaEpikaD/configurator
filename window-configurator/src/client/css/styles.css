@@ -175,7 +175,7 @@ label span {
 
 .finish-mode-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 38px;
+    grid-template-columns: 1fr;
     align-items: center;
     gap: 6px;
     margin-bottom: 10px;

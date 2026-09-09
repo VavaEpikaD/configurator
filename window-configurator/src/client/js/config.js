@@ -7,9 +7,9 @@ import {
 export const allowedProfiles = new Set(getLegacyProfileSetIds());
 
 export const WINDOW_WIDTH_MIN_M = 0.45;
-export const WINDOW_WIDTH_MAX_M = 2.0;
+export const WINDOW_WIDTH_MAX_M = 2.5;
 export const WINDOW_HEIGHT_MIN_M = 0.45;
-export const WINDOW_HEIGHT_MAX_M = 2.2;
+export const WINDOW_HEIGHT_MAX_M = 2.5;
 export const HOUSE_WIDTH_SWITCH_M = 1.2;
 export const HOUSE_HEIGHT_SWITCH_M = (WINDOW_HEIGHT_MIN_M + WINDOW_HEIGHT_MAX_M) / 2;
 
