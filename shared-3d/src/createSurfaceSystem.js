@@ -4,9 +4,9 @@ import { GlazingEnvironment } from './environment/GlazingEnvironment.js?v=glass-
 import { NeutralEnvironment } from './environment/NeutralEnvironment.js?v=1';
 import { getQualityProfile, normalizeQuality } from './quality.js?v=2';
 
-import { ContactShading } from './rendering/ContactShading.js?v=5';
+import { ContactShading } from './rendering/ContactShading.js?v=contact-14';
 
-export const SURFACE_SYSTEM_VERSION = '20260909-glass-13';
+export const SURFACE_SYSTEM_VERSION = '20260909-contact-14';
 
 /** No renderer is created here. The host retains its camera, controls, scene and lifetime. */
 export function createSurfaceSystem(THREE, { renderer, scene, shadowLights = [], quality = 'balanced', capture = false, contactShading = {}, glazingReflections = false } = {}) {

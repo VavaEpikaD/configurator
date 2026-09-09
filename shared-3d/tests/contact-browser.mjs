@@ -16,6 +16,7 @@ const { chromium } = require('playwright');
 const pergolaRequire = createRequire(new URL('../../pergola-configurator/package.json', import.meta.url));
 const pergolaThree = path.dirname(path.dirname(pergolaRequire.resolve('three')));
 const output = process.env.VISUAL_OUTPUT_DIR;
+if (process.env.CONTACT_BROWSER_PRODUCT && !['window','pergola'].includes(process.env.CONTACT_BROWSER_PRODUCT)) throw new Error('CONTACT_BROWSER_PRODUCT must be window or pergola.');
 const server = createServer(async (req, res) => {
   try {
     const u = new URL(req.url, 'http://localhost');
@@ -89,9 +90,12 @@ try {
   // A flat sloping receiver must not gain false relief/noise from depth sampling.
   {
     const page=await browser.newPage({viewport:{width:384,height:256}});
+    page.on('pageerror', error => console.error('[FLAT PAGE]', error.message));
+    page.on('console', message => { if(message.type() === 'error') console.error('[FLAT CONSOLE]',message.text()); });
+    page.on('requestfailed', request => console.error('[FLAT REQUEST]',request.url(),request.failure()?.errorText));
     await page.setContent(`<script type="module">
       const T=await import('${url('window-configurator/src/client/lib/three.module.js')}');
-      const {ContactShading}=await import('${url('shared-3d/src/rendering/ContactShading.js?v=5')}');
+      const {ContactShading}=await import('${url('shared-3d/src/rendering/ContactShading.js?v=contact-14')}');
       const {getQualityProfile}=await import('${url('shared-3d/src/quality.js?v=2')}');
       const scene=new T.Scene();scene.background=new T.Color('#edf1f4');scene.add(new T.AmbientLight(0xffffff,1));
       const camera=new T.PerspectiveCamera(45,384/256,.05,50);camera.position.set(.5,1.2,2);camera.lookAt(0,0,0);
@@ -113,7 +117,7 @@ try {
     assert.ok(report.corner.changed>20,'Adding a real contact must produce occlusion');
     results.push({name:'flat-surface-and-contact-calibration',...report});await page.close();
   }
-  for(const name of ['window','pergola']) {
+  for(const name of ['window','pergola'].filter(name => !process.env.CONTACT_BROWSER_PRODUCT || process.env.CONTACT_BROWSER_PRODUCT === name)) {
     const page=await browser.newPage({viewport:{width:960,height:720}}), errors=[];
     page.on('requestfailed',req=>console.error('[REQUEST]',req.url(),req.failure()?.errorText));
     page.on('pageerror',e=>{errors.push(e.message);console.error('[PAGE]',name,e.message);});
@@ -171,23 +175,30 @@ try {
       },color);
       await matchedPair(page,`${name}-contact-${color.slice(1)}`);
     }
-    const lifecycle=await page.evaluate(()=>{
+    const lifecycle=await page.evaluate(async()=>{
       const t=window.__CONTACT_TEST,reports=[];
       for(const quality of ['high','low','balanced','high','balanced']){
-        t.surfaceSystem.setQuality(quality);t.surfaceSystem.render(t.camera);reports.push(t.surfaceSystem.getDiagnostics());
+        t.surfaceSystem.setQuality(quality);await t.surfaceSystem.materials.whenTexturesReady();t.surfaceSystem.render(t.camera);reports.push(t.surfaceSystem.getDiagnostics());
       }
       const first=reports.at(-1).contactShading;
       for(let i=0;i<3;i++)t.surfaceSystem.render(t.camera);
       const last=t.surfaceSystem.getDiagnostics();
-      return {reports,stable:first.allocationCount===last.contactShading.allocationCount,
+      let handles=0;
+      t.windowBuilder?.mainGroup.traverse(o=>{if(o.isMesh&&o.userData.windowHandleCellId)handles++;});
+      return {reports,handles,stable:first.allocationCount===last.contactShading.allocationCount,
         fabricationUnchanged:!t.windowBuilder||window.__fabrication===JSON.stringify(t.windowBuilder.getFabricationSnapshot())};
     });
     assert.equal(lifecycle.stable,true);assert.equal(lifecycle.fabricationUnchanged,true);
+    assert.ok(lifecycle.reports.every(r=>r.textureAssets.failedSets===0));
+    if(name==='window') {
+      assert.equal(lifecycle.handles,3,'The repaired complete handle must remain present');
+      assert.ok(lifecycle.reports.every(r=>r.glazingReflections.error===null));
+    }
     assert.equal(lifecycle.reports[1].contactShading.targetCount,0);
     assert.ok(lifecycle.reports.every(r=>r.environmentError===null));
     assert.deepEqual(errors,[]);
     results.push({name:`${name}-lifecycle`,threeRevision:lifecycle.reports[0].threeRevision,stable:lifecycle.stable,
-      fabricationUnchanged:lifecycle.fabricationUnchanged,tiers:lifecycle.reports.map(r=>({quality:r.quality,contactShading:r.contactShading}))});
+      fabricationUnchanged:lifecycle.fabricationUnchanged,handles:lifecycle.handles,tiers:lifecycle.reports.map(r=>({quality:r.quality,contactShading:r.contactShading}))});
     await page.close();
   }
   console.log(JSON.stringify(results,null,2));
