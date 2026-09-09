@@ -102,8 +102,8 @@ shell = mountStandaloneConfiguratorShell({
     // configurators. Window edit buttons are an explicit Window-only opt-in.
     items: resolveSharedTools([
       { id: 'dimensions', active: true },
-      'camera',
       { id: 'window-layout-controls', active: true },
+      'camera',
     ]),
     placement: { side: 'left', direction: 'down', offsetX: 12, offsetY: 12 },
   },
