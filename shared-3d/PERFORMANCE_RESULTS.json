@@ -1,0 +1,211 @@
+{
+  "version": "20260909-perf-15",
+  "conditions": {
+    "browser": "Chromium, headful Xvfb, SwiftShader WebGL2",
+    "engine": "Three.js r160 (0.160.1 package / Window vendored r160)",
+    "scene": "Actual Window entry/CAD assets and actual Pergola scene/local assets",
+    "viewport": [
+      800,
+      600
+    ],
+    "pixelRatio": 1,
+    "baselineSamplesPerPhase": 8,
+    "currentSamplesPerPhase": 3,
+    "cameraMotionBenchmark": "Explicit full-resolution frames, no adaptive reduction",
+    "timingCaution": "Draw/triangle counts cover all passes. Timing/FPS claims intentionally omitted; local software command-submission times are not customer GPU performance."
+  },
+  "renderWork": [
+    {
+      "product": "window",
+      "quality": "balanced",
+      "beforeOrbitDrawCalls": 304,
+      "afterOrbitDrawCalls": 235,
+      "beforeIdleDrawCalls": 304,
+      "afterIdleDrawCalls": 0,
+      "orbitDrawCallReductionPercent": 22.7,
+      "beforeOrbitTriangles": 174694,
+      "afterOrbitTriangles": 131028
+    },
+    {
+      "product": "window",
+      "quality": "high",
+      "beforeOrbitDrawCalls": 304,
+      "afterOrbitDrawCalls": 235,
+      "beforeIdleDrawCalls": 304,
+      "afterIdleDrawCalls": 0,
+      "orbitDrawCallReductionPercent": 22.7,
+      "beforeOrbitTriangles": 174694,
+      "afterOrbitTriangles": 131028
+    },
+    {
+      "product": "pergola",
+      "quality": "balanced",
+      "beforeOrbitDrawCalls": 330,
+      "afterOrbitDrawCalls": 246,
+      "beforeIdleDrawCalls": 330,
+      "afterIdleDrawCalls": 0,
+      "orbitDrawCallReductionPercent": 25.45,
+      "beforeOrbitTriangles": 39800,
+      "afterOrbitTriangles": 32808
+    },
+    {
+      "product": "pergola",
+      "quality": "high",
+      "beforeOrbitDrawCalls": 330,
+      "afterOrbitDrawCalls": 246,
+      "beforeIdleDrawCalls": 330,
+      "afterIdleDrawCalls": 0,
+      "orbitDrawCallReductionPercent": 25.45,
+      "beforeOrbitTriangles": 39800,
+      "afterOrbitTriangles": 32808
+    }
+  ],
+  "imageComparisons": [
+    {
+      "product": "window",
+      "quality": "balanced",
+      "meanAbsoluteDifference": 0.0,
+      "rmsDifference": 0.0,
+      "maxChannelDifference": 0.0,
+      "changedPixels": 0
+    },
+    {
+      "product": "window",
+      "quality": "high",
+      "meanAbsoluteDifference": 0.0,
+      "rmsDifference": 0.0,
+      "maxChannelDifference": 0.0,
+      "changedPixels": 0
+    },
+    {
+      "product": "pergola",
+      "quality": "balanced",
+      "meanAbsoluteDifference": 0.0,
+      "rmsDifference": 0.0,
+      "maxChannelDifference": 0.0,
+      "changedPixels": 0
+    },
+    {
+      "product": "pergola",
+      "quality": "high",
+      "meanAbsoluteDifference": 2.2222222469281405e-05,
+      "rmsDifference": 0.004714045207947493,
+      "maxChannelDifference": 1.0,
+      "changedPixels": 29
+    }
+  ],
+  "adaptiveAndInvalidation": [
+    {
+      "name": "window",
+      "adaptive": {
+        "scales": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0.82,
+          0.82,
+          0.82,
+          0.82,
+          0.82,
+          0.82,
+          0.82,
+          0.82,
+          0.82,
+          0.82,
+          0.82,
+          0.82,
+          0.82,
+          0.66,
+          0.66,
+          0.66,
+          0.66,
+          0.66,
+          0.66,
+          0.66,
+          0.66,
+          0.66,
+          0.66,
+          0.66
+        ],
+        "geometry": 127,
+        "movingRatio": 1.32,
+        "settledRatio": 2,
+        "settledScale": 1,
+        "settledGeometry": 127,
+        "idleCalls": 0,
+        "resizeCalls": 304,
+        "linked": true,
+        "contextLost": false
+      }
+    },
+    {
+      "name": "window",
+      "changes": {
+        "color": 304,
+        "hidden": 367,
+        "rebuild": 367
+      }
+    },
+    {
+      "name": "pergola",
+      "adaptive": {
+        "scales": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0.82,
+          0.82,
+          0.82,
+          0.82,
+          0.82,
+          0.82,
+          0.82,
+          0.82,
+          0.82,
+          0.82,
+          0.82,
+          0.82,
+          0.82,
+          0.66,
+          0.66,
+          0.66,
+          0.66,
+          0.66,
+          0.66,
+          0.66,
+          0.66,
+          0.66,
+          0.66,
+          0.66
+        ],
+        "geometry": 83,
+        "movingRatio": 1.32,
+        "settledRatio": 2,
+        "settledScale": 1,
+        "settledGeometry": 83,
+        "idleCalls": 0,
+        "resizeCalls": 330,
+        "linked": true,
+        "contextLost": false
+      }
+    },
+    {
+      "name": "pergola",
+      "changes": {
+        "color": 330,
+        "hidden": 255,
+        "rebuild": 352
+      }
+    }
+  ]
+}

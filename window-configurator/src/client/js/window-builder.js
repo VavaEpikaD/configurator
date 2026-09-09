@@ -228,18 +228,24 @@ export function createWindowBuilder({
         };
     }
 
+    let lastExplodeObjects = null;
+    let lastAppliedExplode = NaN;
     function applyExplodeTransforms(progress) {
         const explodeT = THREE.MathUtils.clamp(progress, 0, 1);
+        if (lastExplodeObjects === explodableObjects && lastAppliedExplode === explodeT) return;
+        lastExplodeObjects = explodableObjects;
+        lastAppliedExplode = explodeT;
         explodableObjects.forEach(object => {
             const basePos = object?.userData?.basePos;
             if (!basePos) return;
-            const baseVector = object?.userData?.explodeBaseDir || new THREE.Vector3();
-            const layerVector = object?.userData?.explodeLayerDir || object?.userData?.explodeDir || new THREE.Vector3();
-            const offset = new THREE.Vector3()
-                .copy(baseVector)
-                .add(layerVector)
-                .multiplyScalar(explodeT);
-            object.position.copy(basePos).add(offset);
+            const base = object.userData.explodeBaseDir;
+            const layer = object.userData.explodeLayerDir || object.userData.explodeDir;
+            // Same transform, without three temporary vectors per part/frame.
+            object.position.set(
+                basePos.x + ((base?.x || 0) + (layer?.x || 0)) * explodeT,
+                basePos.y + ((base?.y || 0) + (layer?.y || 0)) * explodeT,
+                basePos.z + ((base?.z || 0) + (layer?.z || 0)) * explodeT
+            );
         });
         applyExplodedWindowForwardOffset(explodeT);
     }
@@ -6277,11 +6283,10 @@ export function createWindowBuilder({
             } else if (performance.now() < handleHoldUntil && sashPoseAssemblies.length === 1) {
                 assembly.handleLeverGroup.rotation.z = 0;
             } else {
-                assembly.handleLeverGroup.rotation.z = THREE.MathUtils.lerp(
-                    assembly.handleLeverGroup.rotation.z,
-                    targetRotationZ,
-                    0.10
-                );
+                const currentRotationZ = assembly.handleLeverGroup.rotation.z;
+                assembly.handleLeverGroup.rotation.z = Math.abs(currentRotationZ - targetRotationZ) < 1e-6
+                    ? targetRotationZ
+                    : THREE.MathUtils.lerp(currentRotationZ, targetRotationZ, 0.10);
             }
         }
     }
@@ -6304,6 +6309,7 @@ export function createWindowBuilder({
 
         const targetExplode = isExploded ? 1 : 0;
         explodeProgress = targetExplode;
+        lastAppliedExplode = NaN;
         applyExplodeTransforms(targetExplode);
         mainGroup.updateWorldMatrix(true, true);
     }
@@ -6354,20 +6360,20 @@ export function createWindowBuilder({
         if (activeId) {
             const activeValue = getPoseAngle(activeId);
             const valAngleEl = document.getElementById('valAngle');
-            if (valAngleEl) valAngleEl.innerText = `${Math.round(activeValue)}°`;
+            const angleLabel = `${Math.round(activeValue)}°`;
+            if (valAngleEl && valAngleEl.textContent !== angleLabel) valAngleEl.textContent = angleLabel;
             if (!handleAngleAnimation && openAngleInput) {
-                openAngleInput.value = String(Math.round(activeValue));
+                const angleValue = String(Math.round(activeValue));
+                if (openAngleInput.value !== angleValue) openAngleInput.value = angleValue;
             }
         } else {
             const valAngleEl = document.getElementById('valAngle');
-            if (valAngleEl) valAngleEl.innerText = '0°';
+            if (valAngleEl && valAngleEl.textContent !== '0°') valAngleEl.textContent = '0°';
         }
 
-        explodeProgress = THREE.MathUtils.lerp(
-            explodeProgress,
-            isExploded ? 1 : 0,
-            0.08
-        );
+        const targetExplode = isExploded ? 1 : 0;
+        explodeProgress = Math.abs(explodeProgress - targetExplode) < 1e-6
+            ? targetExplode : THREE.MathUtils.lerp(explodeProgress, targetExplode, 0.08);
         applyExplodeTransforms(explodeProgress);
     }
 

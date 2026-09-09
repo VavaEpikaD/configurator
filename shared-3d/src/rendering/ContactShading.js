@@ -1,7 +1,19 @@
-import { CONTACT_VERTEX, CONTACT_FRAGMENT, CONTACT_DENOISE_FRAGMENT, CONTACT_PARS, CONTACT_APPLY } from './contactShaders.js?v=contact-14';
+import { CONTACT_VERTEX, CONTACT_FRAGMENT, CONTACT_DENOISE_FRAGMENT, CONTACT_PARS, CONTACT_APPLY } from './contactShaders.js?v=perf-15';
 
-export const CONTACT_SHADING_VERSION = '20260909-contact-14';
+export const CONTACT_SHADING_VERSION = '20260909-perf-15';
 const owners = new WeakMap();
+// Same sample pattern as contact-14, precomputed once per quality rather than
+// evaluating trigonometry and square roots for every tap of every screen pixel.
+export function createContactKernel(samples) {
+  const values = new Float32Array(24 * 2);
+  if (!Number.isInteger(samples) || samples < 1 || samples > 24) throw new RangeError('Contact samples must be in [1,24].');
+  for (let i = 0; i < samples; i++) {
+    const radius = (i % 2 === 0 ? .4 : 1) * Math.sqrt((Math.floor(i * .5) + .5) / Math.ceil(samples * .5));
+    values[i * 2] = Math.cos(i * 2.39996323) * radius;
+    values[i * 2 + 1] = Math.sin(i * 2.39996323) * radius;
+  }
+  return values;
+}
 const DEPTH_PROPERTIES = ['side', 'map', 'alphaMap', 'alphaTest', 'alphaHash', 'opacity',
   'displacementMap', 'displacementScale', 'displacementBias', 'clippingPlanes', 'clipIntersection'];
 
@@ -42,7 +54,8 @@ export class ContactShading {
     this.profile = null; this.depthTarget = null; this.aoTarget = null; this.filteredTarget = null; this.screen = null;
     this.receivers = new Map(); this.depthMaterials = new Map(); this.occluderCount = 0;
     this.renderedFrames = 0; this.allocationCount = 0; this.mixedMaterialMeshes = 0; this.excludedMaterialSlots = 0;
-    this.skipDepth = null;
+    this.skipDepth = null; this.cachedKey = null; this.cacheValid = false; this.cachedFrames = 0;
+    this.checkedTargets = new Set(); this.framebufferChecks = 0; this.resizeCount = 0;
     this.size = new THREE.Vector2(); this.viewport = new THREE.Vector4(); this.scissor = new THREE.Vector4();
     this.clearColor = new THREE.Color();
     this.uniforms = {
@@ -60,6 +73,7 @@ export class ContactShading {
     if (this.disposed) return;
     const changed = JSON.stringify(this.profile) !== JSON.stringify(profile);
     this.profile = profile ? { ...profile } : null;
+    if (changed) this.cacheValid = false;
     if (changed && this.failed) { this.failed = false; this.error = null; }
     if (!profile?.enabled || !this.enabled) {
       this.uniforms.cContactEnabled.value = 0; this.releaseBuffers(); this.releaseMaterials();
@@ -84,7 +98,7 @@ export class ContactShading {
         .replace('#include <packing>', '#include <packing>\n' + CONTACT_PARS)
         .replace('#include <aomap_fragment>', '#include <aomap_fragment>\n' + CONTACT_APPLY);
     };
-    const key = () => `${baseKey}|360-contact-14`;
+    const key = () => `${baseKey}|360-contact-perf-15`;
     const onDispose = () => this.detach(material, false);
     this.receivers.set(material, { original, originalKey, hook, key, onDispose }); owners.set(material, this);
     material.onBeforeCompile = hook; material.customProgramCacheKey = key;
@@ -129,6 +143,12 @@ export class ContactShading {
 
   allocate(width, height) {
     if (this.depthTarget?.width === width && this.depthTarget.height === height) return;
+    if (this.depthTarget && this.screen) {
+      for (const target of [this.depthTarget, this.aoTarget, this.filteredTarget]) target.setSize(width, height);
+      this.uniforms.cContactTexel.value.set(1 / width, 1 / height);
+      this.checkedTargets.clear(); this.cacheValid = false; this.resizeCount++;
+      return;
+    }
     this.releaseBuffers();
     const T = this.THREE;
     let material, geometry, filterMaterial;
@@ -147,7 +167,7 @@ export class ContactShading {
         cInverseProjection: { value: new T.Matrix4() }, cTexel: this.uniforms.cContactTexel,
         cRadius: { value: this.radius }, cBias: this.uniforms.cContactBias,
         cIntensity: { value: this.intensity }, cMaxDarkening: { value: this.maxDarkening },
-        cOrthographic: this.uniforms.cContactOrthographic, cSamples: { value: this.profile.samples } };
+        cOrthographic: this.uniforms.cContactOrthographic, cSamples: { value: this.profile.samples }, cKernel: { value: createContactKernel(this.profile.samples) } };
       material = new T.ShaderMaterial({ uniforms, vertexShader: CONTACT_VERTEX, fragmentShader: CONTACT_FRAGMENT,
         depthTest: false, depthWrite: false, blending: T.NoBlending, toneMapped: false });
       geometry = new T.PlaneGeometry(2, 2);
@@ -167,6 +187,7 @@ export class ContactShading {
     }
   }
   releaseBuffers() {
+    this.cacheValid = false; this.cachedKey = null; this.checkedTargets.clear();
     this.uniforms.cContactEnabled.value = 0;
     this.uniforms.cContactDepth.value = null; this.uniforms.cContactAO.value = null;
     this.depthTarget?.dispose(); this.aoTarget?.dispose(); this.filteredTarget?.dispose();
@@ -203,7 +224,10 @@ export class ContactShading {
     this.uniforms.cContactNear.value = camera.near; this.uniforms.cContactFar.value = camera.far;
     this.uniforms.cContactOrthographic.value = camera.isOrthographicCamera ? 1 : 0;
     this.screen.material.uniforms.cInverseProjection.value.copy(camera.projectionMatrixInverse);
-    this.screen.material.uniforms.cSamples.value = this.profile.samples;
+    if (this.screen.material.uniforms.cSamples.value !== this.profile.samples) {
+      this.screen.material.uniforms.cSamples.value = this.profile.samples;
+      this.screen.material.uniforms.cKernel.value = createContactKernel(this.profile.samples);
+    }
 
     const originalTarget = r.getRenderTarget(), clearAlpha = r.getClearAlpha(), autoClear = r.autoClear;
     const autoShadow = r.shadowMap.autoUpdate, needsShadow = r.shadowMap.needsUpdate;
@@ -238,11 +262,11 @@ export class ContactShading {
       scene.background = null; scene.overrideMaterial = null;
       r.autoClear = true; r.shadowMap.autoUpdate = false; r.shadowMap.needsUpdate = false;
       r.setScissorTest(false); r.setClearColor(0xffffff, 1);
-      r.setRenderTarget(this.depthTarget); r.clear(); r.render(scene, camera); this.checkFramebuffer();
+      r.setRenderTarget(this.depthTarget); r.render(scene, camera); this.checkFramebuffer(this.depthTarget);
       this.screen.mesh.material = this.screen.material;
-      r.setRenderTarget(this.aoTarget); r.clear(); r.render(this.screen.scene, this.screen.camera); this.checkFramebuffer();
+      r.setRenderTarget(this.aoTarget); r.render(this.screen.scene, this.screen.camera); this.checkFramebuffer(this.aoTarget);
       this.screen.mesh.material = this.screen.filterMaterial;
-      r.setRenderTarget(this.filteredTarget); r.clear(); r.render(this.screen.scene, this.screen.camera); this.checkFramebuffer();
+      r.setRenderTarget(this.filteredTarget); r.render(this.screen.scene, this.screen.camera); this.checkFramebuffer(this.filteredTarget);
       this.uniforms.cContactEnabled.value = this.failed ? 0 : 1;
     } finally {
       for (const entry of changed) {
@@ -258,19 +282,29 @@ export class ContactShading {
       for (const [source, depth] of this.depthMaterials) if (!seenSources.has(source)) { depth.dispose(); this.depthMaterials.delete(source); }
     }
   }
-  checkFramebuffer() {
+  checkFramebuffer(target) {
+    if (this.checkedTargets.has(target)) return;
     const gl = this.renderer.getContext();
+    this.framebufferChecks++;
     if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) throw new Error('Contact render target is incomplete.');
+    this.checkedTargets.add(target);
   }
 
-  render(camera, { enabled = true } = {}) {
+  render(camera, { enabled = true, cacheKey = null } = {}) {
     if (this.disposed) return;
     this.uniforms.cContactEnabled.value = 0;
     const reason = this.bypassReason(camera, enabled);
     if (reason) this.status = reason;
     else {
       try {
-        this.prepare(camera);
+        const [width, height] = contactTargetSize(this.size.x, this.size.y, this.profile);
+        const reuse = cacheKey !== null && this.cacheValid && cacheKey === this.cachedKey
+          && this.depthTarget?.width === width && this.depthTarget.height === height;
+        if (reuse) { this.uniforms.cContactEnabled.value = 1; this.cachedFrames++; }
+        else {
+          this.prepare(camera);
+          this.cacheValid = !this.failed; this.cachedKey = cacheKey;
+        }
         this.status = this.failed ? 'fallback' : 'active';
         if (!this.failed) this.renderedFrames++;
       } catch (error) {
@@ -297,7 +331,7 @@ export class ContactShading {
       bufferSize: this.depthTarget ? [this.depthTarget.width, this.depthTarget.height] : [0, 0],
       targetCount: [this.depthTarget, this.aoTarget, this.filteredTarget].filter(Boolean).length,
       auxiliaryPasses: this.status === 'active' ? 3 : 0, mixedMaterialMeshes: this.mixedMaterialMeshes, excludedMaterialSlots: this.excludedMaterialSlots, receiverMaterials: this.receivers.size, depthMaterials: this.depthMaterials.size,
-      occluderMeshes: this.occluderCount, renderedFrames: this.renderedFrames, allocationCount: this.allocationCount };
+      occluderMeshes: this.occluderCount, renderedFrames: this.renderedFrames, allocationCount: this.allocationCount, resizeCount: this.resizeCount, cachedFrames: this.cachedFrames, framebufferChecks: this.framebufferChecks };
   }
   dispose() {
     if (this.disposed) return;

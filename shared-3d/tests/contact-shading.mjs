@@ -109,7 +109,7 @@ test('material hook preserves existing hooks, maps and AO chunk while touching o
   assert.ok(shader.fragmentShader.includes('#include <aomap_fragment>'));
   assert.ok(shader.fragmentShader.includes('reflectedLight.indirectDiffuse *= cContactAmount'));
   assert.ok(!shader.fragmentShader.includes('reflectedLight.directDiffuse *='));
-  assert.equal(f.material.customProgramCacheKey(), 'original-program|360-contact-14');
+  assert.equal(f.material.customProgramCacheKey(), 'original-program|360-contact-perf-15');
   f.stage.dispose(); assert.equal(f.material.onBeforeCompile, original); assert.equal(f.material.customProgramCacheKey, key);
 });
 
@@ -291,4 +291,21 @@ test('partial filter allocation does not leak the already created shader or full
   assert.equal(f.stage.status, 'fallback'); assert.equal(f.stage.getDiagnostics().targetCount, 0);
   assert.equal(resources.length, 5); assert.ok(resources.every(r=>r.disposals===1));
   f.stage.dispose(); assert.ok(resources.every(r=>r.disposals===1));
+});
+
+
+test('stable framebuffers are validated once, then again only after resize', () => {
+  const f=fixture();for(let i=0;i<5;i++) f.stage.render(f.camera);
+  assert.equal(f.stage.getDiagnostics().framebufferChecks,3);
+  f.renderer.width=1000;f.renderer.viewport.z=1000;f.stage.render(f.camera);
+  assert.equal(f.stage.getDiagnostics().framebufferChecks,6);assert.equal(f.stage.getDiagnostics().resizeCount,1);
+  f.stage.dispose();
+});
+test('revision-based reuse skips auxiliary passes without disabling contact shading', () => {
+  const f=fixture();f.stage.render(f.camera,{cacheKey:1});const count=f.renders.length;
+  f.stage.render(f.camera,{cacheKey:1});assert.equal(f.renders.length,count+1);
+  assert.equal(f.stage.getDiagnostics().cachedFrames,1);assert.equal(f.stage.status,'active');
+  f.stage.render(f.camera,{cacheKey:2});assert.equal(f.renders.length,count+5);
+  f.stage.setQuality(getQualityProfile('high').contactShading);f.stage.render(f.camera,{cacheKey:2});
+  assert.equal(f.renders.length,count+9);f.stage.dispose();
 });

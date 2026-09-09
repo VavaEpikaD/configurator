@@ -4,9 +4,10 @@ import { GlazingEnvironment } from './environment/GlazingEnvironment.js?v=glass-
 import { NeutralEnvironment } from './environment/NeutralEnvironment.js?v=1';
 import { getQualityProfile, normalizeQuality } from './quality.js?v=2';
 
-import { ContactShading } from './rendering/ContactShading.js?v=contact-14';
+import { ContactShading } from './rendering/ContactShading.js?v=perf-15';
+import { RenderPerformance } from './rendering/RenderPerformance.js?v=perf-15';
 
-export const SURFACE_SYSTEM_VERSION = '20260909-contact-14';
+export const SURFACE_SYSTEM_VERSION = '20260909-perf-15';
 
 /** No renderer is created here. The host retains its camera, controls, scene and lifetime. */
 export function createSurfaceSystem(THREE, { renderer, scene, shadowLights = [], quality = 'balanced', capture = false, contactShading = {}, glazingReflections = false } = {}) {
@@ -21,9 +22,11 @@ export function createSurfaceSystem(THREE, { renderer, scene, shadowLights = [],
   const contact = new ContactShading(THREE, {
     renderer, scene, ...(contactShading || {}), enabled: !capture && contactShading !== false && contactShading?.enabled !== false,
   });
+  const performanceController = new RenderPerformance(THREE, renderer, scene);
   let currentSignature = '', currentProfile = null, disposed = false, environmentError = null;
   const legacyEnvironmentStrength = new WeakMap();
   let requestedQuality = normalizeQuality(quality);
+  let lastContactEnabled = null;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1;
@@ -41,8 +44,9 @@ export function createSurfaceSystem(THREE, { renderer, scene, shadowLights = [],
       if (signature === currentSignature && !environmentError) return false;
       currentSignature = signature;
       currentProfile = profile;
+      performanceController.setQuality(profile);
       const shadowsChanged = renderer.shadowMap.enabled !== profile.shadows;
-      renderer.setPixelRatio(profile.pixelRatio);
+      if (renderer.getPixelRatio?.() !== profile.pixelRatio) renderer.setPixelRatio(profile.pixelRatio);
       renderer.shadowMap.enabled = profile.shadows;
       for (const light of shadowLights) {
         light.castShadow = profile.shadows;
@@ -77,13 +81,34 @@ export function createSurfaceSystem(THREE, { renderer, scene, shadowLights = [],
       return true;
     },
     // The host retains its loop, camera and labels. Do not monkey-patch renderer.render.
-    render(camera, { contactShading: enabled = true } = {}) {
-      if (!disposed) {
-        // Rebuild once after context restore, never every frame or camera move.
-        glazingEnvironment.setQuality(currentProfile);
-        contact.render(camera, { enabled });
-      }
+    render(camera, { contactShading: enabled = true, onDemand = false, now } = {}) {
+      if (disposed) return false;
+      // Explicit calls (screenshots/exports/tests) are always full-resolution.
+      // Only host animation loops opt into change-driven drawing.
+      glazingEnvironment.setQuality(currentProfile);
+      if (lastContactEnabled !== enabled) { performanceController.invalidate(); lastContactEnabled = enabled; }
+      const frame = performanceController.begin(camera, { onDemand, now });
+      if (!frame) return false;
+      const start = globalThis.performance?.now?.() ?? Date.now();
+      const autoShadow = renderer.shadowMap.autoUpdate;
+      const autoWorld = scene.matrixWorldAutoUpdate;
+      try {
+        // SceneRevision already updated transforms once. The depth and beauty
+        // passes can share them for static/generated content. Custom animation
+        // callbacks and special renders retain Three's normal update behavior.
+        if (!frame.special && !frame.dynamic) scene.matrixWorldAutoUpdate = false;
+        if (!frame.special) {
+          frame.shadowUpdated = renderer.shadowMap.enabled && (frame.shadowChanged || renderer.shadowMap.needsUpdate === true);
+          renderer.shadowMap.autoUpdate = false;
+          renderer.shadowMap.needsUpdate = frame.shadowUpdated;
+        }
+        contact.render(camera, { enabled, cacheKey: frame.special ? null : frame.revision });
+        performanceController.end(frame, (globalThis.performance?.now?.() ?? Date.now()) - start);
+        return true;
+      } catch (error) { performanceController.invalidate(); throw error; }
+      finally { renderer.shadowMap.autoUpdate = autoShadow; scene.matrixWorldAutoUpdate = autoWorld; }
     },
+    invalidate() { performanceController.invalidate(); },
     // Day/night remains a configurator decision; prevent daylight reflections at night.
     setEnvironmentIntensity(value) {
       const intensity = Math.max(0, Number(value) || 0);
@@ -100,11 +125,12 @@ export function createSurfaceSystem(THREE, { renderer, scene, shadowLights = [],
       });
     },
     getDiagnostics() {
-      return { version: SURFACE_SYSTEM_VERSION, threeRevision: THREE.REVISION, requestedQuality, profile: currentProfile ? { ...currentProfile, contactShading: { ...currentProfile.contactShading } } : null, environment: !!environment.target, environmentWidth: environment.width, environmentError, glazingReflections: glazingEnvironment.getDiagnostics(), contactShading: contact.getDiagnostics(), geometry: geometry.getDiagnostics(), ...library.getDiagnostics() };
+      return { version: SURFACE_SYSTEM_VERSION, threeRevision: THREE.REVISION, requestedQuality, profile: currentProfile ? { ...currentProfile, contactShading: { ...currentProfile.contactShading } } : null, environment: !!environment.target, environmentWidth: environment.width, environmentError, glazingReflections: glazingEnvironment.getDiagnostics(), contactShading: contact.getDiagnostics(), performance: performanceController.getDiagnostics(), geometry: geometry.getDiagnostics(), ...library.getDiagnostics() };
     },
     dispose() {
       if (disposed) return;
       disposed = true;
+      performanceController.dispose();
       contact.dispose();
       glazingEnvironment.dispose();
       environment.dispose();

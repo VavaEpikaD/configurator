@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { createSurfaceSystem } from '../shared-3d/src/index.js?v=contact-14';
+import { createSurfaceSystem } from '../shared-3d/src/index.js?v=perf-15';
 
 function createWindowCameraViewController({ camera, controls }) {
     let lastReportedSide = null;
@@ -76,6 +76,7 @@ export function createSceneContext({
 
     const renderer = new THREE.WebGLRenderer({
         antialias: !captureMode,
+        powerPreference: 'high-performance',
         alpha: isARMode,
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -156,7 +157,7 @@ export function createSceneContext({
         if (event.detail?.name === 'quality') applyQuality(event.detail.value);
     };
     const onShellReady = () => applyQuality(window.WINDOW_CONFIGURATOR_SHARED_SHELL?.state?.quality || preferredQuality);
-    const onResize = () => applyQuality();
+    const onResize = () => { applyQuality(); surfaceSystem.invalidate(); };
     window.addEventListener('window-preference-change', onPreference);
     window.addEventListener('window-shared-shell-ready', onShellReady);
     window.addEventListener('resize', onResize);

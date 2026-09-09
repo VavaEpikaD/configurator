@@ -1,6 +1,6 @@
 # Shared 3D rendering and geometry
 
-Current release: **`20260909-contact-14`**. Integrated into Window and Pergola only.
+Current release: **`20260909-perf-15`**. Integrated into Window and Pergola only.
 Other configurators and their rendering paths are not migrated by this release.
 
 The shared layer receives each application's Three.js namespace. It does not
@@ -18,7 +18,7 @@ Window's vendored engine and Pergola's declared engine remain separate.
 - `surfaceMapping`: explicit metre-space box/extrusion/planar/cylindrical mapping,
   with authored-UV preservation and no material mutation.
 - `createSurfaceSystem`: common output/tone mapping, quality budgets, reflection
-  environment, contact shading and read-only diagnostic data.
+  environment, contact shading, change-driven rendering and read-only diagnostics.
 - Configurator adapters: product dimensions, CAD transforms, joins, assembly,
   cameras, UI, manufacturing, opening/animation and app-specific lifetime.
 
@@ -30,6 +30,8 @@ The current materials are `aluminium.powderCoated`, `aluminium.bare`,
 
 | Document | Purpose |
 | --- | --- |
+| [PERFORMANCE.md](PERFORMANCE.md) | Change-driven frames, shadow reuse, adaptive motion resolution and extension rules |
+| [PERFORMANCE_VALIDATION.md](PERFORMANCE_VALIDATION.md) | Current validation, work-count measurements and hardware limits |
 | [UV_MAPPING.md](UV_MAPPING.md) | Step 6 geometry-owned texture orientation/scale, adapters and live-resize behavior |
 | [PBR_SURFACES.md](PBR_SURFACES.md) | Current assets, loader, quality tiers, extension examples, install and diagnostics |
 | [assets/pbr/README.md](assets/pbr/README.md) | Texture sources, CC0 provenance, actual resolutions and reproducibility |
@@ -37,18 +39,18 @@ The current materials are `aluminium.powderCoated`, `aluminium.bare`,
 | [GEOMETRY.md](GEOMETRY.md) | Shared geometry API, ownership, CAD unit policy and adapters |
 | [EDGE_FINISHES.md](EDGE_FINISHES.md) | Opt-in edge methods and protected manufacturing contours |
 | [CONTACT_SHADING.md](CONTACT_SHADING.md) | Current Step 9 contact-stage filtering, exclusions and failure handling |
-| [CONTACT_STEP9_VALIDATION.md](CONTACT_STEP9_VALIDATION.md) | Current release validation and pinned-engine verification limits |
+| [CONTACT_STEP9_VALIDATION.md](CONTACT_STEP9_VALIDATION.md) | Historical Step 9 validation and pinned-engine verification limits |
 
 Geometry/edge/contact documents retain their own feature-version references;
 the current top-level system version is the one above. Geometry remains `20260909-uv-8`,
 PBR assets remain `20260909-pbr-deck-7`, and the dedicated Window glazing
-reflections remain `20260909-glass-13`. This release changes contact rendering,
-not the accepted geometry, texture images or material calibration.
+reflections remain `20260909-glass-13`. This release optimizes frame scheduling and contact rendering, not the accepted
+geometry, texture images or material calibration. Settled quality budgets are unchanged.
 
 ## Host integration
 
 ```js
-import { createSurfaceSystem } from './shared-3d/src/index.js?v=contact-14';
+import { createSurfaceSystem } from './shared-3d/src/index.js?v=perf-15';
 
 const surfaces = createSurfaceSystem(THREE, {
   renderer, scene, shadowLights: [sun], quality: 'balanced',
@@ -65,7 +67,8 @@ const post = surfaces.geometry.mesh(postGeometry, paint, {
 });
 scene.add(post);
 // Within the host's own animation loop:
-surfaces.render(camera);
+surfaces.render(camera, { onDemand: true });
+// Before a screenshot/export: surfaces.render(camera); // explicit full-quality draw
 // At host teardown (after detaching its meshes/loop):
 // surfaces.dispose();
 ```
