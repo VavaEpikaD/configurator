@@ -19,6 +19,13 @@ export const MATERIAL_PRESETS = Object.freeze({
     type: 'glass', color: '#ffffff', metalness: 0, roughness: 0.045, envMapIntensity: 1,
     ior: 1.5, transmission: 0.96, thickness: 0.006,
   }),
+  // Visual architectural glazing, not a manufacturer-certified IGU optical model.
+  // Keep glass.clear unchanged for other configurators and existing saved variants.
+  'glass.architectural': Object.freeze({
+    type: 'glass', color: '#ffffff', metalness: 0, roughness: 0.025, envMapIntensity: 1,
+    ior: 1.5, transmission: 1, thickness: 0.006,
+    attenuationColor: '#ecf6f2', attenuationDistance: 2, lowOpacity: 0.18, fog: false,
+  }),
   'wood.deck': Object.freeze({
     type: 'standard', color: '#ffffff', metalness: 0, roughness: 0.76, envMapIntensity: 0.28,
     texture: 'oak', textureSet: 'wood.deck', normalStrength: 0.12, assetNormalStrength: 0.14,

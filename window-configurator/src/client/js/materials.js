@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { MaterialLibrary } from '../shared-3d/src/index.js?v=8';
+import { MaterialLibrary } from '../shared-3d/src/index.js?v=glass-13';
 import {
     ALUMINIUM_FINISH_CATALOG,
     FIXED_PROFILE_COLOURS,
@@ -82,7 +82,7 @@ export function createMaterialManager({
         });
     }
 
-    const glassMat = surfaces.create('glass.clear', { thickness: 0.006 });
+    const glassMat = surfaces.create('glass.architectural', { thickness: 0.006 });
     const handleMat = surfaces.create('aluminium.powderCoated', {
         color: '#1f2937', roughness: 0.48, envMapIntensity: 0.82,
     });
@@ -210,7 +210,7 @@ export function createMaterialManager({
                         color: colour, side: THREE.DoubleSide,
                     })
                     : (!debugColoursEnabled && materialKey === 'glass'
-                        ? surfaces.create('glass.clear')
+                        ? surfaces.create('glass.architectural')
                         : createSurfaceMaterial({ color: colour, ...materialProperties }))
             );
         }
