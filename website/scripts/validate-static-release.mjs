@@ -22,6 +22,10 @@ const composedSiteMounts = Object.freeze([
     prefix: "/window-configurator/",
     root: path.join(workspaceRoot, "dist", "window-configurator-build"),
   }),
+  Object.freeze({
+    prefix: "/pergola-configurator/",
+    root: path.join(workspaceRoot, "pergola-configurator", "dist"),
+  }),
 ]);
 
 async function isFile(file) {

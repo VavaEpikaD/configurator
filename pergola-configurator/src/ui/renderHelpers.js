@@ -27,12 +27,15 @@ export function segmented(options, selected, path) {
 export function colorSwatches(colors, selected, path) {
   return `
     <div class="color-grid">
-      ${colors.map((color) => `
-        <button type="button" class="color-swatch ${selected === color.value ? 'is-selected' : ''}" data-option-path="${path}" data-option-value="${color.value}" title="${escapeHtml(color.label)}" aria-label="${escapeHtml(color.label)}" aria-pressed="${selected === color.value}">
+      ${colors.map((color) => {
+        const label = color.publishedName ?? color.label;
+        return `
+        <button type="button" class="color-swatch ${selected === color.value ? 'is-selected' : ''}" data-option-path="${path}" data-option-value="${color.value}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}" aria-pressed="${selected === color.value}">
           <span style="--swatch:${color.value}"></span>
-          <small>${escapeHtml(color.label)}</small>
+          <small>${escapeHtml(label)}</small>
         </button>
-      `).join('')}
+      `;
+      }).join('')}
     </div>
   `;
 }

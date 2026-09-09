@@ -4,6 +4,7 @@ const { HttpsError, onCall, onRequest } = require('firebase-functions/v2/https')
 const { getAuth } = require('firebase-admin/auth');
 const { getFirestore, Timestamp } = require('firebase-admin/firestore');
 const WINDOW_DEFAULTS = require('./window-color-defaults.json');
+const PERGOLA_DEFAULTS = require('./pergola-color-defaults.json');
 
 // The same verified-account allowlist as the existing internal sales dashboard.
 // Never authorize using an email, role, or admin flag supplied by the browser.
@@ -27,11 +28,28 @@ const OPTIONS = {
 const ADMIN_OPTIONS = { ...OPTIONS, cors: EDITOR_ORIGINS, enforceAppCheck: false };
 const COLLECTION = 'configuratorColorPalettes';
 const MAX_COLORS = 100;
-const FINISH_GROUPS = [
-  { id: 'mill', label: 'Mill finish', hasNames: true },
-  { id: 'anodized', label: 'Anodized', hasNames: true },
-  { id: 'coated', label: 'Color coated', hasNames: true },
-];
+const CONFIGURATORS = new Map([
+  ['window', {
+    id: 'window', defaults: WINDOW_DEFAULTS, uniqueColors: false,
+    groups: [
+      { id: 'mill', label: 'Mill finish', hasNames: true },
+      { id: 'anodized', label: 'Anodized', hasNames: true },
+      { id: 'coated', label: 'Color coated', hasNames: true },
+    ],
+  }],
+  ['pergola', {
+    // Pergola selections use hex values, not preset IDs, so duplicate hex values
+    // within a group would make more than one swatch appear selected.
+    id: 'pergola', defaults: PERGOLA_DEFAULTS, uniqueColors: true,
+    groups: [
+      { id: 'frame', label: 'Frame', hasNames: true },
+      { id: 'louvers', label: 'Roof louvers', hasNames: true },
+      { id: 'screens', label: 'Screens', hasNames: true },
+      { id: 'privacy-wall', label: 'Privacy walls', hasNames: true },
+      { id: 'led', label: 'LED lighting', hasNames: true },
+    ],
+  }],
+]);
 
 function isObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -44,10 +62,12 @@ function requireKeys(value, keys, message) {
   }
 }
 
-function requireWindow(id) {
-  if (id !== 'window') {
-    throw new HttpsError('invalid-argument', 'Color editing is currently available only for the window configurator.');
+function requireConfigurator(id) {
+  const definition = CONFIGURATORS.get(id);
+  if (!definition) {
+    throw new HttpsError('invalid-argument', 'Unsupported configurator.');
   }
+  return definition;
 }
 
 async function requireEditorAdmin(request) {
@@ -67,7 +87,7 @@ async function requireEditorAdmin(request) {
     throw error;
   }
   if (user.disabled || !user.emailVerified || !EDITOR_ADMIN_EMAILS.has(String(user.email || '').trim().toLowerCase())) {
-    throw new HttpsError('permission-denied', 'This account is not authorized to edit window colors.');
+    throw new HttpsError('permission-denied', 'This account is not authorized to edit configurator colors.');
   }
   // Callable token validation is supplemented with revocation checks so removing
   // access or revoking sessions cannot leave an existing editor tab authorized.
@@ -79,15 +99,16 @@ async function requireEditorAdmin(request) {
   return user;
 }
 
-function validateGroups(groups) {
-  requireKeys(groups, FINISH_GROUPS.map(group => group.id), 'Include exactly the three window finish groups.');
+function validateGroups(groups, definition) {
+  requireKeys(groups, definition.groups.map(group => group.id), `Include exactly the ${definition.id} color groups.`);
   const result = {};
-  for (const { id: groupId, label } of FINISH_GROUPS) {
+  for (const { id: groupId, label } of definition.groups) {
     const colors = groups[groupId];
     if (!Array.isArray(colors) || colors.length < 1 || colors.length > MAX_COLORS) {
       throw new HttpsError('invalid-argument', `${label} must contain between 1 and ${MAX_COLORS} colors.`);
     }
     const ids = new Set();
+    const hexValues = new Set();
     result[groupId] = colors.map(color => {
       requireKeys(color, ['id', 'name', 'color'], `Invalid color in ${label}.`);
       if (typeof color.id !== 'string' || !/^[a-z0-9][a-z0-9_-]{0,63}$/.test(color.id) || ids.has(color.id)) {
@@ -100,16 +121,21 @@ function validateGroups(groups) {
       if (typeof color.color !== 'string' || !/^#[0-9a-f]{6}$/i.test(color.color)) {
         throw new HttpsError('invalid-argument', 'Use six-digit hexadecimal colors, for example #383e42.');
       }
+      const hex = color.color.toLowerCase();
+      if (definition.uniqueColors && hexValues.has(hex)) {
+        throw new HttpsError('invalid-argument', `Each hex value must be unique within ${label}.`);
+      }
       ids.add(color.id);
-      return { id: color.id, name: color.name.trim(), color: color.color.toLowerCase() };
+      hexValues.add(hex);
+      return { id: color.id, name: color.name.trim(), color: hex };
     });
   }
   return result;
 }
 
-function publicPalette(snapshot) {
+function publicPalette(snapshot, definition) {
   if (!snapshot.exists) {
-    return { schemaVersion: 1, configuratorId: 'window', revision: 0, groups: validateGroups(WINDOW_DEFAULTS), updatedAtMs: 0 };
+    return { schemaVersion: 1, configuratorId: definition.id, revision: 0, groups: validateGroups(definition.defaults, definition), updatedAtMs: 0 };
   }
   const data = snapshot.data();
   if (data.schemaVersion !== 1 || !Number.isSafeInteger(data.revision) || data.revision < 1) {
@@ -118,9 +144,9 @@ function publicPalette(snapshot) {
   // Explicit projection: neither editor identity nor audit history is public.
   return {
     schemaVersion: 1,
-    configuratorId: 'window',
+    configuratorId: definition.id,
     revision: data.revision,
-    groups: validateGroups(data.groups),
+    groups: validateGroups(data.groups, definition),
     updatedAtMs: data.updatedAt?.toMillis?.() || 0,
   };
 }
@@ -128,11 +154,12 @@ function publicPalette(snapshot) {
 exports.getConfiguratorColorEditor = onCall(ADMIN_OPTIONS, async request => {
   await requireEditorAdmin(request);
   requireKeys(request.data, ['configuratorId'], 'Specify the configurator to edit.');
-  requireWindow(request.data.configuratorId);
-  const snapshot = await getFirestore().collection(COLLECTION).doc('window').get();
+  const definition = requireConfigurator(request.data.configuratorId);
+  const snapshot = await getFirestore().collection(COLLECTION).doc(definition.id).get();
   return {
-    ...publicPalette(snapshot),
-    finishGroups: FINISH_GROUPS,
+    ...publicPalette(snapshot, definition),
+    // Keep this response field for compatibility with the existing window editor.
+    finishGroups: definition.groups,
     maxColorsPerGroup: MAX_COLORS,
   };
 });
@@ -140,17 +167,17 @@ exports.getConfiguratorColorEditor = onCall(ADMIN_OPTIONS, async request => {
 exports.saveConfiguratorColors = onCall(ADMIN_OPTIONS, async request => {
   const user = await requireEditorAdmin(request);
   requireKeys(request.data, ['configuratorId', 'expectedRevision', 'groups'], 'Invalid palette update.');
-  requireWindow(request.data.configuratorId);
+  const definition = requireConfigurator(request.data.configuratorId);
   const { expectedRevision } = request.data;
   if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0 || expectedRevision >= Number.MAX_SAFE_INTEGER) {
     throw new HttpsError('invalid-argument', 'A valid palette revision is required. Reload the editor.');
   }
-  const groups = validateGroups(request.data.groups);
+  const groups = validateGroups(request.data.groups, definition);
   const db = getFirestore();
-  const ref = db.collection(COLLECTION).doc('window');
+  const ref = db.collection(COLLECTION).doc(definition.id);
   return db.runTransaction(async transaction => {
     const snapshot = await transaction.get(ref);
-    const current = publicPalette(snapshot);
+    const current = publicPalette(snapshot, definition);
     if (current.revision !== expectedRevision) {
       throw new HttpsError('aborted', 'Another administrator published changes. Reload the published colors before saving again.');
     }
@@ -160,7 +187,7 @@ exports.saveConfiguratorColors = onCall(ADMIN_OPTIONS, async request => {
     // The published document and its immutable audit snapshot are one atomic write.
     transaction.set(ref, data);
     transaction.create(ref.collection('history').doc(String(revision)), data);
-    return { schemaVersion: 1, configuratorId: 'window', revision, groups, updatedAtMs: updatedAt.toMillis() };
+    return { schemaVersion: 1, configuratorId: definition.id, revision, groups, updatedAtMs: updatedAt.toMillis() };
   });
 });
 
@@ -174,13 +201,14 @@ exports.getConfiguratorColors = onRequest({ ...OPTIONS, cors: true }, async (req
     response.status(405).json({ error: 'Method not allowed.' });
     return;
   }
-  if (request.query?.configuratorId !== 'window') {
+  const definition = CONFIGURATORS.get(request.query?.configuratorId);
+  if (!definition) {
     response.status(400).json({ error: 'Unsupported configurator.' });
     return;
   }
   try {
-    const snapshot = await getFirestore().collection(COLLECTION).doc('window').get();
-    response.status(200).json(publicPalette(snapshot));
+    const snapshot = await getFirestore().collection(COLLECTION).doc(definition.id).get();
+    response.status(200).json(publicPalette(snapshot, definition));
   } catch (error) {
     console.error('Unable to load published configurator colors.', error);
     response.status(503).json({ error: 'Published colors are temporarily unavailable.' });
