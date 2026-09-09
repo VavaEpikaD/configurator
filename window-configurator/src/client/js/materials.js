@@ -34,6 +34,12 @@ export function createMaterialManager({
             return fallbackSelection;
         }
 
+        // A saved preset ID takes precedence over a nearest-color approximation.
+        // This also distinguishes named presets which happen to share a color.
+        if (preset && getFinishDefinition(type).presets.some(entry => entry.id === preset)) {
+            return createFinishSelection(type, preset);
+        }
+
         if (type === 'coated' && colour) {
             return createRalFinishSelectionFromColour(colour);
         }
@@ -272,7 +278,7 @@ export function createMaterialManager({
             button.type = 'button';
             button.className = `finish-swatch${selection.presetId === preset.id ? ' active' : ''}`;
             button.style.setProperty('--swatch-color', preset.color);
-            const presetLabel = windowT(
+            const presetLabel = preset.nameOverridden ? preset.name : windowT(
                 getWindowLocale(),
                 `finish.preset.${selection.type}.${preset.id}`
             );
@@ -294,7 +300,12 @@ export function createMaterialManager({
         });
 
         if (ui.selectedName) {
-            ui.selectedName.textContent = localizeFinishSelection(getWindowLocale(), selection);
+            const selectedPreset = definition.presets.find(preset => preset.id === selection.presetId);
+            // Keep translations for untouched factory names, but never translate
+            // an admin's custom name back into an old hard-coded RAL label.
+            ui.selectedName.textContent = selectedPreset?.nameOverridden
+                ? selectedPreset.name
+                : localizeFinishSelection(getWindowLocale(), selection);
         }
     }
 

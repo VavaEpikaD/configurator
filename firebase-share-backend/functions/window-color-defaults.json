@@ -1,0 +1,113 @@
+{
+  "mill": [
+    {
+      "id": "natural",
+      "name": "Natural aluminum gray",
+      "color": "#aeb4b9"
+    }
+  ],
+  "anodized": [
+    {
+      "id": "natural",
+      "name": "Natural anodized",
+      "color": "#9ca3a7"
+    },
+    {
+      "id": "champagne",
+      "name": "Champagne anodized",
+      "color": "#b0a184"
+    },
+    {
+      "id": "light-bronze",
+      "name": "Light bronze anodized",
+      "color": "#887863"
+    },
+    {
+      "id": "dark-bronze",
+      "name": "Dark bronze anodized",
+      "color": "#4d443a"
+    },
+    {
+      "id": "black",
+      "name": "Black anodized",
+      "color": "#24272b"
+    }
+  ],
+  "coated": [
+    {
+      "id": "ral-9016",
+      "name": "RAL 9016 – Traffic white",
+      "color": "#f1f0ea"
+    },
+    {
+      "id": "ral-9010",
+      "name": "RAL 9010 – Pure white",
+      "color": "#f1ece1"
+    },
+    {
+      "id": "ral-9001",
+      "name": "RAL 9001 – Cream",
+      "color": "#e9e0d2"
+    },
+    {
+      "id": "ral-7035",
+      "name": "RAL 7035 – Light grey",
+      "color": "#cbd0cc"
+    },
+    {
+      "id": "ral-7040",
+      "name": "RAL 7040 – Window grey",
+      "color": "#9da3a6"
+    },
+    {
+      "id": "ral-7001",
+      "name": "RAL 7001 – Silver grey",
+      "color": "#8a9597"
+    },
+    {
+      "id": "ral-7016",
+      "name": "RAL 7016 – Anthracite grey",
+      "color": "#383e42"
+    },
+    {
+      "id": "ral-7021",
+      "name": "RAL 7021 – Black grey",
+      "color": "#2f3234"
+    },
+    {
+      "id": "ral-9005",
+      "name": "RAL 9005 – Jet black",
+      "color": "#0a0a0d"
+    },
+    {
+      "id": "ral-8014",
+      "name": "RAL 8014 – Sepia brown",
+      "color": "#4a3526"
+    },
+    {
+      "id": "ral-8017",
+      "name": "RAL 8017 – Chocolate brown",
+      "color": "#45322e"
+    },
+    {
+      "id": "ral-6005",
+      "name": "RAL 6005 – Moss green",
+      "color": "#0f4336"
+    },
+    {
+      "id": "ral-6009",
+      "name": "RAL 6009 – Fir green",
+      "color": "#27352a"
+    },
+    {
+      "id": "ral-3005",
+      "name": "RAL 3005 – Wine red",
+      "color": "#5e2028"
+    },
+    {
+      "id": "ral-5011",
+      "name": "RAL 5011 – Steel blue",
+      "color": "#1f2a44"
+    }
+  ]
+}
