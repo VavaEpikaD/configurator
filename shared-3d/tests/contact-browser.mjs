@@ -148,6 +148,7 @@ try {
       </script></body>`);
       await page.waitForFunction(()=>!!window.__CONTACT_TEST,null,{timeout:90000});
     }
+    await page.evaluate(() => window.__CONTACT_TEST.surfaceSystem.materials.whenTexturesReady());
     await matchedPair(page,`${name}-overview`);
     if(name==='window') {
       await page.evaluate(async()=>{

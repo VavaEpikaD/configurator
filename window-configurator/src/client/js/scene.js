@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { createSurfaceSystem } from '../shared-3d/src/index.js?v=5';
+import { createSurfaceSystem } from '../shared-3d/src/index.js?v=6';
 
 function createWindowCameraViewController({ camera, controls }) {
     let lastReportedSide = null;

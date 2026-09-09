@@ -5,13 +5,13 @@ import {
     WINDOW_HEIGHT_MAX_M,
 } from './config.js';
 import { createComponentSelection } from './component-selection.js';
-import { createSceneContext } from './scene.js?v=contact-5';
+import { createSceneContext } from './scene.js?v=pbr-6';
 import { initializeUIControls } from './ui-controls.js?v=4';
-import { createWindowBuilder } from './window-builder.js?v=contact-5';
-import { createMaterialManager } from './materials.js?v=contact-5';
+import { createWindowBuilder } from './window-builder.js?v=pbr-6';
+import { createMaterialManager } from './materials.js?v=pbr-6';
 import { createARController } from './ar-controller.js';
 import { createCadReferenceController } from './cad-reference.js';
-import { createProfileController } from './profile-controller.js?v=contact-5';
+import { createProfileController } from './profile-controller.js?v=pbr-6';
 import { createAccessoryController } from './accessory-controller.js';
 import { createProfileSelectionController } from './profile-selection-controller.js';
 import {

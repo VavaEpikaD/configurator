@@ -1,0 +1,285 @@
+{
+  "version": "20260909-pbr-6",
+  "createdAt": "2026-09-09T07:40:09.328718+00:00",
+  "baseline": {
+    "acceptedSharedRelease": "20260908-contact-5",
+    "authoritativeWindowArchive": "window-configurator.zip",
+    "windowArchiveSha256": "594c9d71c7340e42c76d4a8a6985f65424d94940da6ecfc1a797f04246407e56"
+  },
+  "scope": [
+    "window",
+    "pergola"
+  ],
+  "archiveFileCount": 43,
+  "manifestExcludesItself": true,
+  "validation": {
+    "sharedTestsPassed": 178,
+    "newPbrTestsPassed": 19,
+    "windowFullCheck": "passed",
+    "windowStaticBuild": "passed",
+    "pergolaSyntaxAndTranslations": "passed",
+    "pbrActualClientBrowserTests": "passed",
+    "browserSmoke": "passed",
+    "contactBrowserTests": "passed",
+    "matchedWindowPixels": "identical overview and handle close-up",
+    "localThreeRevisions": {
+      "window": "160 (vendored)",
+      "pergola": "160 (root three 0.160.1)"
+    },
+    "pergolaPinnedBuild": "Not locally run: Vite 8.1.5 unavailable; pinned Three 0.185.1 unchanged. Must pass in deployment environment."
+  },
+  "changedFiles": [
+    {
+      "path": "commit_message.md",
+      "bytes": 759,
+      "sha256": "2f0074532cc245bff162702d9211ae33d59ac1f5cf28ff2fb242ca909601c92f",
+      "previousSha256": "65c8b61ae3de77346bc3ec58ec442995d88164c04d3bf41d82dfc0691089c325"
+    },
+    {
+      "path": "package.json",
+      "bytes": 3578,
+      "sha256": "f232ab68a8afbf624edb7e0554aef35a25a21a6807ab1685ef58c197eb1f5ce5",
+      "previousSha256": "7c148b3cdfefaeeda66f447dd367d14dc4a8747c12eaca7ddc1a2d7c20736baf"
+    },
+    {
+      "path": "pergola-configurator/src/scene/PergolaScene.js",
+      "bytes": 27554,
+      "sha256": "33db3856b2fc041fb9b8af6d530225bf7f71e16477ca7d8f892f123f38793700",
+      "previousSha256": "5e7e8a0a4fe38d3c2ad08b472d7522f18235a8bad9ea91f57bd1849b076c8d66"
+    },
+    {
+      "path": "pergola-configurator/src/scene/pergolaGeometry.js",
+      "bytes": 2168,
+      "sha256": "ca84baddf79f069e63fe6ca290d78a491305a30a13bad0c5d8404ccd0ea79b98",
+      "previousSha256": "4e996001067348a7f533ee5146b9a58647c851d88606e3ddc02c929140da2588"
+    },
+    {
+      "path": "shared-3d/PBR_SURFACES.md",
+      "bytes": 6359,
+      "sha256": "d2a8224cb2474124968b61961c0b273b7fe9774f3accca258f3b3f9d8814500d",
+      "previousSha256": null
+    },
+    {
+      "path": "shared-3d/README.md",
+      "bytes": 3825,
+      "sha256": "24d6a2cf7f95c05ea915c2ab931a9a4443eee90e5ba872f6535b3bea067ba9f0",
+      "previousSha256": "99117a89cec8286355709d2aa20c94a20db6ac4adcbdcefa626be8e5bfe94624"
+    },
+    {
+      "path": "shared-3d/VALIDATION.md",
+      "bytes": 5671,
+      "sha256": "e144c800fcbe8453512844d6be751e897cc33fd77796b4dfa0890000db33925f",
+      "previousSha256": "2b00beaf27bffe2bae1f0e62152c3b892a8953b6b327857b43a196a54b552b15"
+    },
+    {
+      "path": "shared-3d/assets/pbr/README.md",
+      "bytes": 2584,
+      "sha256": "c6ecc14a5799a591ed5b110a1f24b47b2994e5ee0c3cbc42257ccc06342752bf",
+      "previousSha256": null
+    },
+    {
+      "path": "shared-3d/assets/pbr/v1/brushed-normal-256.png",
+      "bytes": 29840,
+      "sha256": "12060f92dad2c671e3e7764bbdba853792134a8b96c31c61be30e906f9ef6de5",
+      "previousSha256": null
+    },
+    {
+      "path": "shared-3d/assets/pbr/v1/brushed-roughness-256.png",
+      "bytes": 11145,
+      "sha256": "744d8bcd05a9a353d646092e77387854f5f88280b554ba377cc8bacc8ac33cc7",
+      "previousSha256": null
+    },
+    {
+      "path": "shared-3d/assets/pbr/v1/deck-color-256.jpg",
+      "bytes": 17923,
+      "sha256": "7f2b8ae3bf28d9a01e87450c2f656469b0ca85431fc582a9c5d986ab0eed8fbb",
+      "previousSha256": null
+    },
+    {
+      "path": "shared-3d/assets/pbr/v1/deck-color-512.jpg",
+      "bytes": 90063,
+      "sha256": "4c9e0fe03c77c717eac86c81e9dfa64447e3ee5a4801ea4ed8de5790192203ac",
+      "previousSha256": null
+    },
+    {
+      "path": "shared-3d/assets/pbr/v1/deck-normal-512.png",
+      "bytes": 17659,
+      "sha256": "736fd2927e106d966501af4de77ab76795e90d1916603c63d48c66372d549fbe",
+      "previousSha256": null
+    },
+    {
+      "path": "shared-3d/assets/pbr/v1/deck-roughness-512.png",
+      "bytes": 99863,
+      "sha256": "6e40616950afb9ee328c116333a2398d6559921ae81db156f0d641b0b7d09fa5",
+      "previousSha256": null
+    },
+    {
+      "path": "shared-3d/assets/pbr/v1/manifest.json",
+      "bytes": 1525,
+      "sha256": "19f35f7b6a2b9c3a3441592d28c6a457a1af857a656f3968c1af99f20154dfe5",
+      "previousSha256": null
+    },
+    {
+      "path": "shared-3d/assets/pbr/v1/powder-normal-256.png",
+      "bytes": 144076,
+      "sha256": "6ecd8a0b06c4412b94f8c040ebe973aa6ecaecdffa20510992cb87b2971f88be",
+      "previousSha256": null
+    },
+    {
+      "path": "shared-3d/assets/pbr/v1/powder-roughness-256.png",
+      "bytes": 37589,
+      "sha256": "ecd99d2acc3741998787bdcfeb2aa7415ee6b522d36d85880aeebd544ef32da8",
+      "previousSha256": null
+    },
+    {
+      "path": "shared-3d/src/createSurfaceSystem.js",
+      "bytes": 5784,
+      "sha256": "7a05dc3a9023d4c96a3124f7851595fc579215a44871293b3f1c417423c6c1b5",
+      "previousSha256": "4d19a087ac773ce267a7c9d3634b19389815d4d54cb1c95e134cc187d21ba30f"
+    },
+    {
+      "path": "shared-3d/src/index.js",
+      "bytes": 1238,
+      "sha256": "0543d4492a565ee866839a1fdd5098991f9a4ad01afe16bb40462dd65d677ec3",
+      "previousSha256": "f7f81a825b7e0374928892318655b7466c047921e29177152e0c0ff9c7aeb08f"
+    },
+    {
+      "path": "shared-3d/src/materials/MaterialLibrary.js",
+      "bytes": 8749,
+      "sha256": "fe0725b84e38afd28a6873d02339c985c6c335529bfd2a6a9674d9235ec20cd0",
+      "previousSha256": "0d3981425d1fc8474a7196ac81bf716ebc09b2766a744e150c1251cd32ea5f0b"
+    },
+    {
+      "path": "shared-3d/src/materials/PBRTextureSets.js",
+      "bytes": 9586,
+      "sha256": "da8c07e86b6996e9654a867e2fa87c3ea8c51d808938ce55654857ceab1135a9",
+      "previousSha256": null
+    },
+    {
+      "path": "shared-3d/src/materials/presets.js",
+      "bytes": 1729,
+      "sha256": "4b28774ba7650d3e75619f5b3251d1a2526de270f433468523f4535b53610597",
+      "previousSha256": "14619682358975cc1102ab561afbd6fe6f5c7af5f614278034b8e6deb8f61897"
+    },
+    {
+      "path": "shared-3d/src/materials/textureSets.js",
+      "bytes": 1293,
+      "sha256": "ce3f5525df821e869b2e5faaa546c2db35492f2dfbb08aedc25a9c502f3fcfa3",
+      "previousSha256": null
+    },
+    {
+      "path": "shared-3d/tests/browser-smoke.mjs",
+      "bytes": 8524,
+      "sha256": "9c8e237f02609c573f990a8047ff5704cf94e2851b97a283fa7860e0cfaaa5ff",
+      "previousSha256": "afa34fd2b31cf41b9462240de2ef40e6358ba9fdf2a8da8848a2afa2223c91f5"
+    },
+    {
+      "path": "shared-3d/tests/contact-browser.mjs",
+      "bytes": 14691,
+      "sha256": "f84e416e490667c73196af9cd4c635835b7f9ba03225c14bfb70f6f57d41184b",
+      "previousSha256": "6fcf76d142a2abe31b639950df9509dd38e49fb2815d17c223ef96cf10c667a3"
+    },
+    {
+      "path": "shared-3d/tests/geometry-integration.mjs",
+      "bytes": 6733,
+      "sha256": "5bcd065ca8147a930c621240a13d3f80fd6583b021cce8984ce28e66f7c53a3b",
+      "previousSha256": "6c1f9a61cc01c4c90194d7d8b3698348c60a0aa5477d3be00ce5ebaca41aab75"
+    },
+    {
+      "path": "shared-3d/tests/pbr-browser.mjs",
+      "bytes": 10531,
+      "sha256": "9d0593aaa548367fe1cb01686972b414712470c1bd3938b5f55064b5c1276d2e",
+      "previousSha256": null
+    },
+    {
+      "path": "shared-3d/tests/pbr-textures.mjs",
+      "bytes": 11791,
+      "sha256": "ef7953e5fe1b06154d2582b3cf3fc1271f9183440de6b456b54275d19ed91a2c",
+      "previousSha256": null
+    },
+    {
+      "path": "shared-3d/tools/bake_microtextures.mjs",
+      "bytes": 647,
+      "sha256": "740fdee18327c7c6f632f0863dd3c453e6a0d25d6618951223ec3e9dcd52fc78",
+      "previousSha256": null
+    },
+    {
+      "path": "shared-3d/tools/check_pbr_release.mjs",
+      "bytes": 1108,
+      "sha256": "a32ce4e9847863e397fd8feaaee7624fa6cac64a83facb82a5bde277d97f4d7d",
+      "previousSha256": null
+    },
+    {
+      "path": "shared-3d/tools/prepare_pbr_assets.py",
+      "bytes": 3315,
+      "sha256": "4a5935d123b2ad79401579a3021b1386067e59ad22b4287019d5a1ed1f491f70",
+      "previousSha256": null
+    },
+    {
+      "path": "window-configurator/scripts/build/prepare_static_site.js",
+      "bytes": 4803,
+      "sha256": "61386262811665c6143e25abd32ccfaafcaf0244d156ac4b03defaa2cab68b44",
+      "previousSha256": "b4bed15810b85967fb98c22f232ac3f0a7ae77cc675ebe2760264822eb9b6cbe"
+    },
+    {
+      "path": "window-configurator/src/client/index.html",
+      "bytes": 37817,
+      "sha256": "a1d3398156c9491d2b1d27847db8da50cfaa9cac64bb3bfa127ddbbadd66b518",
+      "previousSha256": "201a0880f38c139bd2a824159bf694ffbdba9ee45b8e7a4f160cb2092a80f06c"
+    },
+    {
+      "path": "window-configurator/src/client/js/geometry-utils.js",
+      "bytes": 1188,
+      "sha256": "209bac6e814b0830cb1106ad527a6333d075e40a5c81296887c5d5afafa19dc3",
+      "previousSha256": "dadb42e1b3837092fbd7ca2157f75018b7f71ec4aa6c81f9cb308047a37950e3"
+    },
+    {
+      "path": "window-configurator/src/client/js/house-builder.js",
+      "bytes": 10023,
+      "sha256": "caf0c1708ef451264df87dd813840bec4b85e560c0a21789bfa9ba675c7ddb7e",
+      "previousSha256": "b0ed94f90154cbdbddaa9afbc0799abf3acfe50c486c26219008da25a1a4b767"
+    },
+    {
+      "path": "window-configurator/src/client/js/main.js",
+      "bytes": 47305,
+      "sha256": "6480ed395ce43fccb5d8736494b42f5d8b186d5568f57f6f94fdf4eadf4a45d1",
+      "previousSha256": "3e2354e252da314b4c57c068867615711178ce4aca457118369ee5ed53875275"
+    },
+    {
+      "path": "window-configurator/src/client/js/materials.js",
+      "bytes": 21076,
+      "sha256": "9c727137ecca54a7b8718012ae6369c695d434d7c5fb786be6a5fceb0fa35ea9",
+      "previousSha256": "ce77e43117ed64bb4d56c4e0f551ba13c44b760e3c8ef626442c09703d9c023b"
+    },
+    {
+      "path": "window-configurator/src/client/js/profile-controller.js",
+      "bytes": 62635,
+      "sha256": "67d33d56de68819ba94c1948f920e7951ea5078c6222e7dddb450d9f86456d9e",
+      "previousSha256": "6622a90c56418b23a443ff5c4fb3b3ffdc791c5151c370201fb7fb08a3b2569d"
+    },
+    {
+      "path": "window-configurator/src/client/js/profile-loader.js",
+      "bytes": 16185,
+      "sha256": "625a710f74ef6bb103d79d1d775fd33588f247fb10526dcbde2d7f2c1412487f",
+      "previousSha256": "238a5d4985eec8ec3ef509b8734871153fb882178b06c56db283647cb38e1263"
+    },
+    {
+      "path": "window-configurator/src/client/js/scene.js",
+      "bytes": 6995,
+      "sha256": "cf0e96b87b69c741108aa50150bb041e0195da9ec0b8ccf92bc3f4a90b482942",
+      "previousSha256": "5b5e4107f0415e1f569882c8d03980a489c1ab2f38a14eab9fc559fd759f896a"
+    },
+    {
+      "path": "window-configurator/src/client/js/window-builder.js",
+      "bytes": 300361,
+      "sha256": "778bfd86e4acefef84ed5042d7c8d47aece0e198935313a96a5269a927eca7f5",
+      "previousSha256": "29d0221bd33bd461f5ad9ceaf1339e8c925fba0b7589be3ce6e276c0a41399d3"
+    },
+    {
+      "path": "window-configurator/src/client/js/window-geometry.js",
+      "bytes": 2713,
+      "sha256": "d1b6feed6fd7a2242373e1070386d25d97c3b36f20f4524ac9e70da362d853cb",
+      "previousSha256": "547ff313898a24c3ff7d9ace1272e04b5a777e760943da0ddf5797c2c074351d"
+    }
+  ]
+}
