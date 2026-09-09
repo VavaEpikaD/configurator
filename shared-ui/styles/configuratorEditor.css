@@ -699,17 +699,21 @@ h2 {
 }
 
 
-/* Pergola has five groups and named tiles, rather than window finish swatches. */
+/* Pergola and fence use named tiles, rather than window finish swatches. */
+html[data-configurator-id="fence"] .finish-tabs,
 html[data-configurator-id="pergola"] .finish-tabs {
   flex-wrap:wrap;
 }
+html[data-configurator-id="fence"] .finish-tabs button,
 html[data-configurator-id="pergola"] .finish-tabs button {
   flex:1 1 100px;
 }
+html[data-configurator-id="fence"] .preview-swatches,
 html[data-configurator-id="pergola"] .preview-swatches {
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));
 }
+html[data-configurator-id="fence"] .preview-swatch,
 html[data-configurator-id="pergola"] .preview-swatch {
   width:100%;
   height:auto;
@@ -718,6 +722,7 @@ html[data-configurator-id="pergola"] .preview-swatch {
   background:#fff;
   color:#26374b;
 }
+html[data-configurator-id="fence"] .preview-swatch::before,
 html[data-configurator-id="pergola"] .preview-swatch::before {
   content:"";
   display:block;
@@ -728,6 +733,7 @@ html[data-configurator-id="pergola"] .preview-swatch::before {
   border:1px solid #dce3eb;
   margin-bottom:6px;
 }
+html[data-configurator-id="fence"] .preview-swatch span,
 html[data-configurator-id="pergola"] .preview-swatch span {
   display:block;
   font-size:11px;

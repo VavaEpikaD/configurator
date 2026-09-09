@@ -1,12 +1,5 @@
-export const FINISHES = Object.freeze({
-  anthracite: { color: '#252d33', labelKey: 'finish.anthracite', multiplier: 1 },
-  black: { color: '#0e1215', labelKey: 'finish.black', multiplier: 1.04 },
-  white: { color: '#d8d7d2', labelKey: 'finish.white', multiplier: 1.05 },
-  // Powder-coated bronze grey: deliberately muted and neutral enough to stay
-  // distinct from the warmer wood-effect finish under the studio lights.
-  bronze: { color: '#5f544c', labelKey: 'finish.bronze', multiplier: 1.08 },
-  wood: { color: '#8a5734', labelKey: 'finish.wood', multiplier: 1.18 },
-});
+import { getDefaultFenceFinishId, normalizeFenceFinish } from './finish-catalog.js?v=1';
+export { FINISHES } from './finish-catalog.js?v=1';
 
 export const PANEL_STYLES = Object.freeze({
   vertical: { labelKey: 'panel.vertical', pricePerM2: 145, material: 'Powder-coated aluminium vertical slats' },
@@ -44,6 +37,7 @@ export const DEFAULT_FENCE_STATE = Object.freeze({
 export function createFenceState(source = {}) {
   const defaults = structuredClone(DEFAULT_FENCE_STATE);
   const incoming = structuredClone(source);
+  if (!incoming.finish) defaults.finish = getDefaultFenceFinishId();
   // Old saved/share states used gateType/gateRun/gatePosition/gateHanding. Do
   // not let the new default gates array mask those legacy fields during merge.
   if (!Array.isArray(incoming.gates) && Object.prototype.hasOwnProperty.call(incoming, 'gateType')) delete defaults.gates;
@@ -224,7 +218,7 @@ export function normalizeFenceState(state) {
   next.targetBayWidth = clampNumber(next.targetBayWidth, 1, 3, 2);
   next.infillGap = clampNumber(next.infillGap, 0.015, 0.12, 0.035);
   if (!PANEL_STYLES[next.panelStyle]) next.panelStyle = 'vertical';
-  if (!FINISHES[next.finish]) next.finish = 'anthracite';
+  normalizeFenceFinish(next);
   if (!['concrete', 'baseplate'].includes(next.foundation)) next.foundation = 'concrete';
   next.scenery = Boolean(next.scenery);
   next.showDimensions = Boolean(next.showDimensions);

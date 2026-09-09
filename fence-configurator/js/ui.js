@@ -1,4 +1,5 @@
-import { FINISHES, PANEL_STYLES, activeRunIds, deriveFenceMetrics, normalizeFenceState } from './state.js?v=4';
+import { PANEL_STYLES, activeRunIds, deriveFenceMetrics, normalizeFenceState } from './state.js?v=4';
+import { getAvailableFenceFinishes, resolveFenceFinish, selectFenceFinish } from './finish-catalog.js?v=1';
 import { buildFenceBom, fenceBomCsv, formatMoney } from './bom.js?v=4';
 import { applyFenceTranslations, fenceT, resolveFenceLocale } from './i18n.js?v=4';
 
@@ -50,11 +51,9 @@ export class FenceUI {
       });
     });
 
-    document.querySelectorAll('[data-finish]').forEach((button) => {
-      button.addEventListener('click', () => {
-        this.state.finish = button.dataset.finish;
-        this.commit();
-      });
+    document.querySelector('.finish-row')?.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-finish]');
+      if (button && selectFenceFinish(this.state, button.dataset.finish)) this.commit();
     });
 
     document.querySelectorAll('[data-control]').forEach((control) => this.bindNumericControl(control));
@@ -139,13 +138,7 @@ export class FenceUI {
       button.classList.toggle('selected', selected);
       button.setAttribute('aria-pressed', String(selected));
     });
-    document.querySelectorAll('[data-finish]').forEach((button) => {
-      const selected = button.dataset.finish === this.state.finish;
-      button.classList.toggle('selected', selected);
-      button.setAttribute('aria-pressed', String(selected));
-      const finish = FINISHES[button.dataset.finish];
-      if (finish) button.style.setProperty('--swatch', finish.color);
-    });
+    this.syncFinishChoices();
     setValue('#foundationType', this.state.foundation);
     const scenery = document.querySelector('#sceneryToggle');
     if (scenery) scenery.checked = this.state.scenery;
@@ -166,6 +159,57 @@ export class FenceUI {
     setText('#runDLabel', fenceT(this.locale, 'dimension.closed5RunD'));
     setText('#closingRunLabel', fenceT(this.locale, isClosed5 ? 'dimension.closed5RunE' : 'dimension.closedRunD'));
     setText('#closingRunHelp', fenceT(this.locale, isClosed5 ? 'dimension.closed5Help' : 'dimension.closedHelp'));
+  }
+
+  syncFinishChoices() {
+    const row = document.querySelector('.finish-row');
+    if (!row) return;
+    const finishes = getAvailableFenceFinishes();
+    const signature = JSON.stringify([this.locale, finishes]);
+    const labelFor = finish => finish.labelKey ? fenceT(this.locale, finish.labelKey) : finish.name;
+    if (this.finishChoicesSignature !== signature) {
+      this.finishChoicesSignature = signature;
+      row.setAttribute('role', 'group');
+      row.setAttribute('aria-label', fenceT(this.locale, 'finish.label'));
+      row.replaceChildren(...finishes.map(finish => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'finish-swatch';
+        button.dataset.finish = finish.id;
+        button.style.setProperty('--swatch', finish.color);
+        button.style.minWidth = '0';
+        const name = labelFor(finish);
+        button.title = name;
+        button.setAttribute('aria-label', name);
+        const chip = document.createElement('i');
+        chip.setAttribute('aria-hidden', 'true');
+        const label = document.createElement('span');
+        // Published names are plain text, not HTML or translation message keys.
+        label.textContent = name;
+        label.style.overflowWrap = 'anywhere';
+        button.append(chip, label);
+        return button;
+      }));
+    }
+    const selection = resolveFenceFinish(this.state);
+    let offered = false;
+    row.querySelectorAll('[data-finish]').forEach((button, index) => {
+      const finish = finishes[index];
+      const selected = finish.id === selection.id && finish.color === selection.color;
+      offered ||= selected;
+      button.classList.toggle('selected', selected);
+      button.setAttribute('aria-pressed', String(selected));
+    });
+    // Show an archived selection without putting a deleted finish back in the picker.
+    let selectedName = document.querySelector('#selectedFenceFinish');
+    if (!selectedName) {
+      selectedName = document.createElement('p');
+      selectedName.id = 'selectedFenceFinish';
+      selectedName.className = 'section-copy';
+      selectedName.setAttribute('role', 'status');
+      row.after(selectedName);
+    }
+    selectedName.textContent = `${fenceT(this.locale, 'finish.label')}: ${labelFor(selection)}${offered ? '' : ` (${selection.color})`}`;
   }
 
   syncNumericControls() {

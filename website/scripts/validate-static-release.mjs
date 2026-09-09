@@ -23,6 +23,10 @@ const composedSiteMounts = Object.freeze([
     root: path.join(workspaceRoot, "dist", "window-configurator-build"),
   }),
   Object.freeze({
+    prefix: "/fence-configurator/",
+    root: path.join(workspaceRoot, "fence-configurator"),
+  }),
+  Object.freeze({
     prefix: "/pergola-configurator/",
     root: path.join(workspaceRoot, "pergola-configurator", "dist"),
   }),

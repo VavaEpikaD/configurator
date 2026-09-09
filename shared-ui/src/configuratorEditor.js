@@ -5,6 +5,7 @@ import { callConfiguratorColorAdmin } from './configuratorColorApi.js';
 // data attribute and continue to work with their existing versioned script URL.
 const EDITORS = Object.freeze({
   window: { name: 'window', groups: ['mill', 'anodized', 'coated'], initialGroup: 'coated', uniqueColors: false },
+  fence: { name: 'fence', groups: ['finish'], initialGroup: 'finish', uniqueColors: false },
   pergola: { name: 'pergola', groups: ['frame', 'louvers', 'screens', 'privacy-wall', 'led'], initialGroup: 'frame', uniqueColors: true },
 });
 const configuratorId = document.documentElement.dataset.configuratorId || 'window';
@@ -102,7 +103,7 @@ function renderPreview() {
     button.setAttribute('aria-label', color.name || 'Unnamed color');
     button.setAttribute('aria-pressed', String(color.id === previewId));
     button.title = color.name || 'Unnamed color';
-    if (configuratorId === 'pergola') {
+    if (configuratorId === 'pergola' || configuratorId === 'fence') {
       const label = document.createElement('span');
       label.textContent = color.name || 'Unnamed color';
       button.append(label);
