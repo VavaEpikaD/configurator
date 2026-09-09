@@ -409,6 +409,25 @@ function installWindowSizeAndCartLimits() {
         clampControlForTarget(event.target);
     }, true);
 
+    // layout-sizing-manager runs its own handlers on the overall controls and
+    // historically enlarges the range max as the thumb approaches the end.
+    // Re-apply the real overall limits after those target handlers have run so
+    // 25 m is always the physical end of both slider tracks while dragging or
+    // committing a typed value. This bubble-phase sync does not alter the value.
+    const restoreOverallRangeMaxima = event => {
+        const target = event.target;
+        if (!(target instanceof HTMLInputElement)) return;
+        if (![
+            'overallWidthA',
+            'valOverallWidth',
+            'overallHeightB',
+            'valOverallHeight',
+        ].includes(target.id)) return;
+        syncControlMaxima();
+    };
+    document.addEventListener('input', restoreOverallRangeMaxima);
+    document.addEventListener('change', restoreOverallRangeMaxima);
+
     // The common Add to cart handler lives inside the shared configurator footer.
     // Validate during capture so an invalid window never reaches that handler.
     document.addEventListener('click', event => {
